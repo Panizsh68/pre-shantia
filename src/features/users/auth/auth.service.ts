@@ -38,7 +38,7 @@ export class AuthService {
       throw new HttpException('You are not authorized to assign permissions', HttpStatus.FORBIDDEN);
     }
     // shahkar api to check wether phoneNumber matches with the meliCode
-     const validatedUser = await this.shahkarService.verifyMelicodeWithPhonenumber(
+    const validatedUser = await this.shahkarService.verifyMelicodeWithPhonenumber(
       signUpDto.meliCode, 
       signUpDto.phoneNumber
     )

@@ -8,6 +8,7 @@ import { DeleteResult, UpdateResult } from 'mongoose';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 
+
 @Injectable()
 export class TicketingService implements ITicketingService{
   constructor(
@@ -56,4 +57,13 @@ export class TicketingService implements ITicketingService{
     return removedTicket
   }
 
+  // Method to escalate a ticket
+  async escalateTicket(ticketId: string): Promise<Ticket> {
+    const ticket = await this.ticketRepo.escalateTicket(ticketId);
+    return  ticket;
+  }
+
+  async autoEscalateTickets() {
+    return this.ticketRepo.autoEscalateTickets()
+  }
 }

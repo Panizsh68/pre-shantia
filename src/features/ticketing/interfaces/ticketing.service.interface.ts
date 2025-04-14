@@ -12,5 +12,7 @@ export interface ITicketingService {
     updateTicket(id: string, updateTicketDto: UpdateTicketDto): Promise<UpdateResult>;
     updateTicketStatus(id: string, status: TicketStatus): Promise<UpdateResult>;
     deleteTicket(id: string): Promise<DeleteResult>;
+    escalateTicket(ticketId: string): Promise<Ticket>;  
+    autoEscalateTickets(): Promise<void>; 
 }
   

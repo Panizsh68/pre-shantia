@@ -7,6 +7,8 @@ import { UsersService } from 'src/features/users/users.service';
 import { UpdateTicketDto } from '../dto/update-ticket.dto';
 import { CreateTicketDto } from '../dto/create-ticket.dto';
 import { ITicketingService } from '../interfaces/ticketing.service.interface';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { TicketPriority } from '../enums/ticket-priority.enum';
 
 @Injectable()
 export class TicketRepository implements ITicketingService {
@@ -50,5 +52,40 @@ export class TicketRepository implements ITicketingService {
   async deleteTicket(id: string): Promise<DeleteResult> {
     const removedTicket = await this.ticketModel.deleteOne({ _id: id})    
     return removedTicket
+  }
+
+  // Method to escalate a ticket
+  async escalateTicket(ticketId: string): Promise<Ticket> {
+    const ticket = await this.ticketModel.findById(ticketId);
+    
+    if (!ticket) {
+      throw new Error('Ticket not found');
+    }
+
+    if (ticket.status !== TicketStatus.Resolved) {
+      // Update ticket to escalated status
+      ticket.status = TicketStatus.Escalated;
+      ticket.priority = TicketPriority.High;
+      await ticket.save();
+      
+      // Here you could also notify the user or the agent, e.g., with a WebSocket event
+      return ticket;
+    }
+
+    throw new Error('Ticket already resolved');
+  }
+
+
+  // Cron job to automatically escalate tickets after 4 hours if no response
+  @Cron(CronExpression.EVERY_HOUR) // Runs every hour
+  async autoEscalateTickets() {
+    const tickets = await this.ticketModel.find({
+      status: TicketStatus.Open,
+      updatedAt: { $lt: new Date(Date.now() - 4 * 60 * 60 * 1000) }, // 4 hours threshold
+    });
+
+    for (const ticket of tickets) {
+      await this.escalateTicket(ticket.id.toString());
+    }
   }
 }

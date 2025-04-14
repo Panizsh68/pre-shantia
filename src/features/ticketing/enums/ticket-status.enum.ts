@@ -4,5 +4,6 @@ export enum TicketStatus {
     Resolved = 'resolved',
     Closed = 'closed',
     Reopened = 'reopened',
-    Canceled = 'canceled'
+    Escalated = 'escalated'
 }
+

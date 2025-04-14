@@ -18,6 +18,10 @@ import { CachingModule } from './infrastructure/caching/caching.module';
 import { TransportingsModule } from './features/transportings/transportings.module';
 import { CompaniesModule } from './features/companies/companies.module';
 import { OrdersModule } from './features/orders/orders.module';
+import { ChatModule } from './features/chat/chat.module';
+import { MessagesModule } from './features/messages/messages.module';
+import { PaymentsModule } from './features/payments/payments.module';
+import { WalletModule } from './features/wallet/wallet.module';
 
 
 
@@ -66,6 +70,10 @@ import { OrdersModule } from './features/orders/orders.module';
     TransportingsModule,
     CompaniesModule,
     OrdersModule,
+    ChatModule,
+    MessagesModule,
+    PaymentsModule,
+    WalletModule,
   ],
   controllers: [AppController],
   providers: [AppService],

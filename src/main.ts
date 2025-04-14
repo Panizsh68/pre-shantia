@@ -2,8 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { RequestContextMiddleware } from './utils/middlewares/request-context.middleware';
 import rateLimit from 'express-rate-limit';
+import { writeFileSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -34,7 +34,9 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config)
 
+  writeFileSync('./swagger.json', JSON.stringify(document, null, 2));
+
   SwaggerModule.setup('api', app, document)
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3001);
 }
 bootstrap();

@@ -17,11 +17,11 @@ export class Ticket extends Document {
     @Prop({ default: TicketPriority.Low })
     priority: TicketPriority;
 
-    @Prop({ type: String, required: true, index: true }) 
+    @Prop({ type: String, index: true }) 
     createdBy: string;
 
     @Prop({ type: String })
     assignedTo: string;
 }
 
-export const TicketDocument = SchemaFactory.createForClass(Ticket);
+export const TicketSchema = SchemaFactory.createForClass(Ticket);
