@@ -4,9 +4,9 @@ import { UpdateCompanyDto } from "../dto/update-company.dto";
 import { Company } from "../entities/company.entity";
 
 export interface ICompanyService { 
-    createCompany(createCompanyDto: CreateCompanyDto): Promise<Company>,
-    findAllCompanies(): Promise<Company[]>,
-    findOneCompany(id: string): Promise<Company>,
-    updateCompany(id: string, updateCompanyDto: UpdateCompanyDto): Promise<UpdateResult>,
-    removeCompany(id: string): Promise<DeleteResult>
+    create(createCompanyDto: CreateCompanyDto): Promise<Company>,
+    findAll(): Promise<Company[]>,
+    findOne(id: string): Promise<Company | null>,
+    update(id: string, updateCompanyDto: UpdateCompanyDto): Promise<Company | null>,
+    remove(id: string): Promise<boolean>
 }

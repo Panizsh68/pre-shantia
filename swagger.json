@@ -690,7 +690,7 @@
     },
     "/api/companies": {
       "post": {
-        "operationId": "CompaniesController_createCompany",
+        "operationId": "CompaniesController_create",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -712,7 +712,7 @@
         ]
       },
       "get": {
-        "operationId": "CompaniesController_findAllCompanies",
+        "operationId": "CompaniesController_findAll",
         "parameters": [],
         "responses": {
           "200": {
@@ -726,7 +726,7 @@
     },
     "/api/companies/{id}": {
       "get": {
-        "operationId": "CompaniesController_findOneCompany",
+        "operationId": "CompaniesController_findOne",
         "parameters": [
           {
             "name": "id",
@@ -747,7 +747,7 @@
         ]
       },
       "patch": {
-        "operationId": "CompaniesController_updateCompany",
+        "operationId": "CompaniesController_update",
         "parameters": [
           {
             "name": "id",
@@ -778,7 +778,7 @@
         ]
       },
       "delete": {
-        "operationId": "CompaniesController_removeCompany",
+        "operationId": "CompaniesController_remove",
         "parameters": [
           {
             "name": "id",
@@ -801,7 +801,7 @@
     },
     "/api/orders": {
       "post": {
-        "operationId": "OrdersController_createOrder",
+        "operationId": "OrdersController_create",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -823,7 +823,7 @@
         ]
       },
       "get": {
-        "operationId": "OrdersController_findAllOrders",
+        "operationId": "OrdersController_findAll",
         "parameters": [],
         "responses": {
           "200": {
@@ -837,7 +837,7 @@
     },
     "/api/orders/{id}": {
       "get": {
-        "operationId": "OrdersController_findOneOrder",
+        "operationId": "OrdersController_findOne",
         "parameters": [
           {
             "name": "id",
@@ -858,7 +858,7 @@
         ]
       },
       "patch": {
-        "operationId": "OrdersController_updateOrder",
+        "operationId": "OrdersController_update",
         "parameters": [
           {
             "name": "id",
@@ -889,7 +889,7 @@
         ]
       },
       "delete": {
-        "operationId": "OrdersController_removeOrder",
+        "operationId": "OrdersController_remove",
         "parameters": [
           {
             "name": "id",

@@ -11,27 +11,27 @@ export class OrdersController implements IOrderService{
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
-  async createOrder(@Body() createOrderDto: CreateOrderDto): Promise<Order> {
-    return this.ordersService.createOrder(createOrderDto);
+  async create(@Body() createOrderDto: CreateOrderDto): Promise<Order> {
+    return this.ordersService.create(createOrderDto);
   }
 
   @Get()
-  async findAllOrders(): Promise<Order[]> {
-    return this.ordersService.findAllOrders();
+  async findAll(): Promise<Order[]> {
+    return this.ordersService.findAll();
   }
 
   @Get(':id')
-  async findOneOrder(@Param('id') id: string): Promise<Order> {
-    return this.ordersService.findOneOrder(id);
+  async findOne(@Param('id') id: string): Promise<Order | null> {
+    return this.ordersService.findOne(id);
   }
 
   @Patch(':id')
-  async updateOrder(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto): Promise<UpdateResult> {
-    return this.ordersService.updateOrder(id, updateOrderDto);
+  async update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto): Promise<Order | null> {
+    return this.ordersService.update(id, updateOrderDto);
   }
 
   @Delete(':id')
-  async removeOrder(@Param('id') id: string): Promise<DeleteResult> {
-    return this.ordersService.removeOrder(id);
+  async remove(@Param('id') id: string): Promise<boolean> {
+    return this.ordersService.remove(id);
   }
 }

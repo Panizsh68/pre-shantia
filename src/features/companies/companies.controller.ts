@@ -10,27 +10,27 @@ export class CompaniesController implements ICompanyService {
   constructor(private readonly companiesService: CompaniesService) {}
 
   @Post()
-  async createCompany(@Body() createCompanyDto: CreateCompanyDto) {
-    return this.companiesService.createCompany(createCompanyDto);
+  async create(@Body() createCompanyDto: CreateCompanyDto) {
+    return this.companiesService.create(createCompanyDto);
   }
 
   @Get()
-  async findAllCompanies() {
-    return this.companiesService.findAllCompanies();
+  async findAll() {
+    return this.companiesService.findAll();
   }
 
   @Get(':id')
-  async findOneCompany(@Param('id') id: string) {
-    return this.companiesService.findOneCompany(id);
+  async findOne(@Param('id') id: string) {
+    return this.companiesService.findOne(id);
   }
 
   @Patch(':id')
-  async updateCompany(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto) {
-    return this.companiesService.updateCompany(id, updateCompanyDto);
+  async update(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto) {
+    return this.companiesService.update(id, updateCompanyDto);
   }
 
   @Delete(':id')
-  async removeCompany(@Param('id') id: string): Promise<DeleteResult> {
-    return this.companiesService.removeCompany(id);
+  async remove(@Param('id') id: string): Promise<boolean> {
+    return this.companiesService.remove(id);
   }
 }

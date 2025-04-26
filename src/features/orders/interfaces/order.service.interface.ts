@@ -4,9 +4,9 @@ import { UpdateOrderDto } from "../dto/update-order.dto";
 import { Order } from "../entities/order.entity";
 
 export interface IOrderService {
-    createOrder(createOrderDto: CreateOrderDto): Promise<Order>,
-    findAllOrders(): Promise<Order[]>,
-    findOneOrder(id: string): Promise<Order>,
-    updateOrder(id: string, updateOrderDto: UpdateOrderDto): Promise<UpdateResult>,
-    removeOrder(id: string): Promise<DeleteResult>
+    create(createOrderDto: CreateOrderDto): Promise<Order>,
+    findAll(): Promise<Order[]>,
+    findOne(id: string): Promise<Order | null>,
+    update(id: string, updateOrderDto: UpdateOrderDto): Promise<Order | null>,
+    remove(id: string): Promise<boolean>
 }

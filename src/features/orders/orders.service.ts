@@ -1,38 +1,36 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { IOrderService } from './interfaces/order.service.interface';
 import { Order } from './entities/order.entity';
-import { DeleteResult, Model, UpdateResult } from 'mongoose';
-import { InjectModel } from '@nestjs/mongoose';
+import { OrderRepository } from './repositories/order.repository';
 
 @Injectable()
-export class OrdersService implements IOrderService{
-  constructor(@InjectModel(Order.name) private readonly orderModel: Model<Order>) {}
+export class OrdersService implements IOrderService {
+  constructor(@Inject('OrderRepository') private readonly orderRepository: OrderRepository) {}
 
-  async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
-    const order = await this.orderModel.create(createOrderDto)
-    return await order.save()
-  }
-
-  async findAllOrders(): Promise<Order[]> {
-    const orders = await this.orderModel.find()
-    return orders
-  }
-
-  async findOneOrder(id: string): Promise<Order> {
-    const order = await this.orderModel.findById(id)
-    if (!order) throw new NotFoundException('order not found')
+  async create(createOrderDto: CreateOrderDto): Promise<Order> {
+    const order = await this.orderRepository.create(createOrderDto)
     return order
   }
 
-  async updateOrder(id: string, updateOrderDto: UpdateOrderDto): Promise<UpdateResult> {
-    const updatedOrder = await this.orderModel.updateOne({ _id: id}, updateOrderDto)
+  async findAll(): Promise<Order[]> {
+    const orders = await this.orderRepository.findAll()
+    return orders
+  }
+
+  async findOne(id: string): Promise<Order | null> {
+    const order = await this.orderRepository.findById(id)
+    return order
+  }
+
+  async update(id: string, updateOrderDto: UpdateOrderDto): Promise<Order | null> {
+    const updatedOrder = await this.orderRepository.update(id, updateOrderDto)
     return updatedOrder
   }
 
-  async removeOrder(id: string): Promise<DeleteResult> {
-    const removedOrder = await this.orderModel.deleteOne({ _id: id })
+  async remove(id: string): Promise<boolean> {
+    const removedOrder = await this.orderRepository.delete(id)
     return removedOrder
   }
 }

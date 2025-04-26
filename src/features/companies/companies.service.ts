@@ -1,38 +1,38 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { Company } from './entities/company.entity';
 import { DeleteResult, Model, UpdateResult } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { ICompanyService } from './interfaces/company.service.interface';
+import { CompanyRepository } from './repositories/company.repository';
 
 @Injectable()
 export class CompaniesService implements ICompanyService {
-  constructor(@InjectModel(Company.name) private readonly companyModel: Model<Company>) {}
+  constructor(@Inject('CompanyRepository') private readonly companyRepository: CompanyRepository ) {}
 
-  async createCompany(createCompanyDto: CreateCompanyDto): Promise<Company> {
-    const company = await this.companyModel.create(createCompanyDto);
-    return await company.save()
-  }
-
-  async findAllCompanies(): Promise<Company[]> {
-    const companies = await this.companyModel.find();
-    return companies
-  }
-
-  async findOneCompany(id: string): Promise<Company> {
-    const company = await this.companyModel.findById(id);
-    if (!company) throw new NotFoundException('company not found')
+  async create(createCompanyDto: CreateCompanyDto): Promise<Company> {
+    const company = await this.companyRepository.create(createCompanyDto);
     return company
   }
 
-  async updateCompany(id: string, updateCompanyDto: UpdateCompanyDto): Promise<UpdateResult> {
-    const updatedCompany = await this.companyModel.updateOne({ _id: id }, updateCompanyDto);
+  async findAll(): Promise<Company[]> {
+    const companies = await this.companyRepository.findAll();
+    return companies
+  }
+
+  async findOne(id: string): Promise<Company | null> {
+    const company = await this.companyRepository.findById(id);
+    return company
+  }
+
+  async update(id: string, updateCompanyDto: UpdateCompanyDto): Promise<Company | null> {
+    const updatedCompany = await this.companyRepository.update(id, updateCompanyDto);
     return updatedCompany
   }
 
-  async removeCompany(id: string): Promise<DeleteResult> {
-    const deletedCompany = await this.companyModel.deleteOne({ _id: id });
+  async remove(id: string): Promise<boolean> {
+    const deletedCompany = await this.companyRepository.delete(id);
     return deletedCompany
   }
 }

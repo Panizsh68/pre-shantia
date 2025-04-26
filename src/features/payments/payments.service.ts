@@ -1,26 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { IPaymentRepository } from './repositories/payments.repository';
+import { Payment } from './entities/payment.entity';
 
 @Injectable()
 export class PaymentsService {
-  create(createPaymentDto: CreatePaymentDto) {
-    return 'This action adds a new payment';
+  constructor(@Inject('PaymentRepository') private readonly paymentRepository: IPaymentRepository) {}
+  async create(createPaymentDto: CreatePaymentDto): Promise<Payment> {
+    return await this.paymentRepository.create(createPaymentDto);
   }
 
-  findAll() {
-    return `This action returns all payments`;
+  async findAll(): Promise<Payment[]> {
+    return await this.paymentRepository.findAll();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} payment`;
+  async findOne(id: string): Promise<Payment | null> {
+    return await this.paymentRepository.findById(id);
   }
 
-  update(id: number, updatePaymentDto: UpdatePaymentDto) {
-    return `This action updates a #${id} payment`;
+  async update(id: string, updatePaymentDto: UpdatePaymentDto): Promise<Payment | null> {
+    return await this.paymentRepository.update(id, updatePaymentDto);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} payment`;
+  async remove(id: string): Promise<boolean> {
+    return await this.paymentRepository.delete(id);
   }
 }

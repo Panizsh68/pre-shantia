@@ -11,7 +11,6 @@ import { OtpModule } from 'src/utils/services/otp/otp.module';
 import { OtpService } from 'src/utils/services/otp/otp.service';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { JwtService } from '@nestjs/jwt';
-import { UsersModule } from '../users.module';
 import { UserRepository } from '../repositories/user.repository';
 import { Model } from 'mongoose';
 
