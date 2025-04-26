@@ -41,9 +41,9 @@ export class CreateProductDto {
   ip?: string; // Kept, but should be handled separately if not needed in schema
 
 
-  @ApiProperty({ type: "string", format: "binary" })
+  @ApiProperty({ type: "string", format: "some link" })
   @IsOptional() 
-  image?: Express.Multer.File; // Added for alignment
+  image?: string; // Added for alignment
 
   // subcategory
   @ApiProperty({ example: "Azure" })
