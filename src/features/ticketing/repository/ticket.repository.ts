@@ -1,15 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { DeleteResult, Model, UpdateResult } from 'mongoose';
 import { Ticket } from '../entities/ticketing.entity';
 import { TicketStatus } from '../enums/ticket-status.enum';
-import { UsersService } from 'src/features/users/users.service';
-import { UpdateTicketDto } from '../dto/update-ticket.dto';
-import { CreateTicketDto } from '../dto/create-ticket.dto';
-import { ITicketingService } from '../interfaces/ticketing.service.interface';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { TicketPriority } from '../enums/ticket-priority.enum';
 import { BaseRepository, IBaseRepository } from 'src/utils/base.repository';
+import { Model } from 'mongoose';
 
 
 export interface ITicketRepository extends IBaseRepository<Ticket> {

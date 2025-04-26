@@ -4,7 +4,6 @@ import { Ticket } from './entities/ticketing.entity';
 import { AuthenticationGuard } from 'src/features/users/auth/guards/auth.guard';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { CreateTicketDto } from './dto/create-ticket.dto';
-import { DeleteResult, UpdateResult } from 'mongoose';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 
 @Controller('tickets')
@@ -14,39 +13,39 @@ export class TicketingController {
 
   @Post()
   async createTicket(@Body() createTicketDto: CreateTicketDto): Promise<Ticket> {
-    return await this.ticketingService.createTicket(createTicketDto);
+    return await this.ticketingService.create(createTicketDto);
   }
 
   @Get()
   async findAllTickets(): Promise<Ticket[]> {
-    return await this.ticketingService.findAllTickets();
+    return await this.ticketingService.findAll();
   }
 
   @Get(':id')
-  async findTicketById(@Param('id') id: string): Promise<Ticket> {
-    return await this.ticketingService.findTicketById(id);
+  async findTicketById(@Param('id') id: string): Promise<Ticket | null> {
+    return await this.ticketingService.findById(id);
   }
 
   @Get(':id/status')
   async findTicketStatus(@Param('id') id: string): Promise<TicketStatus> {
-    return await this.ticketingService.findTicketStatus(id)
+    return await this.ticketingService.findStatus(id)
   }
   
   @Put(':id')
   async updateTicket(@Param('id') id: string, @Body() updateTicketDto: UpdateTicketDto)
-  : Promise<UpdateResult> {
-    return await this.ticketingService.updateTicket(id, updateTicketDto);
+  : Promise<Ticket | null> {
+    return await this.ticketingService.update(id, updateTicketDto);
   }
 
   @Put(':id/status')
   async updateTicketStatus(@Param('id') id: string, @Body('status') status: TicketStatus)
-  : Promise<UpdateResult> {
-    return await this.ticketingService.updateTicketStatus(id, status);
+  : Promise<Ticket | null> {
+    return await this.ticketingService.updateStatus(id, status);
   }
 
   @Delete(':id')
-  async deleteTicket(@Param('id') id: string): Promise<DeleteResult> {
-    return await this.ticketingService.deleteTicket(id);
+  async deleteTicket(@Param('id') id: string): Promise<boolean> {
+    return await this.ticketingService.remove(id);
   }
 
   @Post(':id/escalate')

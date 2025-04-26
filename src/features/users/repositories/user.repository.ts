@@ -8,7 +8,7 @@ export interface IUserRepository extends IBaseRepository<User> {
 }
 
 @Injectable()
-export class UserRepository extends BaseRepository<User> {
+export class UserRepository extends BaseRepository<User> implements IUserRepository {
     constructor(private readonly userModel: Model<User>) {
         super(userModel)
     }

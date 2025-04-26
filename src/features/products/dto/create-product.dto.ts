@@ -41,7 +41,7 @@ export class CreateProductDto {
   ip?: string; // Kept, but should be handled separately if not needed in schema
 
 
-  @ApiProperty({ type: "string", format: "some link" })
+  @ApiProperty({ type: "string", example: "some link" })
   @IsOptional() 
   image?: string; // Added for alignment
 

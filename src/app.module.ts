@@ -24,12 +24,10 @@ import { GoftinoUsersService } from './utils/services/goftino/services/goftino-u
 import { GoftinoOperatorsService } from './utils/services/goftino/services/goftino-operators.service';
 import { LoggerService } from './common/logger/logger.service';
 import { GoftinoService } from './utils/services/goftino/services/goftino.service';
-import { WalletModule } from './features/wallet/wallet.module';
 import { TransactionsModule } from './features/transactions/transactions.module';
 import { PaymentsModule } from './features/payments/payments.module';
 import { WalletsModule } from './features/wallets/wallets.module';
 import { CartsModule } from './features/carts/carts.module';
-import { SaamModule } from './saam/saam.module';
 
 
 
@@ -79,12 +77,11 @@ import { SaamModule } from './saam/saam.module';
     CompaniesModule,
     OrdersModule,
     GoftinoModule,
-    WalletModule,
+    WalletsModule,
     TransactionsModule,
     PaymentsModule,
     WalletsModule,
     CartsModule,
-    SaamModule,
   ],
   controllers: [AppController],
   providers: [

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { User, UserSchema } from '../entities/user.entity';
-import { MongooseModule } from '@nestjs/mongoose';
+import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { UsersService } from '../users.service';
 import { RefreshToken, RefreshTokenSchema } from './schemas/refresh-token.schema';
 import { ShahkarService } from 'src/utils/services/shahkar/shahkar.service';
@@ -12,6 +12,8 @@ import { OtpService } from 'src/utils/services/otp/otp.service';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { JwtService } from '@nestjs/jwt';
 import { UsersModule } from '../users.module';
+import { UserRepository } from '../repositories/user.repository';
+import { Model } from 'mongoose';
 
 @Module({
   imports: [ 
@@ -25,9 +27,17 @@ import { UsersModule } from '../users.module';
         schema: UserSchema
       },
     ]),
-    ShahkarModule, OtpModule, 
+    ShahkarModule, OtpModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, UsersService, ShahkarService, OtpService, TokensService, JwtService],
+  providers: [
+      {
+        provide: 'UserRepository',
+        useFactory: (userModel: Model<User>) => {
+          return new UserRepository(userModel);
+        }, 
+        inject: [getModelToken(User.name)],
+      },
+    AuthService, UsersService, ShahkarService, OtpService, TokensService, JwtService,],
 })
 export class AuthModule {}
