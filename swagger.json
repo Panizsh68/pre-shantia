@@ -799,9 +799,198 @@
         ]
       }
     },
-    "/api/chat": {
+    "/api/goftino/chats": {
+      "get": {
+        "operationId": "GoftinoChatsController_getChats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/chats/{chat_data}": {
+      "get": {
+        "operationId": "GoftinoChatsController_getChatData",
+        "parameters": [
+          {
+            "name": "chat_id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from_date",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/chats/send-message": {
       "post": {
-        "operationId": "ChatController_create",
+        "operationId": "GoftinoChatsController_sendMessage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/chats/send-message-from-user": {
+      "post": {
+        "operationId": "GoftinoChatsController_sendMessageFromUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageFromUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/chats/send-file": {
+      "post": {
+        "operationId": "GoftinoChatsController_sendFile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendFileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/chats/operator-typing": {
+      "post": {
+        "operationId": "GoftinoChatsController_operatorTyping",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperatorTypingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/chats/close-chat": {
+      "post": {
+        "operationId": "GoftinoChatsController_closeChat",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseChatDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/chats/unassign-chat": {
+      "post": {
+        "operationId": "GoftinoChatsController_unassignChat",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnassignChatDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/chats/create-chat": {
+      "post": {
+        "operationId": "GoftinoChatsController_createChat",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -819,95 +1008,20 @@
           }
         },
         "tags": [
-          "Chat"
-        ]
-      },
-      "get": {
-        "operationId": "ChatController_findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Chat"
+          "GoftinoChats"
         ]
       }
     },
-    "/api/chat/{id}": {
-      "get": {
-        "operationId": "ChatController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Chat"
-        ]
-      }
-    },
-    "/api/payments": {
+    "/api/goftino/chats/remove-chat": {
       "post": {
-        "operationId": "PaymentsController_createPayment",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Payments"
-        ]
-      },
-      "get": {
-        "operationId": "PaymentsController_findAllPayments",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Payments"
-        ]
-      }
-    },
-    "/api/payments/{id}": {
-      "get": {
-        "operationId": "PaymentsController_findOnePayment",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Payments"
-        ]
-      }
-    },
-    "/api/wallet": {
-      "post": {
-        "operationId": "WalletController_create",
+        "operationId": "GoftinoChatsController_removeChat",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateWalletDto"
+                "$ref": "#/components/schemas/RemoveChatDto"
               }
             }
           }
@@ -918,11 +1032,131 @@
           }
         },
         "tags": [
-          "Wallet"
+          "GoftinoChats"
         ]
-      },
+      }
+    },
+    "/api/goftino/chats/transfer-chat": {
+      "post": {
+        "operationId": "GoftinoChatsController_transferChat",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferChatDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/chats/{chat_id}/unread-messages": {
       "get": {
-        "operationId": "WalletController_findAll",
+        "operationId": "GoftinoChatsController_getUserUnreadMessages",
+        "parameters": [
+          {
+            "name": "chatId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/chats/{chat_id}/edit-message": {
+      "post": {
+        "operationId": "GoftinoChatsController_editMessage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/chats/edited-message/{message_id}": {
+      "get": {
+        "operationId": "GoftinoChatsController_getEditedMessage",
+        "parameters": [
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/chats/send-poll": {
+      "post": {
+        "operationId": "GoftinoChatsController_sendPoll",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendPollDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoChats"
+        ]
+      }
+    },
+    "/api/goftino/operators": {
+      "get": {
+        "operationId": "GoftinoOperatorsController_getOperators",
         "parameters": [],
         "responses": {
           "200": {
@@ -930,16 +1164,47 @@
           }
         },
         "tags": [
-          "Wallet"
+          "GoftinoOperators"
         ]
       }
     },
-    "/api/wallet/{id}": {
+    "/api/goftino/operators/{operatorId}": {
       "get": {
-        "operationId": "WalletController_findOne",
+        "operationId": "GoftinoOperatorsController_getOperatorData",
         "parameters": [
           {
-            "name": "id",
+            "name": "operatorId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "email",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoOperators"
+        ]
+      }
+    },
+    "/api/goftino/users/{userId}": {
+      "get": {
+        "operationId": "GoftinoUsersController_getUser",
+        "parameters": [
+          {
+            "name": "userId",
             "required": true,
             "in": "path",
             "schema": {
@@ -953,45 +1218,64 @@
           }
         },
         "tags": [
-          "Wallet"
+          "GoftinoUsers"
         ]
-      },
-      "patch": {
-        "operationId": "WalletController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+      }
+    },
+    "/api/goftino/users": {
+      "post": {
+        "operationId": "GoftinoUsersController_setUser",
+        "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateWalletDto"
+                "$ref": "#/components/schemas/UserDataDto"
               }
             }
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": ""
           }
         },
         "tags": [
-          "Wallet"
+          "GoftinoUsers"
         ]
-      },
-      "delete": {
-        "operationId": "WalletController_remove",
+      }
+    },
+    "/api/goftino/users/ban": {
+      "post": {
+        "operationId": "GoftinoUsersController_banUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BanUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "GoftinoUsers"
+        ]
+      }
+    },
+    "/api/goftino/users/{userId}/visited-pages": {
+      "get": {
+        "operationId": "GoftinoUsersController_getUserVisitedPages",
         "parameters": [
           {
-            "name": "id",
+            "name": "userId",
             "required": true,
             "in": "path",
             "schema": {
@@ -1005,7 +1289,7 @@
           }
         },
         "tags": [
-          "Wallet"
+          "GoftinoUsers"
         ]
       }
     }
@@ -1095,12 +1379,24 @@
             "items": {
               "$ref": "#/components/schemas/PermissionDto"
             }
+          },
+          "userAgent": {
+            "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "otp": {
+            "type": "object"
           }
         },
         "required": [
           "phoneNumber",
           "meliCode",
-          "permissions"
+          "permissions",
+          "userAgent",
+          "ip",
+          "otp"
         ]
       },
       "SignInDto": {
@@ -1129,14 +1425,22 @@
               "$ref": "#/components/schemas/PermissionDto"
             }
           },
-          "otp": {
+          "userAgent": {
             "type": "string"
+          },
+          "ip": {
+            "type": "string"
+          },
+          "otp": {
+            "type": "object"
           }
         },
         "required": [
           "phoneNumber",
           "meliCode",
           "permissions",
+          "userAgent",
+          "ip",
           "otp"
         ]
       },
@@ -1151,9 +1455,12 @@
             "type": "number",
             "example": 1500
           },
-          "companyId": {
-            "type": "string",
-            "example": "company123"
+          "companiesId": {
+            "example": "company123",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "categories": {
             "example": [
@@ -1176,16 +1483,39 @@
           "ip": {
             "type": "string",
             "example": "192.168.1.1"
+          },
+          "image": {
+            "type": "string",
+            "format": "binary"
+          },
+          "subcategory": {
+            "type": "string",
+            "example": "Azure"
+          },
+          "comments": {
+            "example": "Excellent product!",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rating": {
+            "type": "number",
+            "example": 5
           }
         },
         "required": [
           "name",
           "price",
-          "companyId",
+          "companiesId",
           "categories",
           "description",
           "userAgent",
-          "ip"
+          "ip",
+          "image",
+          "subcategory",
+          "comments",
+          "rating"
         ]
       },
       "UpdateProductDto": {
@@ -1199,9 +1529,12 @@
             "type": "number",
             "example": 1500
           },
-          "companyId": {
-            "type": "string",
-            "example": "company123"
+          "companiesId": {
+            "example": "company123",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "categories": {
             "example": [
@@ -1224,8 +1557,33 @@
           "ip": {
             "type": "string",
             "example": "192.168.1.1"
+          },
+          "image": {
+            "type": "string",
+            "format": "binary"
+          },
+          "subcategory": {
+            "type": "string",
+            "example": "Azure"
+          },
+          "comments": {
+            "example": "Excellent product!",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rating": {
+            "type": "number",
+            "example": 5
+          },
+          "id": {
+            "type": "string"
           }
-        }
+        },
+        "required": [
+          "id"
+        ]
       },
       "CreateTicketDto": {
         "type": "object",
@@ -1354,6 +1712,10 @@
           "isActive": {
             "type": "boolean",
             "example": true
+          },
+          "image": {
+            "type": "string",
+            "format": "binary"
           }
         },
         "required": [
@@ -1362,7 +1724,8 @@
           "phone",
           "registrationNumber",
           "address",
-          "isActive"
+          "isActive",
+          "image"
         ]
       },
       "UpdateCompanyDto": {
@@ -1391,8 +1754,18 @@
           "isActive": {
             "type": "boolean",
             "example": true
+          },
+          "image": {
+            "type": "string",
+            "format": "binary"
+          },
+          "id": {
+            "type": "string"
           }
-        }
+        },
+        "required": [
+          "id"
+        ]
       },
       "OrderItemDto": {
         "type": "object",
@@ -1519,17 +1892,255 @@
           }
         }
       },
+      "SendMessageDto": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "reply_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "operator_id",
+          "message",
+          "reply_id"
+        ]
+      },
+      "SendMessageFromUserDto": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "reply_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "message",
+          "reply_id"
+        ]
+      },
+      "SendFileDto": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "file_url": {
+            "type": "string"
+          },
+          "file_size": {
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "file_duration": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "operator_id",
+          "file_url",
+          "file_size",
+          "file_name",
+          "file_duration"
+        ]
+      },
+      "OperatorTypingDto": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          },
+          "typing_status": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chat_id",
+          "operator_id",
+          "typing_status"
+        ]
+      },
+      "CloseChatDto": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "operator_id"
+        ]
+      },
+      "UnassignChatDto": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id"
+        ]
+      },
       "CreateChatDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "operator_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "operator_id"
+        ]
       },
-      "CreateWalletDto": {
+      "RemoveChatDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id"
+        ]
       },
-      "UpdateWalletDto": {
+      "TransferChatDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "from_operator": {
+            "type": "string"
+          },
+          "to_operator": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chat_id",
+          "from_operator",
+          "to_operator"
+        ]
+      },
+      "EditMessageDto": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "string"
+          },
+          "new_message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "new_message"
+        ]
+      },
+      "SendPollDto": {
+        "type": "object",
+        "properties": {
+          "chat_id": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "chat_id",
+          "question",
+          "options"
+        ]
+      },
+      "UserDataDto": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "avarar": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "phone",
+          "email",
+          "avarar"
+        ]
+      },
+      "BanUserDto": {
+        "type": "object",
+        "properties": {
+          "operator_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "chat_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "operator_id",
+          "user_id",
+          "chat_id",
+          "reason"
+        ]
       }
     }
   }

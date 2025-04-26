@@ -1,26 +1,34 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreateTransportingDto } from './dto/create-transporting.dto';
 import { UpdateTransportingDto } from './dto/update-transporting.dto';
+import { ITransportingRepository } from './repositories/transporting.repository';
+import { Transporting } from './entities/transporting.entity';
 
 @Injectable()
 export class TransportingsService {
-  create(createTransportingDto: CreateTransportingDto) {
-    return 'This action adds a new transporting';
+
+  constructor(
+    @Inject('TransportingRepository') 
+    private readonly transportingRepository: ITransportingRepository
+  ) {}
+
+  async create(createTransportingDto: CreateTransportingDto): Promise<Transporting> {
+    return this.transportingRepository.create(createTransportingDto);
   }
 
-  findAll() {
-    return `This action returns all transportings`;
+  async findAll(): Promise<Transporting[]>  {
+    return await this.transportingRepository.findAll();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} transporting`;
+  async findOne(id: string): Promise<Transporting | null>  {
+    return await this.transportingRepository.findById(id);
   }
 
-  update(id: number, updateTransportingDto: UpdateTransportingDto) {
-    return `This action updates a #${id} transporting`;
+  async update(id: string, updateTransportingDto: UpdateTransportingDto): Promise<Transporting | null>  {
+    return await this.transportingRepository.update(id, updateTransportingDto);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} transporting`;
+  async remove(id: string): Promise<boolean>  {
+    return await this.transportingRepository.delete(id);
   }
 }

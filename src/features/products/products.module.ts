@@ -6,10 +6,16 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Product, ProductSchema } from './entities/product.entity';
+import { ProductRepository } from './repositories/product.repository';
 
 @Module({
   imports: [MongooseModule.forFeature([{name: Product.name, schema: ProductSchema}])],
   controllers: [ProductsController],
-  providers: [ProductsService, AuthenticationGuard, JwtService, TokensService],
+  providers: [
+    {
+      provide: 'ProductRepository',
+      useClass: ProductRepository
+    },
+    ProductsService, AuthenticationGuard, JwtService, TokensService],
 })
 export class ProductsModule {}

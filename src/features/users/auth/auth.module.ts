@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { User, UserSchema } from '../schemas/user.schema';
+import { User, UserSchema } from '../entities/user.entity';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UsersService } from '../users.service';
 import { RefreshToken, RefreshTokenSchema } from './schemas/refresh-token.schema';

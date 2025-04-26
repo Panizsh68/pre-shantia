@@ -18,10 +18,18 @@ import { CachingModule } from './infrastructure/caching/caching.module';
 import { TransportingsModule } from './features/transportings/transportings.module';
 import { CompaniesModule } from './features/companies/companies.module';
 import { OrdersModule } from './features/orders/orders.module';
-import { ChatModule } from './features/chat/chat.module';
-import { MessagesModule } from './features/messages/messages.module';
-import { PaymentsModule } from './features/payments/payments.module';
+import { GoftinoModule } from './utils/services/goftino/goftino.module';
+import { GoftinoChatsService } from './utils/services/goftino/services/goftino-chats.service';
+import { GoftinoUsersService } from './utils/services/goftino/services/goftino-users.service';
+import { GoftinoOperatorsService } from './utils/services/goftino/services/goftino-operators.service';
+import { LoggerService } from './common/logger/logger.service';
+import { GoftinoService } from './utils/services/goftino/services/goftino.service';
 import { WalletModule } from './features/wallet/wallet.module';
+import { TransactionsModule } from './features/transactions/transactions.module';
+import { PaymentsModule } from './features/payments/payments.module';
+import { WalletsModule } from './features/wallets/wallets.module';
+import { CartsModule } from './features/carts/carts.module';
+import { SaamModule } from './saam/saam.module';
 
 
 
@@ -70,13 +78,21 @@ import { WalletModule } from './features/wallet/wallet.module';
     TransportingsModule,
     CompaniesModule,
     OrdersModule,
-    ChatModule,
-    MessagesModule,
-    PaymentsModule,
+    GoftinoModule,
     WalletModule,
+    TransactionsModule,
+    PaymentsModule,
+    WalletsModule,
+    CartsModule,
+    SaamModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    {
+      provide: 'BASE_GOFTINO_SERVICE',
+      useClass: GoftinoService
+    },
+    AppService, GoftinoChatsService, GoftinoUsersService, GoftinoOperatorsService, LoggerService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

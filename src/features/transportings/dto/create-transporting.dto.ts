@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { TransportingStatus } from "../enums/transporting.status.enum";
 
 export class CreateTransportingDto {
     @ApiProperty({ example: "DHL Express" })
@@ -15,5 +16,7 @@ export class CreateTransportingDto {
     @ApiProperty({ example: "Shipped" })
     @IsOptional()
     @IsString()
-    status?: string;
+    status?: TransportingStatus;
   }
+
+  // cartype

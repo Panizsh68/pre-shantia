@@ -20,33 +20,33 @@ export class ProductsController implements IProductService {
   @UsePipes(RequestContextPipe)
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permissions([{ action: Action.create, resource: Resource.products }])
-  createProduct(@Body() createProductDto: CreateProductDto): Promise<Product>  {
-    return this.productsService.createProduct(createProductDto);
+  create(@Body() createProductDto: CreateProductDto): Promise<Product>  {
+    return this.productsService.create(createProductDto);
   }
 
   @Get()
-  findAllProducts(): Promise<Product[]>  {
-    return this.productsService.findAllProducts();
+  findAll(): Promise<Product[]>  {
+    return this.productsService.findAll();
   }
 
   @Get(':id')
-  findOneProduct(@Param('id') id: string): Promise<Product>  {
-    return this.productsService.findOneProduct(id);
+  findById(@Param('id') id: string): Promise<Product | null>  {
+    return this.productsService.findById(id);
   }
 
   @Patch(':id')
   @UsePipes(RequestContextPipe)
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permissions([{ action: Action.update, resource: Resource.products }])
-  updateProduct(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto): Promise<UpdateResult>  {
-    return this.productsService.updateProduct(id, updateProductDto);
+  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto): Promise<Product | null>  {
+    return this.productsService.update(id, updateProductDto);
   }
 
   @Delete(':id')
   @UsePipes(RequestContextPipe)
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permissions([{ action: Action.delete, resource: Resource.products }])
-  removeProduct(@Param('id') id: string): Promise<DeleteResult>  {
-    return this.productsService.removeProduct(id);
+  remove(@Param('id') id: string): Promise<boolean>  {
+    return this.productsService.remove(id);
   }
 }

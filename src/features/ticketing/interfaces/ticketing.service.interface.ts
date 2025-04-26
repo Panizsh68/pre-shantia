@@ -5,13 +5,13 @@ import { UpdateTicketDto } from "../dto/update-ticket.dto";
 import { CreateTicketDto } from "../dto/create-ticket.dto";
 
 export interface ITicketingService {
-    createTicket(createTicketDto: CreateTicketDto): Promise<Ticket>;
-    findTicketById(id: string): Promise<Ticket>;
-    findAllTickets(): Promise<Ticket[]>;
-    findTicketStatus(id: string): Promise<TicketStatus>;
-    updateTicket(id: string, updateTicketDto: UpdateTicketDto): Promise<UpdateResult>;
-    updateTicketStatus(id: string, status: TicketStatus): Promise<UpdateResult>;
-    deleteTicket(id: string): Promise<DeleteResult>;
+    create(createTicketDto: CreateTicketDto): Promise<Ticket>;
+    findById(id: string): Promise<Ticket | null>;
+    findAll(): Promise<Ticket[]>;
+    findStatus(id: string): Promise<TicketStatus>;
+    update(id: string, updateTicketDto: UpdateTicketDto): Promise<Ticket | null>;
+    updateStatus(id: string, status: TicketStatus): Promise<Ticket | null>;
+    remove(id: string): Promise<boolean>;
     escalateTicket(ticketId: string): Promise<Ticket>;  
     autoEscalateTickets(): Promise<void>; 
 }

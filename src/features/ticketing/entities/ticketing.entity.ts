@@ -1,10 +1,12 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document } from "mongoose";
+import { Document, HydratedDocument, Types } from "mongoose";
 import { TicketStatus } from "../enums/ticket-status.enum";
 import { TicketPriority } from "../enums/ticket-priority.enum";
 
+export type TicketDocument = HydratedDocument<Ticket>;
+
 @Schema({ timestamps: true })
-export class Ticket extends Document {
+export class Ticket {
     @Prop({ required: true, index: true })
     title: string;  
 
@@ -22,6 +24,8 @@ export class Ticket extends Document {
 
     @Prop({ type: String })
     assignedTo: string;
+
+    id: Types.ObjectId
 }
 
 export const TicketSchema = SchemaFactory.createForClass(Ticket);

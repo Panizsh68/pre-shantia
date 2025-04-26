@@ -9,49 +9,35 @@ import { CreateTicketDto } from '../dto/create-ticket.dto';
 import { ITicketingService } from '../interfaces/ticketing.service.interface';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { TicketPriority } from '../enums/ticket-priority.enum';
+import { BaseRepository, IBaseRepository } from 'src/utils/base.repository';
+
+
+export interface ITicketRepository extends IBaseRepository<Ticket> {
+  findTicketStatus(id: string): Promise<TicketStatus>;
+  updateTicketStatus(id: string, status: TicketStatus): Promise<Ticket | null>;
+  escalateTicket(ticketId: string): Promise<Ticket>;
+  autoEscalateTickets();
+}
+
+
 
 @Injectable()
-export class TicketRepository implements ITicketingService {
-  constructor(@InjectModel(Ticket.name) private readonly ticketModel: Model<Ticket>) {}
-
-  async createTicket(createTicketDto: CreateTicketDto): Promise<Ticket> {
-    const ticket =  await new this.ticketModel(createTicketDto);
-    return await ticket.save()
-  }
-
-  async findTicketById(id: string): Promise<Ticket> {
-    const ticket =  await this.ticketModel.findById(id);
-    if (!ticket) throw new NotFoundException('ticket not found ')
-    return ticket
-  }
-
-  async findAllTickets(): Promise<Ticket[]> {
-    const tickets = await this.ticketModel.find();
-    return tickets
+export class TicketRepository extends BaseRepository<Ticket> implements ITicketRepository {
+  constructor(private readonly ticketModel: Model<Ticket>) {
+        super(ticketModel)
   }
 
   async findTicketStatus(id: string): Promise<TicketStatus> {
-    const ticket = await this.ticketModel.findById(id)
+    const ticket = await this.findById(id)
     if (!ticket) throw new NotFoundException('ticket not found ')
     return ticket.status
   }
 
-  async updateTicket(id: string, updateTicketDto: UpdateTicketDto): Promise<UpdateResult> {
-    const ticket = await this.findTicketById(id)
-    const updatedTicket = await ticket.updateOne({ _id: id}, updateTicketDto)
-    return updatedTicket
-  }
-
-  async updateTicketStatus(id: string, status: TicketStatus): Promise<UpdateResult> {
-    const ticket = await this.findTicketById(id)
-    const updatedTicketStatus = await ticket.updateOne({ _id: id}, { status })
+  async updateTicketStatus(id: string, status: TicketStatus): Promise<Ticket | null> {
+    const ticket = await this.ticketModel.findById(id)
+    const updatedTicketStatus = await ticket?.updateOne({ _id: id}, { status })
     return updatedTicketStatus
 
-  }
-
-  async deleteTicket(id: string): Promise<DeleteResult> {
-    const removedTicket = await this.ticketModel.deleteOne({ _id: id})    
-    return removedTicket
   }
 
   // Method to escalate a ticket

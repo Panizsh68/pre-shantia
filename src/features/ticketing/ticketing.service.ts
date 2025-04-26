@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
-import { TicketRepository } from './repository/ticket.repository';
+import { ITicketRepository, TicketRepository } from './repository/ticket.repository';
 import { Ticket } from './entities/ticketing.entity';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { ITicketingService } from './interfaces/ticketing.service.interface';
@@ -12,58 +12,58 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 @Injectable()
 export class TicketingService implements ITicketingService{
   constructor(
-    private readonly ticketRepo: TicketRepository,
+    @Inject('TicketRepository') private readonly ticketRepository: ITicketRepository,
     private readonly cacheService: CachingService,
   ) {}
 
-  async createTicket(createTicketDto: CreateTicketDto): Promise<Ticket> {
-    const ticket = await this.ticketRepo.createTicket(createTicketDto);
+  async create(createTicketDto: CreateTicketDto): Promise<Ticket> {
+    const ticket = await this.ticketRepository.create(createTicketDto);
     await this.cacheService.set(`ticket:${ticket.id}`, ticket, 3000);
     return ticket;
   }
 
-  async findAllTickets(): Promise<Ticket[]> {
-    return await this.ticketRepo.findAllTickets();
+  async findAll(): Promise<Ticket[]> {
+    return await this.ticketRepository.findAll();
   }
 
-  async findTicketById(id: string): Promise<Ticket> {
+  async findById(id: string): Promise<Ticket | null> {
     const cachedTicket = await this.cacheService.get<Ticket>(`ticket:${id}`);
     if (cachedTicket) return cachedTicket;
-    const ticket = await this.ticketRepo.findTicketById(id);
+    const ticket = await this.ticketRepository.findById(id);
     if (ticket) await this.cacheService.set(`ticket:${id}`, ticket, 3000)
     return ticket;
   }
 
-  async findTicketStatus(id: string): Promise<TicketStatus> {
-    return await this.ticketRepo.findTicketStatus(id)
+  async findStatus(id: string): Promise<TicketStatus> {
+    return await this.ticketRepository.findTicketStatus(id)
   }
 
-  async updateTicket(id: string, updateTicketDto: UpdateTicketDto): Promise<UpdateResult> {
-    const updatedTicket = await this.ticketRepo.updateTicket(id, updateTicketDto);
+  async update(id: string, updateTicketDto: UpdateTicketDto): Promise<Ticket | null> {
+    const updatedTicket = await this.ticketRepository.update(id, updateTicketDto);
     if (updatedTicket) await this.cacheService.set(`ticket:${id}`, updatedTicket, 3000);
     return updatedTicket;
   }
 
   
-  async updateTicketStatus(id: string, status: TicketStatus): Promise<UpdateResult> {
-    const updatedTicket = await this.ticketRepo.updateTicketStatus(id, status);
+  async updateStatus(id: string, status: TicketStatus): Promise<Ticket | null> {
+    const updatedTicket = await this.ticketRepository.updateTicketStatus(id, status);
     if (updatedTicket) await this.cacheService.set(`ticket:${id}`, updatedTicket, 3000);
     return updatedTicket;
   }
 
-  async deleteTicket(id: string): Promise<DeleteResult> {
-    const removedTicket = await this.ticketRepo.deleteTicket(id);
+  async remove(id: string): Promise<boolean> {
+    const removedTicket = await this.ticketRepository.delete(id);
     await this.cacheService.delete(`ticket:${id}`);
     return removedTicket
   }
 
   // Method to escalate a ticket
   async escalateTicket(ticketId: string): Promise<Ticket> {
-    const ticket = await this.ticketRepo.escalateTicket(ticketId);
+    const ticket = await this.ticketRepository.escalateTicket(ticketId);
     return  ticket;
   }
 
   async autoEscalateTickets() {
-    return this.ticketRepo.autoEscalateTickets()
+    return this.ticketRepository.autoEscalateTickets()
   }
 }

@@ -30,4 +30,8 @@ export class CreateCompanyDto {
     @ApiProperty({ example: true })
     @IsOptional()
     isActive?: boolean;  // Added for alignment
+
+    @ApiProperty({ type: "string", format: "binary" })
+    @IsOptional()
+    image?: Express.Multer.File;  // Added for alignment
 }

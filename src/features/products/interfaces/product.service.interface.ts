@@ -4,9 +4,9 @@ import { UpdateProductDto } from "../dto/update-product.dto";
 import { Product } from "../entities/product.entity";
 
 export interface IProductService {
-    createProduct(createProductDto: CreateProductDto): Promise<Product>, 
-    findAllProducts(): Promise<Product[]>,
-    findOneProduct(id: string): Promise<Product>,
-    updateProduct(id: string, updateProductDto: UpdateProductDto): Promise<UpdateResult>,
-    removeProduct(id: string): Promise<DeleteResult>
+    create(createProductDto: CreateProductDto): Promise<Product>, 
+    findAll(): Promise<Product[]>,
+    findById(id: string): Promise<Product | null>,
+    update(id: string, updateProductDto: UpdateProductDto): Promise<Product | null>,
+    remove(id: string): Promise<boolean>
 }

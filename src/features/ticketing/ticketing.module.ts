@@ -8,7 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { UsersService } from 'src/features/users/users.service';
-import { User, UserSchema } from 'src/features/users/schemas/user.schema';
+import { User, UserSchema } from 'src/features/users/entities/user.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -20,7 +20,12 @@ import { ScheduleModule } from '@nestjs/schedule';
     ScheduleModule.forRoot(),
   ],
   controllers: [TicketingController],
-  providers: [TicketingService, TicketRepository, JwtService, TokensService, CachingService, UsersService],
+  providers: [
+    {
+      provide: 'TicketRepository',
+      useClass: TicketRepository, 
+    },
+    TicketingService, TicketRepository, JwtService, TokensService, CachingService, UsersService],
   exports: [TicketRepository]
 })
 export class TicketingModule {}

@@ -2,7 +2,7 @@ import { ConflictException, HttpException, HttpStatus, Injectable, NotFoundExcep
 import { SignInDto } from './dto/sign-in.dto';
 import { SignUpDto } from './dto/sign-up.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { User } from '../schemas/user.schema';
+import { User } from '../entities/user.entity';
 import { Model } from 'mongoose';
 import { UsersService } from '../users.service';
 import { ShahkarService } from 'src/utils/services/shahkar/shahkar.service';

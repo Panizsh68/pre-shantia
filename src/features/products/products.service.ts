@@ -1,34 +1,34 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { IProductService } from './interfaces/product.service.interface';
 import { UpdateResult, DeleteResult, Model } from 'mongoose';
 import { Product } from './entities/product.entity';
 import { InjectModel } from '@nestjs/mongoose';
+import { IProductRepository } from './repositories/product.repository';
 
 @Injectable()
 export class ProductsService implements IProductService{
-  constructor(@InjectModel(Product.name) private readonly productModel: Model<Product> ) {}
+  constructor(@Inject('ProductRepository') private readonly productRepository: IProductRepository) {}
 
-  async createProduct(createProductDto: CreateProductDto): Promise<Product> {
-    const product = await this.productModel.create(createProductDto)
-    return await product.save()
-  }
-  async findAllProducts(): Promise<Product[]> {
-    const products = await this.productModel.find()
-    return products
-  }
-  async findOneProduct(id: string): Promise<Product> {
-    const product = await this.productModel.findById(id)
-    if (!product) throw new NotFoundException('product not found')
+  async create(createProductDto: CreateProductDto): Promise<Product> {
+    const product = await this.productRepository.create(createProductDto)
     return product
   }
-  async updateProduct(id: string, updateProductDto: UpdateProductDto): Promise<UpdateResult> {
-    const updatedProduct = await this.productModel.updateOne({ _id: id}, updateProductDto)
+  async findAll(): Promise<Product[]> {
+    const products = await this.productRepository.findAll()
+    return products
+  }
+  async findById(id: string): Promise<Product | null> {
+    const product = await this.productRepository.findById(id)
+    return product
+  }
+  async update(id: string, updateProductDto: UpdateProductDto): Promise<Product | null> {
+    const updatedProduct = await this.productRepository.update(id, updateProductDto)
     return updatedProduct
   }
-  async removeProduct(id: string): Promise<DeleteResult> {
-    const removedProduct = await this.productModel.deleteOne({ _id: id })
+  async remove(id: string): Promise<boolean> {
+    const removedProduct = await this.productRepository.delete(id)
     return removedProduct
   }
 

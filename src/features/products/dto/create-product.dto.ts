@@ -16,7 +16,7 @@ export class CreateProductDto {
   @ApiProperty({ example: "company123" })
   @IsNotEmpty()
   @IsString()
-  companyId: string; // Added for consistency
+  companiesId: string[]; // Added for consistency
 
   @ApiProperty({ example: ["Electronics", "Computers"] })
   @IsOptional()
@@ -39,4 +39,28 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   ip?: string; // Kept, but should be handled separately if not needed in schema
+
+
+  @ApiProperty({ type: "string", format: "binary" })
+  @IsOptional() 
+  image?: Express.Multer.File; // Added for alignment
+
+  // subcategory
+  @ApiProperty({ example: "Azure" })
+  @IsOptional()
+  @IsString()
+  subcategory?: string; // Added for alignment
+  // comment
+  @ApiProperty({ example: "Excellent product!" })
+  @IsOptional()
+  @IsString()
+  comments?: string[]; // Added for alignment
+
+  // rating
+  @ApiProperty({ example: 5 })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  rating?: number; // Added for alignment
+
 }

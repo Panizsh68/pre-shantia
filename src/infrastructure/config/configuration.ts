@@ -9,6 +9,8 @@ export default () => ({
     REDIS_PORT: parseInt(process.env.REDIS_PORT ?? '6379', 10),
     OTP_TTL: parseInt(process.env.OTP_TTL ?? '300', 10), // 5 minutes default,
     SUPERADMIN_PHONE: process.env.SUPERADMIN_PHONE,
-    SUPERADMIN_MELICODE: process.env.SUPERADMIN_MELICODE
+    SUPERADMIN_MELICODE: process.env.SUPERADMIN_MELICODE,
+    GOFTINO_API_KEY: process.env.GOFTINO_API_KEY,
+    GOFTINO_API_URL: process.env.GOFTINO_API_URL,
   });
   

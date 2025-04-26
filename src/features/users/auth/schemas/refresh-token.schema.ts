@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { User } from "src/features/users/schemas/user.schema";
+import { User } from "src/features/users/entities/user.entity";
 
 @Schema() 
 export  class RefreshToken {
