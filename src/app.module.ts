@@ -28,6 +28,7 @@ import { TransactionsModule } from './features/transactions/transactions.module'
 import { PaymentsModule } from './features/payments/payments.module';
 import { WalletsModule } from './features/wallets/wallets.module';
 import { CartsModule } from './features/carts/carts.module';
+import { CategoriesModule } from './features/categories/categories.module';
 
 
 
@@ -82,6 +83,7 @@ import { CartsModule } from './features/carts/carts.module';
     PaymentsModule,
     WalletsModule,
     CartsModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [

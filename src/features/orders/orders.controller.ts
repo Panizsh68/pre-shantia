@@ -5,6 +5,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { IOrderService } from './interfaces/order.service.interface';
 import { Order } from './entities/order.entity';
 import { DeleteResult, UpdateResult } from 'mongoose';
+import { QueryOptionsDto } from 'src/utils/query-options.dto';
 
 @Controller('orders')
 export class OrdersController implements IOrderService{
@@ -16,8 +17,8 @@ export class OrdersController implements IOrderService{
   }
 
   @Get()
-  async findAll(): Promise<Order[]> {
-    return this.ordersService.findAll();
+  async findAll(options: QueryOptionsDto): Promise<Order[]> {
+    return this.ordersService.findAll(options);
   }
 
   @Get(':id')

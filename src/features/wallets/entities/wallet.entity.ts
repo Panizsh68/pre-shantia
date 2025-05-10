@@ -19,8 +19,7 @@ export class Wallet {
   @Prop({ type: String, required: true, match: /^[A-Z]{3}$/ })
   currency: string;
 
-  @Prop({ type: Number, required: true, default: 0 })
-  version: number;
+  _id: Types.ObjectId;
 }
 
 export const WalletSchema = SchemaFactory.createForClass(Wallet);

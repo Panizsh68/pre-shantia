@@ -17,8 +17,18 @@
     },
     "/api/users": {
       "get": {
-        "operationId": "UsersController_findAllUsers",
+        "operationId": "UsersController_findAll",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryOptionsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -29,7 +39,7 @@
         ]
       },
       "post": {
-        "operationId": "UsersController_createUser",
+        "operationId": "UsersController_create",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -53,7 +63,7 @@
     },
     "/api/users/{id}": {
       "get": {
-        "operationId": "UsersController_findUserById",
+        "operationId": "UsersController_findOne",
         "parameters": [
           {
             "name": "id",
@@ -74,7 +84,7 @@
         ]
       },
       "patch": {
-        "operationId": "UsersController_updateUser",
+        "operationId": "UsersController_update",
         "parameters": [
           {
             "name": "id",
@@ -304,46 +314,156 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "محصول با موفقیت ایجاد شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "داده‌های ورودی نامعتبر"
+          },
+          "403": {
+            "description": "عدم دسترسی"
           }
         },
+        "summary": "ایجاد یک محصول جدید",
         "tags": [
-          "Products"
+          "محصولات"
         ]
       },
       "get": {
         "operationId": "ProductsController_findAll",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "شماره صفحه برای صفحه‌بندی",
+            "schema": {
+              "minimum": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "تعداد آیتم‌ها در هر صفحه",
+            "schema": {
+              "minimum": 1,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "فیلدی که برای مرتب‌سازی استفاده می‌شود",
+            "schema": {
+              "example": "name",
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "جهت مرتب‌سازی (صعودی یا نزولی)",
+            "schema": {
+              "example": "asc",
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "populate",
+            "required": false,
+            "in": "query",
+            "description": "لیست فیلدهای مرتبط برای بارگذاری (پاپیولیت) از دیتابیس",
+            "schema": {
+              "example": [
+                "companyId",
+                "categories"
+              ],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "options",
+            "required": false,
+            "in": "query",
+            "description": "گزینه‌های فیلتر و صفحه‌بندی",
+            "schema": {
+              "$ref": "#/components/schemas/QueryOptionsDto"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "لیست محصولات",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Product"
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "دریافت تمام محصولات با گزینه‌های صفحه‌بندی و مرتب‌سازی",
         "tags": [
-          "Products"
+          "محصولات"
         ]
       }
     },
     "/api/products/{id}": {
       "get": {
-        "operationId": "ProductsController_findById",
+        "operationId": "ProductsController_findOne",
         "parameters": [
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "شناسه محصول",
             "schema": {
+              "example": "507f1f77bcf86cd799439011",
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "جزئیات محصول",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "محصول یافت نشد"
           }
         },
+        "summary": "دریافت یک محصول با شناسه",
         "tags": [
-          "Products"
+          "محصولات"
         ]
       },
       "patch": {
@@ -353,7 +473,9 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "شناسه محصول",
             "schema": {
+              "example": "507f1f77bcf86cd799439011",
               "type": "string"
             }
           }
@@ -370,11 +492,25 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "محصول به‌روزرسانی شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "عدم دسترسی"
+          },
+          "404": {
+            "description": "محصول یافت نشد"
           }
         },
+        "summary": "به‌روزرسانی یک محصول با شناسه",
         "tags": [
-          "Products"
+          "محصولات"
         ]
       },
       "delete": {
@@ -384,24 +520,40 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "شناسه محصول",
             "schema": {
+              "example": "507f1f77bcf86cd799439011",
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "محصول با موفقیت حذف شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "عدم دسترسی"
+          },
+          "404": {
+            "description": "محصول یافت نشد"
           }
         },
+        "summary": "حذف یک محصول با شناسه",
         "tags": [
-          "Products"
+          "محصولات"
         ]
       }
     },
     "/api/tickets": {
       "post": {
-        "operationId": "TicketingController_createTicket",
+        "operationId": "TicketingController_create",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -423,8 +575,18 @@
         ]
       },
       "get": {
-        "operationId": "TicketingController_findAllTickets",
+        "operationId": "TicketingController_findAll",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryOptionsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -437,7 +599,7 @@
     },
     "/api/tickets/{id}": {
       "get": {
-        "operationId": "TicketingController_findTicketById",
+        "operationId": "TicketingController_findOne",
         "parameters": [
           {
             "name": "id",
@@ -458,7 +620,7 @@
         ]
       },
       "put": {
-        "operationId": "TicketingController_updateTicket",
+        "operationId": "TicketingController_update",
         "parameters": [
           {
             "name": "id",
@@ -489,7 +651,7 @@
         ]
       },
       "delete": {
-        "operationId": "TicketingController_deleteTicket",
+        "operationId": "TicketingController_delete",
         "parameters": [
           {
             "name": "id",
@@ -512,7 +674,7 @@
     },
     "/api/tickets/{id}/status": {
       "get": {
-        "operationId": "TicketingController_findTicketStatus",
+        "operationId": "TicketingController_findStatus",
         "parameters": [
           {
             "name": "id",
@@ -533,7 +695,7 @@
         ]
       },
       "put": {
-        "operationId": "TicketingController_updateTicketStatus",
+        "operationId": "TicketingController_updateStatus",
         "parameters": [
           {
             "name": "id",
@@ -603,6 +765,16 @@
       "get": {
         "operationId": "TransportingsController_findAll",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryOptionsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -714,6 +886,16 @@
       "get": {
         "operationId": "CompaniesController_findAll",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryOptionsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -1405,106 +1587,9 @@
       }
     },
     "/api/wallets": {
-      "post": {
-        "operationId": "WalletsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateWalletDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Wallets"
-        ]
-      },
       "get": {
-        "operationId": "WalletsController_findAll",
+        "operationId": "WalletsController_getWallet",
         "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Wallets"
-        ]
-      }
-    },
-    "/api/wallets/{id}": {
-      "get": {
-        "operationId": "WalletsController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Wallets"
-        ]
-      },
-      "patch": {
-        "operationId": "WalletsController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateWalletDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Wallets"
-        ]
-      },
-      "delete": {
-        "operationId": "WalletsController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": ""
@@ -1516,30 +1601,8 @@
       }
     },
     "/api/transactions": {
-      "post": {
-        "operationId": "TransactionsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTransactionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Transactions"
-        ]
-      },
       "get": {
-        "operationId": "TransactionsController_findAll",
+        "operationId": "TransactionsController_getTransactions",
         "parameters": [],
         "responses": {
           "200": {
@@ -1551,91 +1614,16 @@
         ]
       }
     },
-    "/api/transactions/{id}": {
-      "get": {
-        "operationId": "TransactionsController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Transactions"
-        ]
-      },
-      "patch": {
-        "operationId": "TransactionsController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTransactionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Transactions"
-        ]
-      },
-      "delete": {
-        "operationId": "TransactionsController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Transactions"
-        ]
-      }
-    },
-    "/api/payments": {
+    "/api/payments/initiate": {
       "post": {
-        "operationId": "PaymentsController_create",
+        "operationId": "PaymentsController_initiatePayment",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreatePaymentDto"
+                "$ref": "#/components/schemas/InitiatePaymentDto"
               }
             }
           }
@@ -1648,85 +1636,12 @@
         "tags": [
           "Payments"
         ]
-      },
-      "get": {
-        "operationId": "PaymentsController_findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Payments"
-        ]
       }
     },
-    "/api/payments/{id}": {
+    "/api/payments/callback": {
       "get": {
-        "operationId": "PaymentsController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Payments"
-        ]
-      },
-      "patch": {
-        "operationId": "PaymentsController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePaymentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Payments"
-        ]
-      },
-      "delete": {
-        "operationId": "PaymentsController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "operationId": "PaymentsController_handleCallback",
+        "parameters": [],
         "responses": {
           "200": {
             "description": ""
@@ -1763,6 +1678,16 @@
       "get": {
         "operationId": "CartsController_findAll",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryOptionsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -1847,6 +1772,178 @@
           "Carts"
         ]
       }
+    },
+    "/api/categories": {
+      "post": {
+        "operationId": "CategoriesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "دسته‌بندی با موفقیت ایجاد شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "داده‌های ورودی نامعتبر"
+          }
+        },
+        "summary": "ایجاد یک دسته‌بندی جدید",
+        "tags": [
+          "دسته‌بندی‌ها"
+        ]
+      },
+      "get": {
+        "operationId": "CategoriesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "لیست دسته‌بندی‌ها",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Category"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "دریافت تمام دسته‌بندی‌ها",
+        "tags": [
+          "دسته‌بندی‌ها"
+        ]
+      }
+    },
+    "/api/categories/{id}": {
+      "get": {
+        "operationId": "CategoriesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "شناسه دسته‌بندی",
+            "schema": {
+              "example": "507f1f77bcf86cd799439012",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "جزئیات دسته‌بندی",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "دسته‌بندی یافت نشد"
+          }
+        },
+        "summary": "دریافت یک دسته‌بندی با شناسه",
+        "tags": [
+          "دسته‌بندی‌ها"
+        ]
+      },
+      "patch": {
+        "operationId": "CategoriesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "شناسه دسته‌بندی",
+            "schema": {
+              "example": "507f1f77bcf86cd799439012",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "دسته‌بندی به‌روزرسانی شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "دسته‌بندی یافت نشد"
+          }
+        },
+        "summary": "به‌روزرسانی یک دسته‌بندی با شناسه",
+        "tags": [
+          "دسته‌بندی‌ها"
+        ]
+      },
+      "delete": {
+        "operationId": "CategoriesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "شناسه دسته‌بندی",
+            "schema": {
+              "example": "507f1f77bcf86cd799439012",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "دسته‌بندی با موفقیت حذف شد",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "دسته‌بندی یافت نشد"
+          }
+        },
+        "summary": "حذف یک دسته‌بندی با شناسه",
+        "tags": [
+          "دسته‌بندی‌ها"
+        ]
+      }
     }
   },
   "info": {
@@ -1859,6 +1956,48 @@
   "servers": [],
   "components": {
     "schemas": {
+      "QueryOptionsDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number",
+            "description": "شماره صفحه برای صفحه‌بندی",
+            "example": 1,
+            "minimum": 1
+          },
+          "limit": {
+            "type": "number",
+            "description": "تعداد آیتم‌ها در هر صفحه",
+            "example": 10,
+            "minimum": 1
+          },
+          "sortBy": {
+            "type": "string",
+            "description": "فیلدی که برای مرتب‌سازی استفاده می‌شود",
+            "example": "name"
+          },
+          "sortOrder": {
+            "type": "string",
+            "description": "جهت مرتب‌سازی (صعودی یا نزولی)",
+            "example": "asc",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          },
+          "populate": {
+            "description": "لیست فیلدهای مرتبط برای بارگذاری (پاپیولیت) از دیتابیس",
+            "example": [
+              "companyId",
+              "categories"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "UpdateUserDto": {
         "type": "object",
         "properties": {
@@ -2007,28 +2146,116 @@
         "type": "object",
         "properties": {}
       },
+      "StockDto": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "number",
+            "description": "مقدار موجودی محصول در انبار (مثلاً تعداد کیسه یا تن)",
+            "example": 500,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "quantity"
+        ]
+      },
+      "VariantOptionDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "مقدار گزینه تنوع محصول (مثلاً اندازه بسته‌بندی)",
+            "example": "50 کیلوگرم"
+          },
+          "priceModifier": {
+            "type": "number",
+            "description": "تغییر قیمت برای این گزینه (به ریال)",
+            "example": 0
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "VariantDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "نام تنوع محصول (مثلاً بسته‌بندی، گرید)",
+            "example": "بسته‌بندی"
+          },
+          "options": {
+            "description": "لیست گزینه‌های تنوع محصول",
+            "example": [
+              {
+                "value": "50 کیلوگرم",
+                "priceModifier": 0
+              },
+              {
+                "value": "1 تن",
+                "priceModifier": 500000
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VariantOptionDto"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "options"
+        ]
+      },
+      "ImageDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "آدرس URL تصویر محصول",
+            "example": "https://example.com/cement-bag.jpg"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
       "CreateProductDto": {
         "type": "object",
         "properties": {
           "name": {
             "type": "string",
-            "example": "Laptop"
+            "description": "نام محصول (مثلاً نوع مصالح ساختمانی)",
+            "example": "سیمان تیپ ۲"
           },
-          "price": {
+          "slug": {
+            "type": "string",
+            "description": "شناسه یکتا و مناسب برای SEO محصول",
+            "example": "simaan-tip-2"
+          },
+          "sku": {
+            "type": "string",
+            "description": "کد واحد نگهداری موجودی (SKU) برای ردیابی انبار",
+            "example": "SIM-T2-001"
+          },
+          "basePrice": {
             "type": "number",
-            "example": 1500
+            "description": "قیمت پایه محصول به ازای هر واحد (به ریال)",
+            "example": 2000000,
+            "minimum": 0
           },
-          "companiesId": {
-            "example": "company123",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "companyId": {
+            "type": "string",
+            "description": "شناسه شرکت (تأمین‌کننده) ارائه‌دهنده محصول",
+            "example": "507f1f77bcf86cd799439011"
           },
           "categories": {
+            "description": "لیست شناسه‌های دسته‌بندی‌های مرتبط با محصول",
             "example": [
-              "Electronics",
-              "Computers"
+              "507f1f77bcf86cd799439012",
+              "507f1f77bcf86cd799439013"
             ],
             "type": "array",
             "items": {
@@ -2037,26 +2264,87 @@
           },
           "description": {
             "type": "string",
-            "example": "High-end gaming laptop with RTX 3080."
+            "description": "توضیحات محصول",
+            "example": "سیمان تیپ ۲ با مقاومت بالا برای سازه‌های بتنی"
           },
-          "userAgent": {
-            "type": "string",
-            "example": "Mozilla/5.0"
+          "stock": {
+            "description": "اطلاعات موجودی محصول",
+            "example": {
+              "quantity": 500
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StockDto"
+              }
+            ]
           },
-          "ip": {
-            "type": "string",
-            "example": "192.168.1.1"
+          "variants": {
+            "description": "تنوع‌های محصول (مثلاً اندازه بسته‌بندی، گرید)",
+            "example": [
+              {
+                "name": "بسته‌بندی",
+                "options": [
+                  {
+                    "value": "50 کیلوگرم",
+                    "priceModifier": 0
+                  },
+                  {
+                    "value": "1 تن",
+                    "priceModifier": 500000
+                  }
+                ]
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VariantDto"
+            }
           },
-          "image": {
-            "type": "string",
-            "example": "some link"
+          "attributes": {
+            "type": "object",
+            "description": "ویژگی‌های سفارشی محصول",
+            "example": {
+              "استحکام": "42.5 مگاپاسکال",
+              "زمان گیرش": "3 ساعت"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "description": "برچسب‌ها برای فیلتر و جستجو",
+            "example": [
+              "سیمان",
+              "مصالح ساختمانی"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "images": {
+            "description": "تصاویر مرتبط با محصول",
+            "example": [
+              {
+                "url": "https://example.com/cement-bag.jpg"
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageDto"
+            }
           },
           "subcategory": {
             "type": "string",
-            "example": "Azure"
+            "description": "زیرمجموعه محصول",
+            "example": "سیمان پرتلند"
           },
           "comments": {
-            "example": "Excellent product!",
+            "description": "نظرات کاربران درباره محصول",
+            "example": [
+              "کیفیت عالی!",
+              "تحویل سریع"
+            ],
             "type": "array",
             "items": {
               "type": "string"
@@ -2064,45 +2352,71 @@
           },
           "rating": {
             "type": "number",
-            "example": 5
+            "description": "امتیاز متوسط محصول (از 1 تا 5)",
+            "example": 4.5,
+            "minimum": 1,
+            "maximum": 5
+          },
+          "status": {
+            "type": "string",
+            "description": "وضعیت محصول",
+            "example": "draft",
+            "enum": [
+              "active",
+              "inactive",
+              "draft",
+              "archived"
+            ]
           }
         },
         "required": [
           "name",
-          "price",
-          "companiesId",
-          "categories",
-          "description",
-          "userAgent",
-          "ip",
-          "image",
-          "subcategory",
-          "comments",
-          "rating"
+          "slug",
+          "sku",
+          "basePrice",
+          "companyId",
+          "stock",
+          "attributes"
         ]
+      },
+      "Product": {
+        "type": "object",
+        "properties": {}
       },
       "UpdateProductDto": {
         "type": "object",
         "properties": {
           "name": {
             "type": "string",
-            "example": "Laptop"
+            "description": "نام محصول (مثلاً نوع مصالح ساختمانی)",
+            "example": "سیمان تیپ ۲"
           },
-          "price": {
+          "slug": {
+            "type": "string",
+            "description": "شناسه یکتا و مناسب برای SEO محصول",
+            "example": "simaan-tip-2"
+          },
+          "sku": {
+            "type": "string",
+            "description": "کد واحد نگهداری موجودی (SKU) برای ردیابی انبار",
+            "example": "SIM-T2-001"
+          },
+          "basePrice": {
             "type": "number",
-            "example": 1500
+            "description": "قیمت پایه محصول به ازای هر واحد (به ریال)",
+            "example": 2000000,
+            "minimum": 0
           },
-          "companiesId": {
-            "example": "company123",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "companyId": {
+            "type": "string",
+            "description": "شناسه شرکت (تأمین‌کننده) ارائه‌دهنده محصول",
+            "example": "507f1f77bcf86cd799439011"
           },
           "categories": {
+            "description": "لیست شناسه‌های دسته‌بندی‌های مرتبط با محصول",
             "example": [
-              "Electronics",
-              "Computers"
+              "507f1f77bcf86cd799439012",
+              "507f1f77bcf86cd799439013"
             ],
             "type": "array",
             "items": {
@@ -2111,26 +2425,87 @@
           },
           "description": {
             "type": "string",
-            "example": "High-end gaming laptop with RTX 3080."
+            "description": "توضیحات محصول",
+            "example": "سیمان تیپ ۲ با مقاومت بالا برای سازه‌های بتنی"
           },
-          "userAgent": {
-            "type": "string",
-            "example": "Mozilla/5.0"
+          "stock": {
+            "description": "اطلاعات موجودی محصول",
+            "example": {
+              "quantity": 500
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StockDto"
+              }
+            ]
           },
-          "ip": {
-            "type": "string",
-            "example": "192.168.1.1"
+          "variants": {
+            "description": "تنوع‌های محصول (مثلاً اندازه بسته‌بندی، گرید)",
+            "example": [
+              {
+                "name": "بسته‌بندی",
+                "options": [
+                  {
+                    "value": "50 کیلوگرم",
+                    "priceModifier": 0
+                  },
+                  {
+                    "value": "1 تن",
+                    "priceModifier": 500000
+                  }
+                ]
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VariantDto"
+            }
           },
-          "image": {
-            "type": "string",
-            "example": "some link"
+          "attributes": {
+            "type": "object",
+            "description": "ویژگی‌های سفارشی محصول",
+            "example": {
+              "استحکام": "42.5 مگاپاسکال",
+              "زمان گیرش": "3 ساعت"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "description": "برچسب‌ها برای فیلتر و جستجو",
+            "example": [
+              "سیمان",
+              "مصالح ساختمانی"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "images": {
+            "description": "تصاویر مرتبط با محصول",
+            "example": [
+              {
+                "url": "https://example.com/cement-bag.jpg"
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageDto"
+            }
           },
           "subcategory": {
             "type": "string",
-            "example": "Azure"
+            "description": "زیرمجموعه محصول",
+            "example": "سیمان پرتلند"
           },
           "comments": {
-            "example": "Excellent product!",
+            "description": "نظرات کاربران درباره محصول",
+            "example": [
+              "کیفیت عالی!",
+              "تحویل سریع"
+            ],
             "type": "array",
             "items": {
               "type": "string"
@@ -2138,7 +2513,21 @@
           },
           "rating": {
             "type": "number",
-            "example": 5
+            "description": "امتیاز متوسط محصول (از 1 تا 5)",
+            "example": 4.5,
+            "minimum": 1,
+            "maximum": 5
+          },
+          "status": {
+            "type": "string",
+            "description": "وضعیت محصول",
+            "example": "draft",
+            "enum": [
+              "active",
+              "inactive",
+              "draft",
+              "archived"
+            ]
           },
           "id": {
             "type": "string"
@@ -2705,27 +3094,7 @@
           "reason"
         ]
       },
-      "CreateWalletDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateWalletDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreateTransactionDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateTransactionDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreatePaymentDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdatePaymentDto": {
+      "InitiatePaymentDto": {
         "type": "object",
         "properties": {}
       },
@@ -2736,6 +3105,95 @@
       "UpdateCartDto": {
         "type": "object",
         "properties": {}
+      },
+      "CreateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the category",
+            "example": "سیمان / Cement"
+          },
+          "slug": {
+            "type": "string",
+            "description": "SEO-friendly unique slug for the category",
+            "example": "cement"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the category",
+            "example": "دسته‌بندی انواع سیمان برای مصارف ساختمانی / Category for various types of cement for construction."
+          },
+          "parentId": {
+            "type": "string",
+            "description": "ID of the parent category (if any)",
+            "example": "507f1f77bcf86cd799439014"
+          },
+          "companyId": {
+            "type": "string",
+            "description": "ID of the company (supplier) owning the category",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the category",
+            "example": "draft",
+            "enum": [
+              "active",
+              "inactive",
+              "draft"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "companyId"
+        ]
+      },
+      "Category": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the category",
+            "example": "سیمان / Cement"
+          },
+          "slug": {
+            "type": "string",
+            "description": "SEO-friendly unique slug for the category",
+            "example": "cement"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the category",
+            "example": "دسته‌بندی انواع سیمان برای مصارف ساختمانی / Category for various types of cement for construction."
+          },
+          "parentId": {
+            "type": "string",
+            "description": "ID of the parent category (if any)",
+            "example": "507f1f77bcf86cd799439014"
+          },
+          "companyId": {
+            "type": "string",
+            "description": "ID of the company (supplier) owning the category",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the category",
+            "example": "draft",
+            "enum": [
+              "active",
+              "inactive",
+              "draft"
+            ]
+          }
+        }
       }
     }
   }

@@ -6,6 +6,7 @@ import { DeleteResult, Model, UpdateResult } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { ICompanyService } from './interfaces/company.service.interface';
 import { CompanyRepository } from './repositories/company.repository';
+import { QueryOptionsDto } from 'src/utils/query-options.dto';
 
 @Injectable()
 export class CompaniesService implements ICompanyService {
@@ -16,13 +17,13 @@ export class CompaniesService implements ICompanyService {
     return company
   }
 
-  async findAll(): Promise<Company[]> {
-    const companies = await this.companyRepository.findAll();
+  async findAll(options: QueryOptionsDto): Promise<Company[]> {
+    const companies = await this.companyRepository.findAll(options);
     return companies
   }
 
   async findOne(id: string): Promise<Company | null> {
-    const company = await this.companyRepository.findById(id);
+    const company = await this.companyRepository.findOne(id);
     return company
   }
 

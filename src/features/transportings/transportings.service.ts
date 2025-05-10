@@ -3,6 +3,7 @@ import { CreateTransportingDto } from './dto/create-transporting.dto';
 import { UpdateTransportingDto } from './dto/update-transporting.dto';
 import { ITransportingRepository } from './repositories/transporting.repository';
 import { Transporting } from './entities/transporting.entity';
+import { QueryOptionsDto } from 'src/utils/query-options.dto';
 
 @Injectable()
 export class TransportingsService {
@@ -16,12 +17,12 @@ export class TransportingsService {
     return this.transportingRepository.create(createTransportingDto);
   }
 
-  async findAll(): Promise<Transporting[]>  {
-    return await this.transportingRepository.findAll();
+  async findAll(options: QueryOptionsDto): Promise<Transporting[]>  {
+    return await this.transportingRepository.findAll(options);
   }
 
   async findOne(id: string): Promise<Transporting | null>  {
-    return await this.transportingRepository.findById(id);
+    return await this.transportingRepository.findOne(id);
   }
 
   async update(id: string, updateTransportingDto: UpdateTransportingDto): Promise<Transporting | null>  {

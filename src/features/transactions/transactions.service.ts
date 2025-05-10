@@ -3,6 +3,7 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { ITransactionRepository } from './repositories/transactions.repository';
 import { Transaction } from './entities/transaction.entity';
+import { QueryOptionsDto } from 'src/utils/query-options.dto';
 
 @Injectable()
 export class TransactionsService {
@@ -15,19 +16,8 @@ export class TransactionsService {
     return await this.transactionRepository.create(createTransactionDto);
   }
 
-  async findAll(): Promise<Transaction[]> {
-    return await this.transactionRepository.findAll();
+  async getTransactions(userId: string): Promise<Transaction[]> {
+    return this.transactionRepository.findAll({sortBy: userId});
   }
 
-  async findOne(id: string): Promise<Transaction | null> {
-    return await this.transactionRepository.findById(id);
-  }
-
-  async update(id: string, updateTransactionDto: UpdateTransactionDto): Promise<Transaction | null> {
-    return await this.transactionRepository.update(id, updateTransactionDto);
-  }
-
-  async remove(id: string): Promise<boolean> {
-    return await this.transactionRepository.delete(id);
-  }
 }

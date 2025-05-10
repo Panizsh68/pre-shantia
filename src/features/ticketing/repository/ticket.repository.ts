@@ -23,7 +23,7 @@ export class TicketRepository extends BaseRepository<Ticket> implements ITicketR
   }
 
   async findTicketStatus(id: string): Promise<TicketStatus> {
-    const ticket = await this.findById(id)
+    const ticket = await this.findOne(id)
     if (!ticket) throw new NotFoundException('ticket not found ')
     return ticket.status
   }

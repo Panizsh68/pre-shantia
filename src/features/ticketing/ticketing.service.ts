@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
-import { ITicketRepository, TicketRepository } from './repository/ticket.repository';
+import { ITicketRepository } from './repository/ticket.repository';
 import { Ticket } from './entities/ticketing.entity';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { ITicketingService } from './interfaces/ticketing.service.interface';
-import { DeleteResult, UpdateResult } from 'mongoose';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
+import { QueryOptionsDto } from 'src/utils/query-options.dto';
 
 
 @Injectable()
@@ -22,14 +22,14 @@ export class TicketingService implements ITicketingService{
     return ticket;
   }
 
-  async findAll(): Promise<Ticket[]> {
-    return await this.ticketRepository.findAll();
+  async findAll(options: QueryOptionsDto): Promise<Ticket[]> {
+    return await this.ticketRepository.findAll(options);
   }
 
-  async findById(id: string): Promise<Ticket | null> {
+  async findOne(id: string): Promise<Ticket | null> {
     const cachedTicket = await this.cacheService.get<Ticket>(`ticket:${id}`);
     if (cachedTicket) return cachedTicket;
-    const ticket = await this.ticketRepository.findById(id);
+    const ticket = await this.ticketRepository.findOne(id);
     if (ticket) await this.cacheService.set(`ticket:${id}`, ticket, 3000)
     return ticket;
   }
@@ -44,7 +44,6 @@ export class TicketingService implements ITicketingService{
     return updatedTicket;
   }
 
-  
   async updateStatus(id: string, status: TicketStatus): Promise<Ticket | null> {
     const updatedTicket = await this.ticketRepository.updateTicketStatus(id, status);
     if (updatedTicket) await this.cacheService.set(`ticket:${id}`, updatedTicket, 3000);

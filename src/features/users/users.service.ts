@@ -6,6 +6,7 @@ import { User,  } from './entities/user.entity';
 import { Model } from 'mongoose';
 import { IBaseRepository } from 'src/utils/base.repository';
 import { IUserRepository } from './repositories/user.repository';
+import { QueryOptionsDto } from 'src/utils/query-options.dto';
 
 @Injectable()
 export class UsersService {
@@ -14,17 +15,17 @@ export class UsersService {
     @Inject('UserRepository') private readonly usersRepository: IUserRepository,
   ) {}
 
-  async createUser(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto) {
     const user = await this.usersRepository.create(createUserDto);
     return user;
   }
 
-  async findAllUsers() {
-    return await this.usersRepository.findAll();
+  async findAll(options: QueryOptionsDto) {
+    return await this.usersRepository.findAll(options);
   }
 
-  async findUserById(id: string) {
-    const user = await this.usersRepository.findById(id)
+  async findOne(id: string) {
+    const user = await this.usersRepository.findOne(id)
     return user
   }
 
@@ -33,11 +34,11 @@ export class UsersService {
     return user;
   }
 
-  async updateUser(id: string, updateUserDto: UpdateUserDto) {
+  async update(id: string, updateUserDto: UpdateUserDto) {
     await this.usersRepository.update(id , updateUserDto);
   }
 
-  async removeUser(id: string) {
+  async remove(id: string) {
     await this.usersRepository.delete(id);
   }
 }

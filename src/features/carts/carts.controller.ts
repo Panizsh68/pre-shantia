@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { CartsService } from './carts.service';
 import { CreateCartDto } from './dto/create-cart.dto';
 import { UpdateCartDto } from './dto/update-cart.dto';
+import { QueryOptionsDto } from 'src/utils/query-options.dto';
 
 @Controller('carts')
 export class CartsController {
@@ -13,8 +14,8 @@ export class CartsController {
   }
 
   @Get()
-  findAll() {
-    return this.cartsService.findAll();
+  findAll(@Body() options: QueryOptionsDto) {
+    return this.cartsService.findAll(options);
   }
 
   @Get(':id')

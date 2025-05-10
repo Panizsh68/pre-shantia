@@ -4,6 +4,7 @@ import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { DeleteResult } from 'mongoose';
 import { ICompanyService } from './interfaces/company.service.interface';
+import { QueryOptionsDto } from 'src/utils/query-options.dto';
 
 @Controller('companies')
 export class CompaniesController implements ICompanyService {
@@ -15,8 +16,8 @@ export class CompaniesController implements ICompanyService {
   }
 
   @Get()
-  async findAll() {
-    return this.companiesService.findAll();
+  async findAll(@Body() options: QueryOptionsDto) {
+    return this.companiesService.findAll(options);
   }
 
   @Get(':id')

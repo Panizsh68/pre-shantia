@@ -1,46 +1,67 @@
-import { Injectable, InjectionToken } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, HydratedDocument } from 'mongoose';
+import { Injectable } from '@nestjs/common';
+import { Model } from 'mongoose';
+import { QueryOptionsDto } from './query-options.dto';
 
 // Interface defining the contract for repository operations
 export interface IBaseRepository<T> {
   create(data: Partial<T>): Promise<T>;
-  findById(id: string): Promise<T | null>;
-  findAll(): Promise<T[]>;
+  findOne(id: string, populate?: string[]): Promise<T | null>;
+  findAll(options: QueryOptionsDto): Promise<T[]>;
   update(id: string, data: Partial<T>): Promise<T | null>;
   delete(id: string): Promise<boolean>;
 }
 
+@Injectable()
 export class BaseRepository<T> implements IBaseRepository<T> {
-    private readonly model: Model<T>
+  private readonly model: Model<T>;
 
-    constructor(model: Model<T>) {
-        this.model = model;
+  constructor(model: Model<T>) {
+    this.model = model;
+  }
+
+  async create(data: Partial<T>): Promise<T> {
+    const createdDoc = await this.model.create(data);
+    return createdDoc;
+  }
+
+  async findOne(id: string, populate: string[] = []): Promise<T | null> {
+    let query = this.model.findById(id);
+    
+    if (populate.length > 0) {
+      query = query.populate(populate);
     }
 
-    async create(data: Partial<T>): Promise<T> {
-        const createdDoc = await this.model.create(data);
-        return createdDoc;
+    const doc = await query.exec();
+    return doc;
+  }
+
+  async findAll(options: QueryOptionsDto): Promise<T[]> {
+    const { page, limit, sortBy, sortOrder, populate = [] } = options;
+    let query = this.model.find();
+
+    if (sortBy && sortOrder) {
+      query = query.sort({ [sortBy]: sortOrder });
     }
 
-    async findById(id: string): Promise<T | null> {
-        const doc = await this.model.findById(id).exec();
-        return doc;
+    if (page && limit) {
+      query = query.skip((page - 1) * limit).limit(limit);
     }
 
-    async findAll(): Promise<T[]> {
-        const docs = await this.model.find().exec();
-        return docs;
+    if (populate.length > 0) {
+      query = query.populate(populate);
     }
 
-    async update(id: string, data: Partial<T>): Promise<T | null> {
-        const updatedDoc = await this.model.findByIdAndUpdate(id, data, {new: true,}).exec();
-        return updatedDoc;  
-    }
+    const docs = await query.exec();
+    return docs;
+  }
 
-    async delete(id: string): Promise<boolean> {
-        const result = await this.model.findByIdAndDelete(id).exec();
-        return !!result;
-    }
-            
+  async update(id: string, data: Partial<T>): Promise<T | null> {
+    const updatedDoc = await this.model.findByIdAndUpdate(id, data, { new: true }).exec();
+    return updatedDoc;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await this.model.findByIdAndDelete(id).exec();
+    return !!result;
+  }
 }

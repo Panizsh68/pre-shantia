@@ -1,26 +1,22 @@
-import { Injectable } from '@nestjs/common';
-import { CreateWalletDto } from './dto/create-wallet.dto';
-import { UpdateWalletDto } from './dto/update-wallet.dto';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { IWalletRepository } from './repositories/wallet.repository';
+import { CreditWalletDto } from './dto/credit-wallet.dto';
+import { GetWalletDto } from './dto/get-wallet.dto';
 
 @Injectable()
 export class WalletsService {
-  create(createWalletDto: CreateWalletDto) {
-    return 'This action adds a new wallet';
+  constructor(@Inject('WalletRepository') private readonly walletRepository: IWalletRepository) {}
+
+  async creditWallet(creditWalletDto: CreditWalletDto) {
+    const wallet = await this.walletRepository.findOne((creditWalletDto.ownerId).toString())
+    if (!wallet) throw new NotFoundException
+    wallet.balance += creditWalletDto.amount
+    return this.walletRepository.update((wallet._id).toString(), { balance: wallet.balance });
   }
 
-  findAll() {
-    return `This action returns all wallets`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} wallet`;
-  }
-
-  update(id: number, updateWalletDto: UpdateWalletDto) {
-    return `This action updates a #${id} wallet`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} wallet`;
+  async getWallet(getWalletDto: GetWalletDto) {
+    const wallet = await this.walletRepository.findOne((getWalletDto.ownerId).toString())
+    if (!wallet) throw new NotFoundException
+    return wallet
   }
 }

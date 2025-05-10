@@ -66,7 +66,7 @@ export class AuthService {
   
     if (!user) {
       const {otp, ...signUpDto} = verifyOtpDto
-      user = await this.usersService.createUser(signUpDto)
+      user = await this.usersService.create(signUpDto)
     }
 
     // Check if the user is the superadmin and allow them to pass permissions to other users

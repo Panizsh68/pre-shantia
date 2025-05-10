@@ -1,34 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { InitiatePaymentDto } from './dto/initiate-payment';
+import { VerifyPaymentDto } from './dto/verify-payment.dto';
+import { AuthenticationGuard } from '../users/auth/guards/auth.guard';
 
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  @Post()
-  create(@Body() createPaymentDto: CreatePaymentDto) {
-    return this.paymentsService.create(createPaymentDto);
+  @Post('initiate')
+  @UseGuards(AuthenticationGuard)
+  async initiatePayment(@Body() initiatePaymentDto: InitiatePaymentDto, @Req() req: any) {
+    const userId =  req.user.userId
+    return this.paymentsService.initiatePayment({...initiatePaymentDto, userId })
   }
 
-  @Get()
-  findAll() {
-    return this.paymentsService.findAll();
-  }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.paymentsService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePaymentDto: UpdatePaymentDto) {
-    return this.paymentsService.update(id, updatePaymentDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.paymentsService.remove(id);
+  @Get('callback')
+  async handleCallback(@Query() verifypaymentDto: VerifyPaymentDto) {
+    return this.paymentsService.verifyPayment(verifypaymentDto)
   }
 }
