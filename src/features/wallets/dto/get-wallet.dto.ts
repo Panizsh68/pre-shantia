@@ -1,5 +1,11 @@
-import { Types } from "mongoose";
+import { IsOptional, IsString } from 'class-validator';
+import { WalletOwnerType } from '../enums/wallet-ownertype.enum';
 
 export class GetWalletDto {
-    ownerId: Types.ObjectId
+  @IsString()
+  ownerId: string;
+
+  @IsString()
+  @IsOptional()
+  ownerType: WalletOwnerType = WalletOwnerType.USER;
 }

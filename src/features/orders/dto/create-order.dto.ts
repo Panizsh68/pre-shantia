@@ -1,59 +1,103 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { Type } from "class-transformer";
-import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from "class-validator";
-import { CreateProductDto } from "src/features/products/dto/create-product.dto";
-import { OrdersStatus } from "../enums/orders.status.enum";
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { OrdersStatus } from '../enums/orders.status.enum';
 
-export class OrderItemDto {
-    @ApiProperty({ example: "product123" })
-    @IsNotEmpty()
-    @IsString()
-    productId: string;
+class OrderItemDto {
+  @ApiProperty({
+    description: 'MongoDB ObjectId of the product',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @IsNotEmpty()
+  @IsString()
+  productId: string;
 
-    @ApiProperty({ example: 2 })
-    @IsNotEmpty()
-    @IsNumber()
-    quantity: number;
+  @ApiProperty({
+    description: 'Quantity of the product',
+    example: 2,
+    minimum: 1,
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  @Min(1)
+  quantity: number;
 }
 
 export class CreateOrderDto {
-    @ApiProperty({ example: "user123" })
-    @IsNotEmpty()
-    @IsString()
-    userId: string;
-  
-    @ApiProperty({ type: [OrderItemDto] })
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => OrderItemDto)
-    items: OrderItemDto[];
+  @ApiProperty({
+    description: 'MongoDB ObjectId of the user',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @IsNotEmpty()
+  @IsString()
+  userId: string;
 
-    @ApiProperty({ example: 1500 })
-    @IsNotEmpty()
-    @IsNumber()
-    totalPrice: number;  // Renamed for consistency
+  @ApiProperty({
+    description: 'List of order items',
+    type: [OrderItemDto],
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemDto)
+  items: OrderItemDto[];
 
-    @ApiProperty({ example: "PENDING", enum: OrdersStatus })
-    @IsNotEmpty()
-    status: OrdersStatus;  // Added for consistency
+  @ApiProperty({
+    description: 'Total price of the order (in IRR)',
+    example: 1500000,
+    minimum: 0,
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  @Min(0)
+  totalPrice: number;
 
-    @ApiProperty({ example: "123 Street, Tehran, Iran" })
-    @IsOptional()
-    @IsString()
-    shippingAddress?: string;  // Added for consistency
+  @ApiProperty({
+    description: 'Status of the order',
+    enum: OrdersStatus,
+    example: OrdersStatus.PENDING,
+  })
+  @IsNotEmpty()
+  @IsEnum(OrdersStatus)
+  status: OrdersStatus;
 
-    @ApiProperty({ example: "Credit Card" })
-    @IsOptional()
-    @IsString()
-    paymentMethod?: string;  // Added for consistency
+  @ApiPropertyOptional({
+    description: 'Shipping address for the order',
+    example: '123 Street, Tehran, Iran',
+  })
+  @IsOptional()
+  @IsString()
+  shippingAddress?: string;
 
-    @ApiProperty({ example: "company123" })
-    @IsNotEmpty()
-    @IsString()
-    companyId: string;  // Added for consistency
+  @ApiPropertyOptional({
+    description: 'Payment method used for the order',
+    example: 'Credit Card',
+  })
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
 
-    @ApiProperty({ example: "transport456" })
-    @IsOptional()
-    @IsString()
-    transportId?: string;  // Added for consistency
+  @ApiProperty({
+    description: 'MongoDB ObjectId of the supplier company',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @IsNotEmpty()
+  @IsString()
+  companyId: string;
+
+  @ApiPropertyOptional({
+    description: 'MongoDB ObjectId of the transport record',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @IsOptional()
+  @IsString()
+  transportId?: string;
 }

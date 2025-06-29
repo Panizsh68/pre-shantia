@@ -1,19 +1,17 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { TransportingStatus } from '../enums/transporting.status.enum';
-import { Document, HydratedDocument } from 'mongoose';
-
-export type TransportingDocument = HydratedDocument<Transporting>;
+import { Document } from 'mongoose';
 
 @Schema({ timestamps: true })
-export class Transporting {
+export class Transporting extends Document {
   @Prop({ required: true })
   orderId: string;
 
   @Prop({ required: true })
-  companyId: string; 
+  companyId: string;
 
   @Prop({ required: true })
-  status: TransportingStatus
+  status: TransportingStatus;
 
   @Prop()
   estimatedDelivery: Date;

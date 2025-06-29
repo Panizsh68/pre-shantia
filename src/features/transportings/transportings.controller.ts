@@ -1,35 +1,86 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Param, Body } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { TransportingsService } from './transportings.service';
 import { CreateTransportingDto } from './dto/create-transporting.dto';
 import { UpdateTransportingDto } from './dto/update-transporting.dto';
-import { QueryOptionsDto } from 'src/utils/query-options.dto';
+import { ITransporting } from './interfaces/transporting.interface';
 
+@ApiTags('transportings')
 @Controller('transportings')
 export class TransportingsController {
   constructor(private readonly transportingsService: TransportingsService) {}
 
   @Post()
-  create(@Body() createTransportingDto: CreateTransportingDto) {
+  @ApiOperation({ summary: 'Create a new transporting record' })
+  @ApiBody({ type: CreateTransportingDto })
+  @ApiResponse({ status: 201, description: 'Transporting record created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  async create(@Body() createTransportingDto: CreateTransportingDto): Promise<ITransporting> {
     return this.transportingsService.create(createTransportingDto);
   }
 
-  @Get()
-  findAll(@Body() options: QueryOptionsDto) {
-    return this.transportingsService.findAll(options);
-  }
-
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.transportingsService.findOne(id);
+  @ApiOperation({ summary: 'Get transporting record by ID' })
+  @ApiParam({ name: 'id', description: 'Transporting ID', example: '507f1f77bcf86cd799439011' })
+  @ApiResponse({ status: 200, description: 'Transporting record found' })
+  @ApiResponse({ status: 404, description: 'Transporting record not found' })
+  async findById(@Param('id') id: string): Promise<ITransporting> {
+    return this.transportingsService.findById(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTransportingDto: UpdateTransportingDto) {
-    return this.transportingsService.update(id, updateTransportingDto);
+  @Get('order/:orderId')
+  @ApiOperation({ summary: 'Get transporting record by order ID' })
+  @ApiParam({ name: 'orderId', description: 'Order ID', example: '507f1f77bcf86cd799439012' })
+  @ApiResponse({ status: 200, description: 'Transporting record found' })
+  @ApiResponse({ status: 404, description: 'Transporting record not found' })
+  async findByOrderId(@Param('orderId') orderId: string): Promise<ITransporting> {
+    return this.transportingsService.findByOrderId(orderId);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.transportingsService.remove(id);
+  @Get('company/:companyId')
+  @ApiOperation({ summary: 'Get transporting records by company ID' })
+  @ApiParam({ name: 'companyId', description: 'Company ID', example: '507f1f77bcf86cd799439013' })
+  @ApiResponse({ status: 200, description: 'List of transporting records found' })
+  @ApiResponse({ status: 404, description: 'No transporting records found for the company' })
+  async findByCompanyId(@Param('companyId') companyId: string): Promise<ITransporting[]> {
+    return this.transportingsService.findByCompanyId(companyId);
+  }
+
+  @Patch()
+  @ApiOperation({ summary: 'Update a transporting record' })
+  @ApiBody({ type: UpdateTransportingDto })
+  @ApiResponse({ status: 200, description: 'Transporting record updated successfully' })
+  @ApiResponse({ status: 404, description: 'Transporting record not found' })
+  async update(@Body() updateTransportingDto: UpdateTransportingDto): Promise<ITransporting> {
+    return this.transportingsService.update(updateTransportingDto);
+  }
+
+  @Patch(':id/cancel')
+  @ApiOperation({ summary: 'Cancel a transporting record' })
+  @ApiParam({ name: 'id', description: 'Transporting ID', example: '507f1f77bcf86cd799439011' })
+  @ApiResponse({ status: 200, description: 'Transporting record canceled successfully' })
+  @ApiResponse({ status: 404, description: 'Transporting record not found' })
+  @ApiResponse({ status: 400, description: 'Transporting record cannot be canceled' })
+  async cancel(@Param('id') id: string): Promise<ITransporting> {
+    return this.transportingsService.cancel(id);
+  }
+
+  @Patch(':id/delivered')
+  @ApiOperation({ summary: 'Mark a transporting record as delivered' })
+  @ApiParam({ name: 'id', description: 'Transporting ID', example: '507f1f77bcf86cd799439011' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { estimatedDelivery: { type: 'string', format: 'date-time' } },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Transporting record marked as delivered successfully' })
+  @ApiResponse({ status: 404, description: 'Transporting record not found' })
+  @ApiResponse({ status: 400, description: 'Transporting record cannot be marked as delivered' })
+  async markAsDelivered(
+    @Param('id') id: string,
+    @Body('estimatedDelivery') estimatedDelivery?: Date,
+  ): Promise<ITransporting> {
+    return this.transportingsService.markAsDelivered(id, estimatedDelivery);
   }
 }

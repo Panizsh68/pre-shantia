@@ -1,55 +1,65 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Patch,
+  Body,
+  Param,
+  HttpStatus,
+  HttpCode,
+} from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { TokenPayload } from '../auth/interfaces/token-payload.interface';
 import { Category } from './entities/category.entity';
-import { ICategoryService } from './interfaces/categories-service.interface';
+import { CategoryStatus } from './enums/category-status.enum';
 
-@ApiTags('دسته‌بندی‌ها')
+@ApiTags('Categories')
 @Controller('categories')
-export class CategoriesController implements ICategoryService {
+export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
-  @ApiOperation({ summary: 'ایجاد یک دسته‌بندی جدید' })
-  @ApiResponse({ status: 201, description: 'دسته‌بندی با موفقیت ایجاد شد', type: Category })
-  @ApiResponse({ status: 400, description: 'داده‌های ورودی نامعتبر' })
-  create(@Body() createCategoryDto: CreateCategoryDto): Promise<Category> {
-    return this.categoriesService.create(createCategoryDto);
+  @HttpCode(HttpStatus.CREATED)
+  create(@Body() data: Partial<Category>) {
+    return this.categoriesService.create(data);
   }
 
   @Get()
-  @ApiOperation({ summary: 'دریافت تمام دسته‌بندی‌ها' })
-  @ApiResponse({ status: 200, description: 'لیست دسته‌بندی‌ها', type: [Category] })
-  findAll(): Promise<Category[]> {
-    return this.categoriesService.findAll({});
+  @HttpCode(HttpStatus.OK)
+  findAll(@CurrentUser() user: TokenPayload) {
+    return this.categoriesService.findAll(user.userId);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'دریافت یک دسته‌بندی با شناسه' })
-  @ApiParam({ name: 'id', description: 'شناسه دسته‌بندی', example: '507f1f77bcf86cd799439012' })
-  @ApiResponse({ status: 200, description: 'جزئیات دسته‌بندی', type: Category })
-  @ApiResponse({ status: 404, description: 'دسته‌بندی یافت نشد' })
-  findOne(@Param('id') id: string): Promise<Category> {
+  @HttpCode(HttpStatus.OK)
+  findOne(@Param('id') id: string) {
     return this.categoriesService.findOne(id);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'به‌روزرسانی یک دسته‌بندی با شناسه' })
-  @ApiParam({ name: 'id', description: 'شناسه دسته‌بندی', example: '507f1f77bcf86cd799439012' })
-  @ApiResponse({ status: 200, description: 'دسته‌بندی به‌روزرسانی شد', type: Category })
-  @ApiResponse({ status: 404, description: 'دسته‌بندی یافت نشد' })
-  update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto): Promise<Category> {
-    return this.categoriesService.update(id, updateCategoryDto);
+  @HttpCode(HttpStatus.OK)
+  update(@Param('id') id: string, @Body() data: Partial<Category>) {
+    return this.categoriesService.update(id, data);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'حذف یک دسته‌بندی با شناسه' })
-  @ApiParam({ name: 'id', description: 'شناسه دسته‌بندی', example: '507f1f77bcf86cd799439012' })
-  @ApiResponse({ status: 200, description: 'دسته‌بندی با موفقیت حذف شد', type: Boolean })
-  @ApiResponse({ status: 404, description: 'دسته‌بندی یافت نشد' })
-  remove(@Param('id') id: string): Promise<boolean> {
+  @HttpCode(HttpStatus.OK)
+  remove(@Param('id') id: string) {
     return this.categoriesService.remove(id);
+  }
+
+  @Patch(':id/status')
+  @HttpCode(HttpStatus.OK)
+  setStatus(@Param('id') id: string, @Body('status') status: CategoryStatus) {
+    return this.categoriesService.setStatus(id, status);
+  }
+
+  @Get('parent/:parentId')
+  @HttpCode(HttpStatus.OK)
+  findByParentId(@Param('parentId') parentId: string) {
+    return this.categoriesService.findByParentId(parentId);
   }
 }

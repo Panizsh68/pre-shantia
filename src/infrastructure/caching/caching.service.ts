@@ -1,26 +1,45 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { Injectable } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { Redis } from 'ioredis';
 
 @Injectable()
 export class CachingService {
-  constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
+  constructor(@InjectRedis() private readonly redis: Redis) {}
 
-  
-  // Get cached value
+  async set<T>(key: string, value: T, ttl: number): Promise<boolean> {
+    try {
+      if (typeof ttl !== 'number' || isNaN(ttl)) {
+        throw new Error(`Invalid TTL passed: ${ttl}`);
+      }
+
+      await this.redis.set(key, JSON.stringify(value), 'EX', ttl);
+      const cached = await this.redis.get(key);
+      return cached !== null;
+    } catch (e) {
+      console.error(`Set failed for ${key}`, e);
+      return false;
+    }
+  }
+
   async get<T>(key: string): Promise<T | null> {
-    const value = await this.cacheManager.get<T>(key);
-    return value ?? null;
+    try {
+      const value = await this.redis.get(key);
+      return value ? JSON.parse(value) : null;
+    } catch (e) {
+      console.error(`Get failed for ${key}`, e);
+      return null;
+    }
   }
 
-  
-  // Set value in cache with TTL
-  async set<T>(key: string, value: T, ttl: number): Promise<void> {
-    await this.cacheManager.set<T>(key, value, ttl);
-  }
-
-  
-  // Delete cache entry
   async delete(key: string): Promise<void> {
-    await this.cacheManager.del(key);
+    try {
+      await this.redis.del(key);
+    } catch (e) {
+      console.error(`Delete failed for ${key}`, e);
+    }
+  }
+
+  getStoreName(): string {
+    return this.redis.status || 'unknown';
   }
 }

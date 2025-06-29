@@ -1,39 +1,40 @@
-import { Prop, Schema } from "@nestjs/mongoose";
-import { Types } from "mongoose";
-import { Cart } from "src/features/carts/entities/cart.entity";
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
+import { Cart, CartSchema } from 'src/features/carts/entities/cart.entity';
 
 @Schema()
-export class Profile {
-    @Prop({ type: String, required: true })
-    firstName: string;
+export class Profile extends Document {
+  @Prop({ type: String, required: true, default: 'نام' })
+  firstName?: string;
 
-    @Prop({ type: String, required: true})
-    lastName: string;
+  @Prop({ type: String, required: true, default: 'نام‌خانوادگی' })
+  lastName?: string;
 
-    @Prop({ type: String, required: true })
-    email: string;
+  @Prop({ type: String, required: true, default: 'test@example.com' })
+  email?: string;
 
-    @Prop({ type: String, required: true })
-    phoneNumber: string;
+  @Prop({ type: String, required: true })
+  phoneNumber: string;
 
-    @Prop({ type: String, required: true })
-    address: string;
+  @Prop({ type: String, required: true, default: 'نامشخص' })
+  address?: string;
 
-    @Prop({ type: String, required: true }) 
-    meliCode: string;
+  @Prop({ type: String, required: true })
+  nationalId: string;
 
-    @Prop({ type: Types.ObjectId, ref: 'Wallet' })
-    walletId?: Types.ObjectId; 
+  @Prop({ type: String, ref: 'Wallet' })
+  walletId?: string;
 
-    @Prop({ type: [{ type: Types.ObjectId, ref: 'Order' }], default: [] })
-    orders: Types.ObjectId[]; 
+  @Prop({ type: [{ type: String, ref: 'Order' }], default: [] })
+  orders: string[];
 
-    @Prop({ type: [{ type: Types.ObjectId, ref: 'Transaction' }], default: [] })
-    transactions: Types.ObjectId[]; 
+  @Prop({ type: [{ type: String, ref: 'Transaction' }], default: [] })
+  transactions: string[];
 
-    @Prop({ type: [{ type: Types.ObjectId, ref: 'Product' }], default: [] })
-    favorites: Types.ObjectId[]; 
+  @Prop({ type: [{ type: String, ref: 'Product' }], default: [] })
+  favorites: string[];
 
-    @Prop({ type: Cart, default: [] })
-    cart: Cart; 
+  @Prop({ type: CartSchema })
+  cart: Cart;
 }
+export const ProfileSchema = SchemaFactory.createForClass(Profile);

@@ -3,6 +3,6 @@ import { ShahkarService } from './shahkar.service';
 
 @Module({
   providers: [ShahkarService],
-  exports: [ShahkarService]
+  exports: [ShahkarService],
 })
 export class ShahkarModule {}

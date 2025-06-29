@@ -1,13 +1,25 @@
-import { IsString, IsNumber, IsArray, IsOptional, Min, IsEnum, IsObject, ValidateNested, IsUrl, Max, MaxLength, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsArray,
+  IsOptional,
+  Min,
+  IsEnum,
+  IsObject,
+  ValidateNested,
+  IsUrl,
+  Max,
+  MaxLength,
+  IsNotEmpty,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProductStatus } from '../enums/product-status.enum';
 
 class StockDto {
   @ApiProperty({
-    description: 'مقدار موجودی محصول در انبار (مثلاً تعداد کیسه یا تن)',
+    description: 'Quantity of product in stock',
     example: 500,
-    type: Number,
     minimum: 0,
   })
   @IsNumber()
@@ -17,18 +29,16 @@ class StockDto {
 
 class VariantOptionDto {
   @ApiProperty({
-    description: 'مقدار گزینه تنوع محصول (مثلاً اندازه بسته‌بندی)',
-    example: '50 کیلوگرم',
-    type: String,
+    description: 'Value of the variant option',
+    example: '50 kg',
   })
   @IsString()
+  @IsNotEmpty()
   value: string;
 
-  @ApiProperty({
-    description: 'تغییر قیمت برای این گزینه (به ریال)',
+  @ApiPropertyOptional({
+    description: 'Price modifier for this option (in IRR)',
     example: 0,
-    type: Number,
-    required: false,
   })
   @IsNumber()
   @IsOptional()
@@ -37,19 +47,15 @@ class VariantOptionDto {
 
 class VariantDto {
   @ApiProperty({
-    description: 'نام تنوع محصول (مثلاً بسته‌بندی، گرید)',
-    example: 'بسته‌بندی',
-    type: String,
+    description: 'Name of the variant',
+    example: 'Packaging',
   })
   @IsString()
+  @IsNotEmpty()
   name: string;
 
   @ApiProperty({
-    description: 'لیست گزینه‌های تنوع محصول',
-    example: [
-      { value: '50 کیلوگرم', priceModifier: 0 },
-      { value: '1 تن', priceModifier: 500000 },
-    ],
+    description: 'List of variant options',
     type: [VariantOptionDto],
   })
   @IsArray()
@@ -60,9 +66,8 @@ class VariantDto {
 
 class ImageDto {
   @ApiProperty({
-    description: 'آدرس URL تصویر محصول',
+    description: 'URL of the product image',
     example: 'https://example.com/cement-bag.jpg',
-    type: String,
   })
   @IsUrl()
   url: string;
@@ -70,36 +75,32 @@ class ImageDto {
 
 export class CreateProductDto {
   @ApiProperty({
-    description: 'نام محصول (مثلاً نوع مصالح ساختمانی)',
-    example: 'سیمان تیپ ۲',
-    type: String,
+    description: 'Name of the product',
+    example: 'Cement Type 2',
   })
   @IsString()
   @IsNotEmpty()
   name: string;
 
   @ApiProperty({
-    description: 'شناسه یکتا و مناسب برای SEO محصول',
-    example: 'simaan-tip-2',
-    type: String,
+    description: 'SEO-friendly unique slug for the product',
+    example: 'cement-type-2',
   })
   @IsString()
   @IsNotEmpty()
   slug: string;
 
   @ApiProperty({
-    description: 'کد واحد نگهداری موجودی (SKU) برای ردیابی انبار',
-    example: 'SIM-T2-001',
-    type: String,
+    description: 'Stock Keeping Unit (SKU) code',
+    example: 'CEM-T2-001',
   })
   @IsString()
   @IsNotEmpty()
   sku: string;
 
   @ApiProperty({
-    description: 'قیمت پایه محصول به ازای هر واحد (به ریال)',
+    description: 'Base price of the product (in IRR)',
     example: 2000000,
-    type: Number,
     minimum: 0,
   })
   @IsNumber()
@@ -108,30 +109,26 @@ export class CreateProductDto {
   basePrice: number;
 
   @ApiProperty({
-    description: 'شناسه شرکت (تأمین‌کننده) ارائه‌دهنده محصول',
+    description: 'MongoDB ObjectId of the supplier company',
     example: '507f1f77bcf86cd799439011',
-    type: String,
   })
   @IsString()
   @IsNotEmpty()
   companyId: string;
 
-  @ApiProperty({
-    description: 'لیست شناسه‌های دسته‌بندی‌های مرتبط با محصول',
-    example: ['507f1f77bcf86cd799439012', '507f1f77bcf86cd799439013'],
-    type: [String],
-    required: false,
+  @ApiPropertyOptional({
+    description: 'List of category IDs',
+    example: ['507f1f77bcf86cd799439012'],
   })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
   categories?: string[];
 
-  @ApiProperty({
-    description: 'توضیحات محصول',
-    example: 'سیمان تیپ ۲ با مقاومت بالا برای سازه‌های بتنی',
-    type: String,
-    required: false,
+  @ApiPropertyOptional({
+    description: 'Description of the product',
+    example: 'High-strength Type 2 cement for concrete structures',
+    maxLength: 500,
   })
   @IsString()
   @IsOptional()
@@ -139,8 +136,7 @@ export class CreateProductDto {
   description?: string;
 
   @ApiProperty({
-    description: 'اطلاعات موجودی محصول',
-    example: { quantity: 500 },
+    description: 'Stock information for the product',
     type: StockDto,
   })
   @ValidateNested()
@@ -148,19 +144,9 @@ export class CreateProductDto {
   @IsNotEmpty()
   stock: StockDto;
 
-  @ApiProperty({
-    description: 'تنوع‌های محصول (مثلاً اندازه بسته‌بندی، گرید)',
-    example: [
-      {
-        name: 'بسته‌بندی',
-        options: [
-          { value: '50 کیلوگرم', priceModifier: 0 },
-          { value: '1 تن', priceModifier: 500000 },
-        ],
-      },
-    ],
+  @ApiPropertyOptional({
+    description: 'Product variants',
     type: [VariantDto],
-    required: false,
   })
   @IsArray()
   @ValidateNested({ each: true })
@@ -168,32 +154,26 @@ export class CreateProductDto {
   @IsOptional()
   variants?: VariantDto[];
 
-  @ApiProperty({
-    description: 'ویژگی‌های سفارشی محصول',
-    example: { 'استحکام': '42.5 مگاپاسکال', 'زمان گیرش': '3 ساعت' },
-    type: 'object',
-    additionalProperties: { type: 'string' },
+  @ApiPropertyOptional({
+    description: 'Custom attributes of the product',
+    example: { strength: '42.5 MPa', settingTime: '3 hours' },
   })
   @IsObject()
   @IsOptional()
   attributes?: Record<string, string>;
 
-  @ApiProperty({
-    description: 'برچسب‌ها برای فیلتر و جستجو',
-    example: ['سیمان', 'مصالح ساختمانی'],
-    type: [String],
-    required: false,
+  @ApiPropertyOptional({
+    description: 'Tags for filtering and search',
+    example: ['cement', 'construction'],
   })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
   tags?: string[];
 
-  @ApiProperty({
-    description: 'تصاویر مرتبط با محصول',
-    example: [{ url: 'https://example.com/cement-bag.jpg' }],
+  @ApiPropertyOptional({
+    description: 'Images associated with the product',
     type: [ImageDto],
-    required: false,
   })
   @IsArray()
   @ValidateNested({ each: true })
@@ -201,34 +181,20 @@ export class CreateProductDto {
   @IsOptional()
   images?: ImageDto[];
 
-  @ApiProperty({
-    description: 'زیرمجموعه محصول',
-    example: 'سیمان پرتلند',
-    type: String,
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  subcategory?: string;
-
-  @ApiProperty({
-    description: 'نظرات کاربران درباره محصول',
-    example: ['کیفیت عالی!', 'تحویل سریع'],
-    type: [String],
-    required: false,
+  @ApiPropertyOptional({
+    description: 'User comments about the product',
+    example: ['Great quality!', 'Fast delivery'],
   })
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
   comments?: string[];
 
-  @ApiProperty({
-    description: 'امتیاز متوسط محصول (از 1 تا 5)',
+  @ApiPropertyOptional({
+    description: 'Average rating of the product (1 to 5)',
     example: 4.5,
-    type: Number,
     minimum: 1,
     maximum: 5,
-    required: false,
   })
   @IsNumber()
   @IsOptional()
@@ -236,11 +202,10 @@ export class CreateProductDto {
   @Max(5)
   rating?: number;
 
-  @ApiProperty({
-    description: 'وضعیت محصول',
-    example: 'draft',
+  @ApiPropertyOptional({
+    description: 'Status of the product',
     enum: ProductStatus,
-    required: false,
+    example: ProductStatus.DRAFT,
   })
   @IsEnum(ProductStatus)
   @IsOptional()

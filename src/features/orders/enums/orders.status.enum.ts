@@ -1,11 +1,10 @@
 export enum OrdersStatus {
-    PENDING = "pending",
-    PAID = "paid",
-    SHIPPED = "shipped",
-    DELIVERED = "delivered",
-    CANCELED = "canceled",
-    REFUNDED = "refunded",
-    COMPLETED = "completed",
-    FAILED = "failed"
+  PENDING = 'pending',
+  PAID = 'paid',
+  SHIPPED = 'shipped',
+  DELIVERED = 'delivered',
+  COMPLETED = 'completed',
+  REFUNDED = 'refunded',
+  CANCELED = 'canceled',
+  FAILED = 'failed',
 }
-

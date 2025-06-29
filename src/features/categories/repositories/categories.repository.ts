@@ -1,9 +1,11 @@
-import { Injectable } from "@nestjs/common";
-import { Category } from "../entities/category.entity";
-import { BaseRepository, IBaseRepository } from "src/utils/base.repository";
+import { Injectable } from '@nestjs/common';
+import { IBaseCrudRepository } from 'src/libs/repository/interfaces/base-repo.interfaces';
+import { BaseCrudRepository } from 'src/libs/repository/base-repos';
+import { Category } from '../entities/category.entity';
 
-export interface ICategoryRepository extends IBaseRepository<Category> {} 
-
+export interface ICategoryRepository extends IBaseCrudRepository<Category> {}
 
 @Injectable()
-export class CategoryRepository extends BaseRepository<Category> {}
+export class CategoryRepository
+  extends BaseCrudRepository<Category>
+  implements ICategoryRepository {}

@@ -1,39 +1,36 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { CreateCompanyDto } from './dto/create-company.dto';
-import { UpdateCompanyDto } from './dto/update-company.dto';
+import { ICompanyRepository } from './repositories/company.repository';
 import { Company } from './entities/company.entity';
-import { DeleteResult, Model, UpdateResult } from 'mongoose';
-import { InjectModel } from '@nestjs/mongoose';
+import { ICompany } from './interfaces/company.interface';
 import { ICompanyService } from './interfaces/company.service.interface';
-import { CompanyRepository } from './repositories/company.repository';
-import { QueryOptionsDto } from 'src/utils/query-options.dto';
 
 @Injectable()
 export class CompaniesService implements ICompanyService {
-  constructor(@Inject('CompanyRepository') private readonly companyRepository: CompanyRepository ) {}
+  constructor(
+    @Inject('CompanyRepository') private readonly companyRepository: ICompanyRepository,
+  ) {}
 
-  async create(createCompanyDto: CreateCompanyDto): Promise<Company> {
-    const company = await this.companyRepository.create(createCompanyDto);
-    return company
+  async createCompany(companyData: Partial<Company>): Promise<ICompany> {
+    return this.companyRepository.createOne(companyData);
   }
 
-  async findAll(options: QueryOptionsDto): Promise<Company[]> {
-    const companies = await this.companyRepository.findAll(options);
-    return companies
+  async updateCompany(id: string, updateData: Partial<Company>): Promise<ICompany> {
+    return this.companyRepository.updateById(id, updateData);
   }
 
-  async findOne(id: string): Promise<Company | null> {
-    const company = await this.companyRepository.findOne(id);
-    return company
+  async deleteCompany(id: string): Promise<void> {
+    await this.companyRepository.deleteById(id);
   }
 
-  async update(id: string, updateCompanyDto: UpdateCompanyDto): Promise<Company | null> {
-    const updatedCompany = await this.companyRepository.update(id, updateCompanyDto);
-    return updatedCompany
+  async getCompanyById(id: string): Promise<ICompany> {
+    const company = await this.companyRepository.findById(id);
+    if (!company) {
+      throw new NotFoundException(`Company with ID ${id} not found`);
+    }
+    return company;
   }
 
-  async remove(id: string): Promise<boolean> {
-    const deletedCompany = await this.companyRepository.delete(id);
-    return deletedCompany
+  async getAllCompanies(): Promise<ICompany[]> {
+    return this.companyRepository.findAll();
   }
 }

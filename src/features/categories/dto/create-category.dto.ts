@@ -1,12 +1,11 @@
-import { IsString, IsOptional, IsEnum, MaxLength, IsNotEmpty } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CategoryStatus } from '../enums/category-status.enum';
 
 export class CreateCategoryDto {
   @ApiProperty({
-    description: 'The name of the category',
-    example: 'سیمان / Cement',
-    type: String,
+    description: 'Name of the category',
+    example: 'Cement',
   })
   @IsString()
   @IsNotEmpty()
@@ -15,49 +14,43 @@ export class CreateCategoryDto {
   @ApiProperty({
     description: 'SEO-friendly unique slug for the category',
     example: 'cement',
-    type: String,
   })
   @IsString()
   @IsNotEmpty()
   slug: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Description of the category',
-    example: 'دسته‌بندی انواع سیمان برای مصارف ساختمانی / Category for various types of cement for construction.',
-    type: String,
-    required: false,
+    example: 'Category for various types of cement',
+    maxLength: 500,
   })
   @IsString()
   @IsOptional()
   @MaxLength(500)
   description?: string;
 
-  @ApiProperty({
-    description: 'ID of the parent category (if any)',
+  @ApiPropertyOptional({
+    description: 'MongoDB ObjectId of the parent category',
     example: '507f1f77bcf86cd799439014',
-    type: String,
-    required: false,
   })
   @IsString()
   @IsOptional()
   parentId?: string;
 
   @ApiProperty({
-    description: 'ID of the company (supplier) owning the category',
+    description: 'MongoDB ObjectId of the supplier company',
     example: '507f1f77bcf86cd799439011',
-    type: String,
   })
   @IsString()
   @IsNotEmpty()
   companyId: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Status of the category',
-    example: 'draft',
     enum: CategoryStatus,
-    required: false,
+    example: CategoryStatus.DRAFT,
   })
   @IsEnum(CategoryStatus)
   @IsOptional()
-  status?: CategoryStatus.DRAFT;
+  status?: CategoryStatus;
 }

@@ -1,10 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, HydratedDocument } from 'mongoose';
-
-export type CompanyDocument = HydratedDocument<Company>;
+import { Document } from 'mongoose';
 
 @Schema({ timestamps: true })
-export class Company {
+export class Company extends Document {
   @Prop({ required: true, unique: true })
   name: string;
 
@@ -12,13 +10,13 @@ export class Company {
   address: string;
 
   @Prop()
-  phone: string;  
+  phone: string;
 
   @Prop({ required: true, unique: true })
   email: string;
 
-  @Prop({ required: true, unique: true })  
-  registrationNumber: string;  
+  @Prop({ required: true, unique: true })
+  registrationNumber: string;
 
   @Prop({ default: true })
   isActive: boolean;

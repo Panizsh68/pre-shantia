@@ -1,10 +1,24 @@
-import { IsMongoId, IsNumber } from "class-validator";
-import { Types } from "mongoose"
+import { IsNumber, IsString, Min } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { WalletOwnerType } from '../enums/wallet-ownertype.enum';
 
 export class CreditWalletDto {
-    @IsMongoId()
-    ownerId: Types.ObjectId;
-  
-    @IsNumber()
-    amount: number;
+  @ApiProperty({
+    description: 'MongoDB ObjectId of the wallet owner',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @IsString()
+  ownerId: string;
+
+  @ApiProperty({
+    description: 'Amount to credit to the wallet (in IRR)',
+    example: 100000,
+    minimum: 0,
+  })
+  @IsNumber()
+  @Min(0)
+  amount: number;
+
+  @IsString()
+  ownerType: WalletOwnerType;
 }

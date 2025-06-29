@@ -1,8 +1,52 @@
-import { BaseRepository, IBaseRepository } from "src/utils/base.repository";
-import { Injectable } from "@nestjs/common";
-import { Wallet } from "../entities/wallet.entity";
+import { Injectable } from '@nestjs/common';
+import { Wallet } from '../entities/wallet.entity';
+import {
+  IBaseCrudRepository,
+  IBaseTransactionRepository,
+} from 'src/libs/repository/interfaces/base-repo.interfaces';
+import { BaseCrudRepository } from 'src/libs/repository/base-repos';
+import { WalletOwnerType } from '../enums/wallet-ownertype.enum';
+import { ClientSession } from 'mongoose';
 
-export interface IWalletRepository extends IBaseRepository<Wallet> {}
+export interface IWalletRepository
+  extends IBaseCrudRepository<Wallet>,
+    IBaseTransactionRepository<Wallet> {
+  findByIdAndType(
+    ownerId: string,
+    ownerType: WalletOwnerType,
+    session?: ClientSession,
+  ): Promise<Wallet | null>;
+}
 
 @Injectable()
-export class WalletRepository extends BaseRepository<Wallet> implements IWalletRepository {}
+export class WalletRepository extends BaseCrudRepository<Wallet> implements IWalletRepository {
+  async findByIdAndType(
+    ownerId: string,
+    ownerType: WalletOwnerType,
+    session?: ClientSession,
+  ): Promise<Wallet | null> {
+    const wallet = this.findOneByCondition({ ownerId, ownerType, $session: session });
+    return wallet;
+  }
+
+  async updateById(
+    id: string,
+    updateData: Partial<Wallet>,
+    session?: ClientSession,
+  ): Promise<Wallet> {
+    const updatedWallet = this.updateById(id, updateData, session);
+    return updatedWallet;
+  }
+
+  async startTransaction(): Promise<ClientSession> {
+    return this.startTransaction();
+  }
+
+  async commitTransaction(session: ClientSession): Promise<void> {
+    return this.commitTransaction(session);
+  }
+
+  async abortTransaction(session: ClientSession): Promise<void> {
+    return this.abortTransaction(session);
+  }
+}

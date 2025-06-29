@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mongo-init:
+    image: mongo:6
+    depends_on:
+      - mongo
+    entrypoint: >
+      bash -c "
+        sleep 5;
+        echo 'rs.initiate({_id: \"rs0\", members: [{ _id: 0, host: \"mongo:27017\" }]})' | mongosh
+      "
+    restart: 'no'
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+  app:
+    container_name: your-nest-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    depends_on:
+      - mongo
+      - mongo-init
+      - redis
+    ports:
+      - '3000:3000'
+    volumes:
+      - .:/usr/src/app
+    command: npm run start:dev
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/test
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - NODE_ENV=DEV
+
+volumes:
+  mongo_data:
+  redis_data:

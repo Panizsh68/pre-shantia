@@ -3,20 +3,21 @@ import { CompaniesService } from './companies.service';
 import { CompaniesController } from './companies.controller';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Company, CompanySchema } from './entities/company.entity';
-import { CompanyRepository } from './repositories/company.repository';
 import { Model } from 'mongoose';
+import { CompanyRepository, ICompanyRepository } from './repositories/company.repository';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Company.name , schema: CompanySchema }])],
+  imports: [MongooseModule.forFeature([{ name: Company.name, schema: CompanySchema }])],
   controllers: [CompaniesController],
   providers: [
     {
       provide: 'CompanyRepository',
-      useFactory: (transactionModel: Model<Company>) => {
-        return new CompanyRepository(transactionModel);
-      }, 
+      useFactory: (companyModel: Model<Company>): ICompanyRepository => {
+        return new CompanyRepository(companyModel);
+      },
       inject: [getModelToken(Company.name)],
     },
-    CompaniesService],
+    CompaniesService,
+  ],
 })
 export class CompaniesModule {}

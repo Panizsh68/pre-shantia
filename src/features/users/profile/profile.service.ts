@@ -1,26 +1,39 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { Profile } from './entities/profile.entity';
+import { IProfileRepository } from './repositories/profille.repository';
+import { ClientSession } from 'mongoose';
 
 @Injectable()
 export class ProfileService {
-  create(createProfileDto: CreateProfileDto) {
-    return 'This action adds a new profile';
+  constructor(
+    @Inject('ProfileRepository') private readonly profileRepository: IProfileRepository,
+  ) {}
+
+  async create(createProfileDto: CreateProfileDto, session?: ClientSession): Promise<Profile> {
+    const profile: CreateProfileDto = {
+      phoneNumber: createProfileDto.phoneNumber,
+      nationalId: createProfileDto.nationalId,
+    };
+    const creation = await this.profileRepository.createOne(profile, session);
+    return creation;
   }
 
-  findAll() {
-    return `This action returns all profile`;
+  async update(id: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {
+    const updatedProfile: Partial<CreateProfileDto> = {
+      phoneNumber: updateProfileDto.phoneNumber,
+      nationalId: updateProfileDto.nationalId,
+      firstName: updateProfileDto.firstName,
+      lastName: updateProfileDto.lastName,
+      address: updateProfileDto.address,
+    };
+    const updatedProfileResult = await this.profileRepository.updateById(id, updatedProfile);
+    return updatedProfileResult;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} profile`;
-  }
-
-  update(id: number, updateProfileDto: UpdateProfileDto) {
-    return `This action updates a #${id} profile`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} profile`;
+  async deleteByUserId(userId: string): Promise<boolean> {
+    const result = await this.profileRepository.deleteById(userId);
+    return result;
   }
 }

@@ -1,37 +1,53 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { CompaniesService } from './companies.service';
-import { CreateCompanyDto } from './dto/create-company.dto';
-import { UpdateCompanyDto } from './dto/update-company.dto';
-import { DeleteResult } from 'mongoose';
-import { ICompanyService } from './interfaces/company.service.interface';
-import { QueryOptionsDto } from 'src/utils/query-options.dto';
+import { Company } from './entities/company.entity';
+import { Public } from 'src/common/decorators/public.decorator';
 
+@ApiTags('Companies')
 @Controller('companies')
-export class CompaniesController implements ICompanyService {
+export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}
 
   @Post()
-  async create(@Body() createCompanyDto: CreateCompanyDto) {
-    return this.companiesService.create(createCompanyDto);
-  }
-
-  @Get()
-  async findAll(@Body() options: QueryOptionsDto) {
-    return this.companiesService.findAll(options);
-  }
-
-  @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.companiesService.findOne(id);
+  @HttpCode(HttpStatus.CREATED)
+  createCompany(@Body() companyData: Partial<Company>) {
+    return this.companiesService.createCompany(companyData);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto) {
-    return this.companiesService.update(id, updateCompanyDto);
+  @HttpCode(HttpStatus.OK)
+  updateCompany(@Param('id') id: string, @Body() updateData: Partial<Company>) {
+    return this.companiesService.updateCompany(id, updateData);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string): Promise<boolean> {
-    return this.companiesService.remove(id);
+  @HttpCode(HttpStatus.OK)
+  deleteCompany(@Param('id') id: string) {
+    return this.companiesService.deleteCompany(id);
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  getCompanyById(@Param('id') id: string) {
+    return this.companiesService.getCompanyById(id);
+  }
+
+  @Public()
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  getAllCompanies() {
+    return this.companiesService.getAllCompanies();
   }
 }

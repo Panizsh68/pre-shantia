@@ -1,19 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { ApiProperty } from '@nestjs/swagger';
-import { Document, HydratedDocument, Types } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { CategoryStatus } from '../enums/category-status.enum';
 
-export type CategoryDocument = HydratedDocument<Category>;
-
 @Schema({ timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } })
-export class Category {
-
+export class Category extends Document {
   @Prop({ required: true, index: true })
   name: string;
 
   @Prop({ required: true, unique: true, index: true })
   slug: string;
-
 
   @Prop()
   description?: string;
@@ -30,22 +25,28 @@ export class Category {
     default: CategoryStatus.DRAFT,
     index: true,
   })
-  status: CategoryStatus.DRAFT;
+  status: CategoryStatus;
 
   @Prop()
   deletedAt?: Date;
+
+  // Virtual property to retrieve children categories
+  children?: Category[];
 }
 
 export const CategorySchema = SchemaFactory.createForClass(Category);
 
-// Compound indexes for performance
-CategorySchema.index({ companyId: 1, status: 1 });
-CategorySchema.index({ parentId: 1, slug: 1 });
-
-// Soft delete plugin
-CategorySchema.pre('find', function () {
-  this.where({ deletedAt: null });
+// Add virtuals for hierarchical relationships
+CategorySchema.virtual('children', {
+  ref: 'Category',
+  localField: '_id',
+  foreignField: 'parentId',
 });
-CategorySchema.pre('findOne', function () {
-  this.where({ deletedAt: null });
+
+// Add pre-save hook for soft deletion
+CategorySchema.pre('save', function (next) {
+  if (this.deletedAt) {
+    this.status = CategoryStatus.INACTIVE;
+  }
+  next();
 });

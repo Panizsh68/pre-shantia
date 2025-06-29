@@ -1,66 +1,55 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
-import { Category } from './entities/category.entity';
-import { QueryOptionsDto } from 'src/utils/query-options.dto';
-import { Types } from 'mongoose';
 import { ICategoryRepository } from './repositories/categories.repository';
-
-export interface ICategoryService {
-  create(createCategoryDto: CreateCategoryDto): Promise<Category>;
-  findAll(options: QueryOptionsDto): Promise<Category[]>;
-  findOne(id: string): Promise<Category>;
-  update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<Category>;
-  remove(id: string): Promise<boolean>;
-}
+import { Category } from './entities/category.entity';
+import { CategoryStatus } from './enums/category-status.enum';
+import { Types } from 'mongoose';
+import { ICategoryService } from './interfaces/category.service.interface';
+import { ICategory } from './interfaces/category.interface';
 
 @Injectable()
 export class CategoriesService implements ICategoryService {
-  constructor(@Inject('CategoryRepository') private readonly categoryRepository: ICategoryRepository) {}
+  constructor(
+    @Inject('CategoryRepository') private readonly categoryRepository: ICategoryRepository,
+  ) {}
 
-  async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
-    const categoryData = {
-      ...createCategoryDto,
-      companyId: new Types.ObjectId(createCategoryDto.companyId),
-      parentId: createCategoryDto.parentId ? new Types.ObjectId(createCategoryDto.parentId) : undefined,
-    };
-    return this.categoryRepository.create(categoryData);
+  async create(data: Partial<Category>): Promise<ICategory> {
+    return this.categoryRepository.createOne(data);
   }
 
-  async findAll(options: QueryOptionsDto): Promise<Category[]> {
-    const queryOptions: QueryOptionsDto = {
-      ...options,
-      populate: ['companyId', 'parentId'],
-    };
-    return this.categoryRepository.findAll(queryOptions);
+  async findAll(companyId: string): Promise<Category[]> {
+    return this.categoryRepository.findManyByCondition({
+      companyId: new Types.ObjectId(companyId),
+    });
   }
 
-  async findOne(id: string): Promise<Category> {
-    const category = await this.categoryRepository.findOne(id, ['companyId', 'parentId']);
+  async findOne(id: string): Promise<ICategory> {
+    const category = await this.categoryRepository.findById(id);
     if (!category) {
-      throw new NotFoundException(`دسته‌بندی با شناسه ${id} یافت نشد`);
+      throw new NotFoundException(`Category with id ${id} not found`);
     }
     return category;
   }
 
-  async update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
-    const updateData = {
-      ...updateCategoryDto,
-      companyId: updateCategoryDto.companyId ? new Types.ObjectId(updateCategoryDto.companyId) : undefined,
-      parentId: updateCategoryDto.parentId ? new Types.ObjectId(updateCategoryDto.parentId) : undefined,
-    };
-    const updatedCategory = await this.categoryRepository.update(id, updateData);
-    if (!updatedCategory) {
-      throw new NotFoundException(`دسته‌بندی با شناسه ${id} یافت نشد`);
+  async update(id: string, updates: Partial<Category>): Promise<ICategory> {
+    const updated = await this.categoryRepository.updateById(id, updates);
+    if (!updated) {
+      throw new NotFoundException(`Category with id ${id} not found`);
     }
-    return updatedCategory;
+    return updated;
   }
 
-  async remove(id: string): Promise<boolean> {
-    const removed = await this.categoryRepository.delete(id);
-    if (!removed) {
-      throw new NotFoundException(`دسته‌بندی با شناسه ${id} یافت نشد`);
+  async remove(id: string): Promise<void> {
+    const deleted = await this.categoryRepository.deleteById(id);
+    if (!deleted) {
+      throw new NotFoundException(`Category with id ${id} not found`);
     }
-    return removed;
+  }
+
+  async setStatus(id: string, status: CategoryStatus): Promise<ICategory> {
+    return this.categoryRepository.updateOneByCondition({ id }, { status });
+  }
+
+  async findByParentId(parentId: string): Promise<ICategory[]> {
+    return this.categoryRepository.findManyByCondition({ parentId: new Types.ObjectId(parentId) });
   }
 }

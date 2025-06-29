@@ -1,6 +1,6 @@
 export enum TicketPriority {
-    Low = 'low',
-    Medium = 'medium',
-    High = 'high',
-    Urgent = 'urgent'
+  Low = 'low',
+  Medium = 'medium',
+  High = 'high',
+  Urgent = 'urgent',
 }

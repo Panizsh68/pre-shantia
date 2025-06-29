@@ -1,66 +1,64 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Ticket } from '../entities/ticketing.entity';
 import { TicketStatus } from '../enums/ticket-status.enum';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { TicketPriority } from '../enums/ticket-priority.enum';
-import { BaseRepository, IBaseRepository } from 'src/utils/base.repository';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
+import { IBaseCrudRepository } from 'src/libs/repository/interfaces/base-repo.interfaces';
+import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 
-
-export interface ITicketRepository extends IBaseRepository<Ticket> {
+export interface ITicketRepository extends IBaseCrudRepository<Ticket> {
   findTicketStatus(id: string): Promise<TicketStatus>;
   updateTicketStatus(id: string, status: TicketStatus): Promise<Ticket | null>;
   escalateTicket(ticketId: string): Promise<Ticket>;
-  autoEscalateTickets();
+  autoEscalateTickets(): Promise<void>;
 }
 
-
-
 @Injectable()
-export class TicketRepository extends BaseRepository<Ticket> implements ITicketRepository {
+export class TicketRepository extends BaseCrudRepository<Ticket> implements ITicketRepository {
   constructor(private readonly ticketModel: Model<Ticket>) {
-        super(ticketModel)
+    super(ticketModel);
   }
 
   async findTicketStatus(id: string): Promise<TicketStatus> {
-    const ticket = await this.findOne(id)
-    if (!ticket) throw new NotFoundException('ticket not found ')
-    return ticket.status
-  }
-
-  async updateTicketStatus(id: string, status: TicketStatus): Promise<Ticket | null> {
-    const ticket = await this.ticketModel.findById(id)
-    const updatedTicketStatus = await ticket?.updateOne({ _id: id}, { status })
-    return updatedTicketStatus
-
-  }
-
-  // Method to escalate a ticket
-  async escalateTicket(ticketId: string): Promise<Ticket> {
-    const ticket = await this.ticketModel.findById(ticketId);
-    
+    const ticket = await this.findById(id);
     if (!ticket) {
-      throw new Error('Ticket not found');
+      throw new NotFoundException(`ticket with id: ${id} not found`);
+    }
+    return ticket.status;
+  }
+
+  async updateTicketStatus(id: string, status: TicketStatus): Promise<Ticket> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid ticket ID format');
+    }
+
+    const updatedTicket = await this.updateById(id, { status });
+    return updatedTicket;
+  }
+
+  async escalateTicket(ticketId: string): Promise<Ticket> {
+    const ticket = await this.findById(ticketId);
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
     }
 
     if (ticket.status !== TicketStatus.Resolved) {
-      // Update ticket to escalated status
       ticket.status = TicketStatus.Escalated;
       ticket.priority = TicketPriority.High;
       await ticket.save();
-      
-      // Here you could also notify the user or the agent, e.g., with a WebSocket event
+
       return ticket;
     }
 
-    throw new Error('Ticket already resolved');
+    throw new NotFoundException('Ticket already resolved');
   }
-
 
   // Cron job to automatically escalate tickets after 4 hours if no response
   @Cron(CronExpression.EVERY_HOUR) // Runs every hour
-  async autoEscalateTickets() {
-    const tickets = await this.ticketModel.find({
+  async autoEscalateTickets(): Promise<void> {
+    const tickets = await this.findManyByCondition({
       status: TicketStatus.Open,
       updatedAt: { $lt: new Date(Date.now() - 4 * 60 * 60 * 1000) }, // 4 hours threshold
     });
