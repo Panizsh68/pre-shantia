@@ -1,16 +1,16 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards } from '@nestjs/common';
-import { TicketingService } from './ticketing.service';
+import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, Inject } from '@nestjs/common';
 import { Ticket } from './entities/ticketing.entity';
 import { AuthenticationGuard } from 'src/features/auth/guards/auth.guard';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
+import { ITicketingService } from './interfaces/ticketing.service.interface';
 
 @Controller('tickets')
 @UseGuards(AuthenticationGuard)
 export class TicketingController {
-  constructor(private readonly ticketingService: TicketingService) {}
+  constructor(@Inject('ITicketingService') private readonly ticketingService: ITicketingService) {}
 
   @Post()
   async create(@Body() createTicketDto: CreateTicketDto): Promise<Ticket> {

@@ -12,11 +12,12 @@ import { RequestContext as ContextType } from 'src/common/types/request-context.
 import { TokenPayload } from './interfaces/token-payload.interface';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
+import { IPermission } from '../permissions/interfaces/permissions.interface';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Public()
   @Post('signup')
@@ -63,10 +64,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async getProfile(
     @CurrentUser() user: TokenPayload,
-  ): Promise<{ userId: string; roles: string[] }> {
+  ): Promise<{ userId: string; permissions: IPermission[] }> {
     return {
       userId: user.userId,
-      roles: user.roles,
+      permissions: user.permissions,
     };
   }
 }

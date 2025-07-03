@@ -15,9 +15,17 @@ import { ZarinpalModule } from 'src/utils/services/zarinpal/zarinpal.module';
     WalletsModule,
     OrdersModule,
     ZarinpalModule,
-    PaymentModule,
+    ZarinpalModule.register({
+      merchantId: process.env.ZARINPAL_MERCHANT_ID || 'a3c16110-f184-44e2-ad26-649387845a94',
+      sandbox: true,
+    })
   ],
   controllers: [PaymentController],
-  providers: [PaymentService],
+  providers: [
+    {
+      provide: 'IPaymentService',
+      useClass: PaymentService
+    }
+  ],
 })
 export class PaymentModule {}

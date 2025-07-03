@@ -18,6 +18,12 @@ export interface IOrderRepository
 
 @Injectable()
 export class OrderRepository extends BaseCrudRepository<Order> implements IOrderRepository {
+  constructor(
+    orderModel: Model<Order>,
+    private readonly transactionRepository: IBaseTransactionRepository<Order>,
+  ) {
+    super(orderModel);
+  }
   async findByUserId(userId: string, session?: ClientSession): Promise<Order[]> {
     try {
       if (!Types.ObjectId.isValid(userId)) {
@@ -74,15 +80,15 @@ export class OrderRepository extends BaseCrudRepository<Order> implements IOrder
   }
 
   async startTransaction(): Promise<ClientSession> {
-    const session = await this.startTransaction();
+    const session = await this.transactionRepository.startTransaction();
     return session;
   }
 
   async commitTransaction(session: ClientSession): Promise<void> {
-    await this.commitTransaction(session);
+    await this.transactionRepository.commitTransaction(session);
   }
 
   async abortTransaction(session: ClientSession): Promise<void> {
-    await this.abortTransaction(session);
+    await this.transactionRepository.abortTransaction(session);
   }
 }

@@ -1,18 +1,37 @@
-import { WalletOwnerType } from 'src/features/wallets/enums/wallet-ownertype.enum';
+import { Action } from "src/features/permissions/enums/actions.enum";
+import { IPermission } from "src/features/permissions/interfaces/permissions.interface";
+import { WalletOwnerType } from "src/features/wallets/enums/wallet-ownertype.enum";
 
-const roleToOwnerTypeMap: Record<string, WalletOwnerType> = {
-  company: WalletOwnerType.COMPANY,
-  intermediary: WalletOwnerType.INTERMEDIARY,
-  user: WalletOwnerType.USER,
+const actionToOwnerTypeMap: Record<string, WalletOwnerType> = {
+  deposit_company: WalletOwnerType.COMPANY,
+  deposit_intermediary: WalletOwnerType.INTERMEDIARY,
+  deposit_user: WalletOwnerType.USER,
 };
 
-const rolePriority = ['company', 'intermediary', 'user'];
+const ownerPriority: WalletOwnerType[] = [
+  WalletOwnerType.COMPANY,
+  WalletOwnerType.INTERMEDIARY,
+  WalletOwnerType.USER,
+];
 
-export function determineOwnerType(roles: string[]): WalletOwnerType {
-  for (const role of rolePriority) {
-    if (roles.includes(role)) {
-      return roleToOwnerTypeMap[role];
+export function determineOwnerTypeFromPermissions(permissions: IPermission[]): WalletOwnerType {
+  const foundTypes: Set<WalletOwnerType> = new Set();
+
+  for (const perm of permissions) {
+    for (const action of perm.actions) {
+      const ownerType = actionToOwnerTypeMap[action];
+      if (ownerType) {
+        foundTypes.add(ownerType);
+      }
     }
   }
+
+  for (const type of ownerPriority) {
+    if (foundTypes.has(type)) {
+      return type;
+    }
+  }
+
   return WalletOwnerType.USER;
 }
+

@@ -19,6 +19,12 @@ export class TransportingRepository
   extends BaseCrudRepository<Transporting>
   implements ITransportingRepository
 {
+  constructor(
+    transportingModel: Model<Transporting>,
+    private readonly baseTransactionRepo: IBaseTransactionRepository<Transporting>,
+  ) {
+    super(transportingModel);
+  }
   async findByOrderId(orderId: string): Promise<Transporting> {
     try {
       const transporting = await this.findOneByCondition({ orderId });
@@ -48,14 +54,14 @@ export class TransportingRepository
   }
 
   async startTransaction(): Promise<ClientSession> {
-    return this.startTransaction();
+    return this.baseTransactionRepo.startTransaction();
   }
 
   async commitTransaction(session: ClientSession): Promise<void> {
-    return this.commitTransaction(session);
+    return this.baseTransactionRepo.commitTransaction(session);
   }
-
+  
   async abortTransaction(session: ClientSession): Promise<void> {
-    return this.abortTransaction(session);
+    return this.baseTransactionRepo.abortTransaction(session);
   }
 }

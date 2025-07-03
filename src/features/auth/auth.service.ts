@@ -103,7 +103,6 @@ export class AuthService {
         nationalId: cachedSignUpDto.nationalId,
       };
       await this.profileService.create(createProfileDto, session);
-      await this.usersService.assignRole(user.id, 'user', session);
       await this.authRepository.commitTransaction(session);
       await this.cacheService.delete(`signup:${verifyOtpDto.phoneNumber}`);
 
@@ -137,18 +136,15 @@ export class AuthService {
     user: User,
     context: RequestContext,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const roles = await this.usersService.getUserRoles(user.id.toString());
-    const basePayload = {
+    const payload = {
       userId: user.id.toString(),
-      roles,
+      permissions: user.permissions,
+      tokenType: TokenType.access,
     };
 
-    const accessToken = await this.tokensService.getAccessToken({
-      ...basePayload,
-      tokenType: TokenType.access,
-    });
+    const accessToken = await this.tokensService.getAccessToken(payload);
     const refreshToken = await this.tokensService.getRefreshToken({
-      ...basePayload,
+      ...payload,
       tokenType: TokenType.refresh,
     });
 
@@ -166,12 +162,12 @@ export class AuthService {
   }
 
   private async generateAccessToken(user: User): Promise<string> {
-    const roles = await this.usersService.getUserRoles(user.id.toString());
     const payload: TokenPayload = {
       userId: user.id.toString(),
-      roles,
+      permissions: user.permissions,
       tokenType: TokenType.access,
     };
     return this.tokensService.getAccessToken(payload);
   }
+
 }

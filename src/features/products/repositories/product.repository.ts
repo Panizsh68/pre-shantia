@@ -16,31 +16,32 @@ export interface IProductRepository
 
 @Injectable()
 export class ProductRepository extends BaseCrudRepository<Product> implements IProductRepository {
-  constructor(@InjectModel(Product.name) private readonly productModel: Model<Product>) {
+  constructor(
+    productModel: Model<Product>,
+    private readonly aggregateRepository: IBaseAggregateRepository<Product>,
+    private readonly transactionRepository: IBaseTransactionRepository<Product>,
+  ) {
     super(productModel);
   }
 
   async aggregate<R>(pipeline: PipelineStage[], session?: ClientSession): Promise<R[]> {
     try {
-      return await this.model
-        .aggregate(pipeline)
-        .session(session ?? null)
-        .exec();
+      return await this.aggregateRepository.aggregate(pipeline, session);
     } catch (error) {
       throw new BadRequestException(`Aggregation failed: ${(error as Error).message}`);
     }
   }
 
   async startTransaction(): Promise<ClientSession> {
-    const session = await this.model.db.startSession();
+    const session = await this.transactionRepository.startTransaction();
     return session;
   }
 
   async commitTransaction(session: ClientSession): Promise<void> {
-    await session.commitTransaction();
+    await this.transactionRepository.commitTransaction(session);
   }
 
   async abortTransaction(session: ClientSession): Promise<void> {
-    await session.abortTransaction();
+    await this.transactionRepository.abortTransaction(session);
   }
 }

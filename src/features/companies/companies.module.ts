@@ -17,7 +17,11 @@ import { CompanyRepository, ICompanyRepository } from './repositories/company.re
       },
       inject: [getModelToken(Company.name)],
     },
-    CompaniesService,
+    {
+      provide: 'ICompanyService',
+      useClass: CompaniesService
+    },
   ],
+  exports: ['ICompanyService']
 })
 export class CompaniesModule {}

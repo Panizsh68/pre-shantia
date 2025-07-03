@@ -5,7 +5,7 @@ import { IOrder } from './order.interface';
 import { Order } from '../entities/order.entity';
 
 export interface IOrdersService {
-  create(dto: CreateOrderDto, session?: ClientSession): Promise<IOrder>;
+  create(dto: CreateOrderDto, session?: ClientSession): Promise<IOrder[]>;
   find(filter: { where: Record<string, unknown> }, session?: ClientSession): Promise<Order[]>;
   findById(id: string, session?: ClientSession): Promise<Order>;
   findByUserId(userId: string): Promise<Order[]>;

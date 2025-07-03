@@ -1,4 +1,4 @@
-import { Permission } from 'src/features/roles/dto/create-role.dto';
+import { IPermission } from 'src/features/permissions/interfaces/permissions.interface';
 import { TokenType } from './tokentype.enum';
 
 export interface ITokensModels extends Record<string, unknown> {
@@ -6,5 +6,5 @@ export interface ITokensModels extends Record<string, unknown> {
   userId: string;
   userAgent?: string;
   ip?: string;
-  permissions?: Permission[];
+  permissions?: IPermission[];
 }

@@ -9,6 +9,7 @@ import {
   HttpStatus,
   HttpCode,
   UseGuards,
+  Inject,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,27 +18,27 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiBody,
-  PartialType,
 } from '@nestjs/swagger';
-import { CartsService } from './carts.service';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { TokenPayload } from '../auth/interfaces/token-payload.interface';
 import { CreateCartDto } from './dto/create-cart.dto';
 import { CartItemDto } from './dto/cart-item.dto';
 import { Cart } from './entities/cart.entity';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
-import { Permission } from '../roles/decoratorss/permissions.decorators';
-import { Resource } from '../roles/enums/resources.enum';
-import { Action } from '../roles/enums/actions.enum';
-import { RolesGuard } from '../roles/guard/roles.guard';
+import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { Resource } from '../permissions/enums/resources.enum';
+import { Action } from '../permissions/enums/actions.enum';
+import { ICartsService } from './interfaces/carts-service.interface';
+import { PermissionsGuard } from '../permissions/guard/permission.guard';
+import { UpdateCartDto } from './dto/update-cart.dto';
 
 @ApiTags('Carts')
 @ApiBearerAuth()
 @Permission(Resource.CARTS, Action.MANAGE)
-@UseGuards(AuthenticationGuard, RolesGuard)
+@UseGuards(AuthenticationGuard, PermissionsGuard)
 @Controller('carts')
 export class CartsController {
-  constructor(private readonly cartsService: CartsService) {}
+  constructor(@Inject('ICartsService') private readonly cartsService: ICartsService) { }
 
   @Get('active')
   @Permission(Resource.CARTS, Action.READ)
@@ -117,10 +118,10 @@ export class CartsController {
   @Patch()
   @Permission(Resource.CARTS, Action.UPDATE)
   @ApiOperation({ summary: "Update the user's cart partially" })
-  @ApiBody({ type: PartialType<Cart> })
+  @ApiBody({ type: UpdateCartDto})
   @ApiResponse({ status: 200, description: 'Cart updated', type: Cart })
   @HttpCode(HttpStatus.OK)
-  updateCart(@CurrentUser() user: TokenPayload, @Body() data: Partial<Cart>) {
+  updateCart(@CurrentUser() user: TokenPayload, @Body() data: UpdateCartDto) {
     return this.cartsService.updateCart(user.userId, data);
   }
 }

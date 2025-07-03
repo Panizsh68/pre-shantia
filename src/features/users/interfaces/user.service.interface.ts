@@ -17,9 +17,4 @@ export interface IUsersService {
 
   delete(id: string): Promise<void>;
 
-  getUserRoles(id: string): Promise<string[]>;
-
-  assignRole(id: string, roleName: string, session?: ClientSession): Promise<User>;
-
-  removeRole(id: string, roleName: string): Promise<User>;
 }

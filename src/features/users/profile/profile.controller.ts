@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Patch, Param, Delete, Inject } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -6,7 +6,7 @@ import { Profile } from './entities/profile.entity';
 
 @Controller('profile')
 export class ProfileController {
-  constructor(private readonly profileService: ProfileService) {}
+  constructor(@Inject('IProfileService') private readonly profileService: ProfileService) {}
 
   @Post()
   async create(@Body() createProfileDto: CreateProfileDto): Promise<Profile> {

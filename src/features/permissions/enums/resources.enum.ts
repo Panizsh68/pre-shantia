@@ -1,0 +1,15 @@
+export enum Resource {
+  CARTS = 'carts',
+  CATEGORIES = 'categories',
+  COMPANIES = 'companies',
+  ORDERS = 'orders',
+  PAYMENT = 'payment',
+  PRODUCTS = 'products',
+  ROLES = 'roles',
+  TICKETING = 'ticketing',
+  TRANSACTION = 'transaction',
+  TRANSPORTING = 'transporting',
+  USERS = 'users',
+  WALLETS = 'wallets',
+  ALL = 'all',
+}

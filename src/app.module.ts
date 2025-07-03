@@ -20,15 +20,11 @@ import { TransactionModule } from './features/transaction/transaction.module';
 import { PaymentModule } from './features/payment/payment.module';
 import { CartsModule } from './features/carts/carts.module';
 import { CategoriesModule } from './features/categories/categories.module';
-import { RolesModule } from './features/roles/roles.module';
 import { ZarinpalModule } from './utils/services/zarinpal/zarinpal.module';
-import { CachingService } from './infrastructure/caching/caching.service';
 import { HealthController } from './health/health.controller';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthenticationGuard } from './features/auth/guards/auth.guard';
 import { CachingModule } from './infrastructure/caching/caching.module';
-import { Role, RoleSchema } from './features/roles/entities/role.entity';
-import { RolesGuard } from './features/roles/guard/roles.guard';
 
 @Module({
   imports: [
@@ -81,7 +77,6 @@ import { RolesGuard } from './features/roles/guard/roles.guard';
     PaymentModule,
     CartsModule,
     CategoriesModule,
-    RolesModule,
     ZarinpalModule,
   ],
   controllers: [AppController, HealthController],
@@ -90,10 +85,6 @@ import { RolesGuard } from './features/roles/guard/roles.guard';
     {
       provide: APP_GUARD,
       useClass: AuthenticationGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard,
     },
   ],
 })

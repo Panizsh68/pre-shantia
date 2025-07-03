@@ -1,25 +1,33 @@
+// wallets.module.ts
 import { Module } from '@nestjs/common';
 import { WalletsService } from './wallets.service';
 import { WalletsController } from './wallets.controller';
-import { Model } from 'mongoose';
 import { Wallet, WalletSchema } from './entities/wallet.entity';
-import { getModelToken, MongooseModule } from '@nestjs/mongoose';
+import { MongooseModule, getModelToken } from '@nestjs/mongoose';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { TokensModule } from 'src/utils/services/tokens/tokens.module';
 import { JwtService } from '@nestjs/jwt';
 import { IWalletRepository, WalletRepository } from './repositories/wallet.repository';
+import { RepositoryHelperModule } from 'src/libs/repository/repository-helper.module';
+import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/tokens.constants';
+import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Wallet.name, schema: WalletSchema }]), TokensModule],
+  imports: [
+     GenericRepositoryModule.forFeature<Wallet>(Wallet.name, Wallet, WalletSchema),
+  ],
   controllers: [WalletsController],
   providers: [
-    WalletsService,
     {
       provide: 'WalletRepository',
-      useFactory: (walletModel: Model<Wallet>): IWalletRepository => {
-        return new WalletRepository(walletModel);
-      },
-      inject: [getModelToken(Wallet.name)],
+      useFactory: (
+        walletModel,
+        transactionRepo,
+      ): IWalletRepository => new WalletRepository(walletModel, transactionRepo),
+      inject: [
+        getModelToken(Wallet.name),
+        BASE_TRANSACTION_REPOSITORY,
+      ],
     },
     JwtService,
     TokensService,
@@ -30,4 +38,4 @@ import { IWalletRepository, WalletRepository } from './repositories/wallet.repos
   ],
   exports: ['WalletRepository', 'IWalletsService'],
 })
-export class WalletsModule {}
+export class WalletsModule { }

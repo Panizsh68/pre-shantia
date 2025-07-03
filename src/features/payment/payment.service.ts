@@ -1,133 +1,96 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { OrdersStatus } from '../orders/enums/orders.status.enum';
-import { WalletOwnerType } from '../wallets/enums/wallet-ownertype.enum';
-import { CreateTransactionDto } from '../transaction/dtos/create-transaction.dto';
 import { TransactionStatus } from '../transaction/enums/transaction.status.enum';
-import { VerifyZarinpalPaymentDto } from 'src/utils/services/zarinpal/dtos/verify.zarinpal.payment.dto';
-import { ClientSession } from 'mongoose';
-import { UpdateTransactionDto } from '../transaction/dtos/update-transaction.dto';
 import { IZarinpalService } from 'src/utils/services/zarinpal/interfaces/zarinpal.service.interface';
 import { ITransactionService } from '../transaction/interfaces/transaction.service.interface';
 import { IWalletService } from '../wallets/interfaces/wallet.service.interface';
 import { IOrdersService } from '../orders/interfaces/order.service.interface';
-import { Transaction } from '../transaction/schema/transaction.schema';
+import { WalletOwnerType } from '../wallets/enums/wallet-ownertype.enum';
+import { OrdersStatus } from '../orders/enums/orders.status.enum';
+import { IZARINPAL_SERVICE } from 'src/utils/services/zarinpal/constants/zarinpal.constants';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PaymentService {
   constructor(
-    @Inject('IZarinpalService') private readonly zarinpalService: IZarinpalService,
+    @Inject(IZARINPAL_SERVICE) private readonly zarinpalService: IZarinpalService,
     @Inject('ITransactionsService') private readonly transactionService: ITransactionService,
     @Inject('IWalletsService') private readonly walletsService: IWalletService,
     @Inject('IOrdersService') private readonly ordersService: IOrdersService,
+    private readonly configService: ConfigService,
   ) {}
 
-  async processOrderPayment(
-    orderId: string,
-    userId: string,
-    session?: ClientSession,
-  ): Promise<{ orderId: string; transactionId: string; status: string }> {
-    const paymentSession = session || (await this.transactionService.startSession());
+  async initiatePayment(userId: string, orderId: string, amount: number) {
+    const session = await this.transactionService.startSession();
     try {
       const order = await this.ordersService.findById(orderId, session);
-      if (!order) {
-        throw new NotFoundException('Order not found');
-      }
-      if (order.status !== OrdersStatus.PENDING) {
-        throw new BadRequestException('Order is not pending');
-      }
-      if (order.userId.toString() !== userId) {
-        throw new BadRequestException('Unauthorized');
-      }
+      if (!order) throw new NotFoundException('Order not found');
+      if (order.status !== OrdersStatus.PENDING) throw new BadRequestException('Order is not pending');
+      if (order.userId.toString() !== userId) throw new BadRequestException('Unauthorized');
 
-      const userWallet = await this.walletsService.getWallet(
-        { ownerId: userId, ownerType: WalletOwnerType.USER },
-        session,
-      );
-      if (userWallet.balance < order.totalPrice) {
-        throw new BadRequestException('Insufficient balance');
-      }
-
-      const createTransactionDto: CreateTransactionDto = {
-        authority: `ORDER_${orderId}_${Date.now()}`,
-        amount: order.totalPrice,
-        description: `Payment for order ${orderId}`,
+      const createDto = {
+        authority: '', 
+        amount,
+        description: `Payment for order ${order.id}`,
         status: TransactionStatus.PENDING,
         createdAt: new Date(),
         userId,
+        orderId,
       };
-      const transaction = await this.transactionService.create(createTransactionDto, session);
 
-      await this.walletsService.debitWallet(
-        { ownerId: userId, ownerType: WalletOwnerType.USER, amount: order.totalPrice },
-        session,
-      );
-      await this.walletsService.creditWallet(
-        {
-          ownerId: 'INTERMEDIARY_ID',
-          ownerType: WalletOwnerType.INTERMEDIARY,
-          amount: order.totalPrice,
-        },
-        session,
-      );
+      const transaction = await this.transactionService.create(createDto, session);
 
-      await this.ordersService.markAsPaid(orderId, session);
+      const { authority, url } = await this.zarinpalService.createPayment({
+        amount,
+        callbackUrl: this.configService.get<string>('ZARINPAL_CALLBACK_URL') || 'https://yourdomain.com/payment/callback',
+        description: createDto.description,
+        userId,
+        orderId,
+      });
 
-      await this.transactionService.update(
-        transaction.authority,
-        { status: TransactionStatus.COMPLETED, verifiedAt: new Date() } as UpdateTransactionDto,
-        session,
-      );
+      await this.transactionService.update(transaction.id, { authority }, session);
 
-      if (!session) {
-        await this.transactionService.commitSession(paymentSession);
-      }
-      return { orderId, transactionId: transaction.authority, status: TransactionStatus.COMPLETED };
+      await this.transactionService.commitSession(session);
+      return { transaction, paymentUrl: url };
     } catch (error) {
-      if (!session) {
-        await this.transactionService.abortSession(paymentSession);
-      }
-      throw new BadRequestException(`Payment failed: ${error.message}`);
+      await this.transactionService.abortSession(session);
+      throw new BadRequestException(error.message);
+    } finally {
+      session.endSession();
     }
   }
 
-  async handleCallback(authority: string, status: string): Promise<Transaction> {
+  async handleCallback(authority: string, status: string) {
     const session = await this.transactionService.startSession();
     try {
-      if (status !== 'OK') {
-        throw new BadRequestException('Payment failed');
-      }
+      if (status !== 'OK') throw new BadRequestException('Payment failed');
 
       const transaction = await this.transactionService.findOne(authority, session);
-      if (!transaction) {
-        throw new NotFoundException('Transaction not found');
-      }
-      const verifyDto: VerifyZarinpalPaymentDto = { authority, amount: transaction.amount };
-      const result = await this.zarinpalService.verifyPayment(verifyDto);
+      if (!transaction) throw new NotFoundException('Transaction not found');
 
-      await this.walletsService.creditWallet(
-        {
-          ownerId: transaction.userId,
-          ownerType: WalletOwnerType.USER,
-          amount: transaction.amount,
-        },
-        session,
-      );
+      const verificationResult = await this.zarinpalService.verifyPayment({ authority, amount: transaction.amount });
 
-      const updatedTransaction = await this.transactionService.update(
-        authority,
-        {
-          ref_id: result.ref_id,
-          status: result.status, // فرض بر سازگاری
-          verifiedAt: new Date(),
-        } as UpdateTransactionDto,
-        session,
-      );
+      if (verificationResult.status !== '100') throw new BadRequestException('Verification failed');
+
+      const updateDto = {
+        ref_id: verificationResult.ref_id,
+        status: TransactionStatus.COMPLETED,
+        verifiedAt: new Date(),
+      };
+
+      const updatedTransaction = await this.transactionService.update(authority, updateDto, session);
+
+      await this.walletsService.debitWallet({ ownerId: transaction.userId, ownerType: WalletOwnerType.USER, amount: transaction.amount }, session);
+      await this.walletsService.creditWallet({ ownerId: 'INTERMEDIARY_ID', ownerType: WalletOwnerType.INTERMEDIARY, amount: transaction.amount }, session);
+
+      await this.ordersService.markAsPaid(transaction.orderId, session);
 
       await this.transactionService.commitSession(session);
       return updatedTransaction;
     } catch (error) {
       await this.transactionService.abortSession(session);
-      throw new BadRequestException(`Callback handling failed: ${error.message}`);
+      throw new BadRequestException(error.message);
+    } finally {
+      session.endSession();
     }
   }
 }

@@ -12,12 +12,9 @@ import { UsersModule } from '../users/users.module';
 import { RefreshToken, RefreshTokenSchema } from './schemas/refresh-token.schema';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { ProfileModule } from '../users/profile/profile.module';
-import { RolesModule } from '../roles/roles.module';
-import { BaseTransactionRepository } from 'src/libs/repository/base-repos';
 import { User, UserSchema } from '../users/entities/user.entity';
 import { AuthRepository, IAuthRepository } from './repositories/auth.repository';
 import { Model } from 'mongoose';
-import { IBaseTransactionRepository } from 'src/libs/repository/interfaces/base-repo.interfaces';
 
 @Module({
   imports: [
@@ -35,7 +32,6 @@ import { IBaseTransactionRepository } from 'src/libs/repository/interfaces/base-
     ShahkarModule,
     OtpModule,
     ProfileModule,
-    RolesModule,
     forwardRef(() => UsersModule),
   ],
   controllers: [AuthController],

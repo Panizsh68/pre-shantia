@@ -6,7 +6,7 @@ import {
 } from 'src/libs/repository/interfaces/base-repo.interfaces';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 import { WalletOwnerType } from '../enums/wallet-ownertype.enum';
-import { ClientSession } from 'mongoose';
+import { ClientSession, Model } from 'mongoose';
 
 export interface IWalletRepository
   extends IBaseCrudRepository<Wallet>,
@@ -20,6 +20,12 @@ export interface IWalletRepository
 
 @Injectable()
 export class WalletRepository extends BaseCrudRepository<Wallet> implements IWalletRepository {
+  constructor(
+    walletModel: Model<Wallet>,
+    private readonly baseTransactionRepo: IBaseTransactionRepository<Wallet>
+  ) { 
+    super(walletModel) 
+  }
   async findByIdAndType(
     ownerId: string,
     ownerType: WalletOwnerType,
@@ -39,14 +45,14 @@ export class WalletRepository extends BaseCrudRepository<Wallet> implements IWal
   }
 
   async startTransaction(): Promise<ClientSession> {
-    return this.startTransaction();
+    return this.baseTransactionRepo.startTransaction();
   }
 
   async commitTransaction(session: ClientSession): Promise<void> {
-    return this.commitTransaction(session);
+    return this.baseTransactionRepo.commitTransaction(session);
   }
 
   async abortTransaction(session: ClientSession): Promise<void> {
-    return this.abortTransaction(session);
+    return this.baseTransactionRepo.abortTransaction(session);
   }
 }

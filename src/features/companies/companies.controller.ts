@@ -9,16 +9,18 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Inject,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CompaniesService } from './companies.service';
 import { Company } from './entities/company.entity';
 import { Public } from 'src/common/decorators/public.decorator';
+import { ICompanyService } from './interfaces/company.service.interface';
 
 @ApiTags('Companies')
 @Controller('companies')
 export class CompaniesController {
-  constructor(private readonly companiesService: CompaniesService) {}
+  constructor(@Inject('ICompanyService') private readonly companiesService: ICompanyService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

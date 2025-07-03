@@ -9,12 +9,6 @@ import { JwtService } from '@nestjs/jwt';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { ProfileModule } from './profile/profile.module';
 import { Model } from 'mongoose';
-import { RolesModule } from '../roles/roles.module';
-import { BaseCrudRepository } from 'src/libs/repository/base-repos';
-import {
-  IBaseCrudRepository,
-  IBaseTransactionRepository,
-} from 'src/libs/repository/interfaces/base-repo.interfaces';
 import { IUserRepository, UserRepository } from './repositories/user.repository';
 
 @Module({
@@ -27,7 +21,6 @@ import { IUserRepository, UserRepository } from './repositories/user.repository'
     ]),
     forwardRef(() => AuthModule),
     ProfileModule,
-    RolesModule,
   ],
   controllers: [UsersController],
   providers: [
@@ -42,7 +35,6 @@ import { IUserRepository, UserRepository } from './repositories/user.repository'
       provide: 'IUsersService',
       useClass: UsersService,
     },
-    UsersService,
     AuthenticationGuard,
     JwtService,
     TokensService,

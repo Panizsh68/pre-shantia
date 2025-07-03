@@ -9,8 +9,7 @@ import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { User, UserSchema } from 'src/features/users/entities/user.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { Model } from 'mongoose';
-import { IBaseCrudRepository } from 'src/libs/repository/interfaces/base-repo.interfaces';
-import { BaseCrudRepository } from 'src/libs/repository/base-repos';
+import { ITicketRepository, TicketRepository } from './repository/ticket.repository';
 
 @Module({
   imports: [
@@ -24,15 +23,19 @@ import { BaseCrudRepository } from 'src/libs/repository/base-repos';
   providers: [
     {
       provide: 'TicketRepository',
-      useFactory: (ticketModel: Model<Ticket>): IBaseCrudRepository<Ticket> => {
-        return new BaseCrudRepository(ticketModel);
+      useFactory: (ticketModel: Model<Ticket>): ITicketRepository => {
+        return new TicketRepository(ticketModel);
       },
       inject: [getModelToken(Ticket.name)],
     },
-    TicketingService,
+    {
+      provide: 'ITicketingService', 
+      useClass: TicketingService
+    },
     JwtService,
     TokensService,
     CachingService,
   ],
+  exports: ['ITicketingService']
 })
 export class TicketingModule {}

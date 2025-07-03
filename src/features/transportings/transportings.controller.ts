@@ -1,14 +1,14 @@
-import { Controller, Post, Get, Patch, Param, Body } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Param, Body, Inject } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
-import { TransportingsService } from './transportings.service';
 import { CreateTransportingDto } from './dto/create-transporting.dto';
 import { UpdateTransportingDto } from './dto/update-transporting.dto';
 import { ITransporting } from './interfaces/transporting.interface';
+import { ITransportingsService } from './interfaces/transporting.service.interface';
 
 @ApiTags('transportings')
 @Controller('transportings')
 export class TransportingsController {
-  constructor(private readonly transportingsService: TransportingsService) {}
+  constructor(@Inject('ITransportingsService') private readonly transportingsService: ITransportingsService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new transporting record' })

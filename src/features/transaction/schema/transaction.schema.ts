@@ -20,6 +20,9 @@ export class Transaction extends Document {
   @Prop()
   email?: string;
 
+  @Prop({ required: true, type: String, ref: 'Order' })
+  orderId: string;
+
   @Prop({ type: String, required: true })
   userId: string;
 
@@ -28,9 +31,6 @@ export class Transaction extends Document {
 
   @Prop({ enum: RefundStatus })
   refund_status?: RefundStatus;
-
-  @Prop({ default: Date.now })
-  createdAt: Date;
 
   @Prop()
   verifiedAt?: Date;
@@ -49,12 +49,6 @@ export class Transaction extends Document {
 
   @Prop()
   refundedAt?: Date;
-
-  @Prop({ type: Object })
-  inquire_result?: Record<string, unknown>;
-
-  @Prop()
-  inquiredAt?: Date;
 }
 
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);

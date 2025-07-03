@@ -8,19 +8,32 @@ import {
   ITransportingRepository,
   TransportingRepository,
 } from './repositories/transporting.repository';
+import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
+import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/tokens.constants';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Transporting.name, schema: TransportingSchema }])],
+  imports: [
+    GenericRepositoryModule.forFeature<Transporting>(Transporting.name, Transporting, TransportingSchema)
+  ],
   controllers: [TransportingsController],
   providers: [
     {
       provide: 'TransportingRepository',
-      useFactory: (transportingModel: Model<Transporting>): ITransportingRepository => {
-        return new TransportingRepository(transportingModel);
+      useFactory: (
+        transportingModel,
+        transactionRepo,
+      ): ITransportingRepository => {
+        return new TransportingRepository(transportingModel, transactionRepo);
       },
-      inject: [getModelToken(Transporting.name)],
+      inject: [
+        getModelToken(Transporting.name),
+        BASE_TRANSACTION_REPOSITORY
+      ],
     },
-    TransportingsService,
+    {
+      provide: 'ITransportingsService',
+      useClass: TransportingsService
+    },
   ],
 })
 export class TransportingsModule {}

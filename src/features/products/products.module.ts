@@ -7,28 +7,34 @@ import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Product, ProductSchema } from './entities/product.entity';
 import { Model } from 'mongoose';
-import { BaseCrudRepository } from 'src/libs/repository/base-repos';
-import { IBaseCrudRepository } from 'src/libs/repository/interfaces/base-repo.interfaces';
 import { IProductRepository, ProductRepository } from './repositories/product.repository';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
+import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
+import { BASE_AGGREGATE_REPOSITORY, BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/tokens.constants';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }])],
+  imports: [GenericRepositoryModule.forFeature<Product>(Product.name, Product, ProductSchema),],
   controllers: [ProductsController],
   providers: [
-    ProductsService,
     {
       provide: 'ProductRepository',
-      useFactory: (productModel: Model<Product>): IProductRepository => {
-        return new ProductRepository(productModel);
+      useFactory: (
+        productModel,
+        aggregateRepo,
+        transactionRepo,
+      ): IProductRepository => {
+        return new ProductRepository(productModel, aggregateRepo, transactionRepo);
       },
-      inject: [getModelToken(Product.name)],
+      inject: [
+        getModelToken(Product.name),
+        BASE_AGGREGATE_REPOSITORY,
+        BASE_TRANSACTION_REPOSITORY
+      ],
     },
     {
       provide: 'IProductsService',
       useClass: ProductsService,
     },
-    ProductsService,
     AuthenticationGuard,
     JwtService,
     TokensService,

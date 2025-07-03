@@ -9,15 +9,16 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  Inject,
 } from '@nestjs/common';
-import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
+import { IProductService } from './interfaces/product.service.interface';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(@Inject('IProductsService') private readonly productsService: IProductService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

@@ -1,60 +1,76 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { IOrderRepository } from './repositories/order.repository';
 import { IOrdersService } from './interfaces/order.service.interface';
-import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { IOrder } from './interfaces/order.interface';
 import { Types, ClientSession } from 'mongoose';
 import { OrdersStatus } from './enums/orders.status.enum';
 import { WalletOwnerType } from '../wallets/enums/wallet-ownertype.enum';
 import { Order } from './entities/order.entity';
-import { IProductService } from '../products/interfaces/product.service.interface';
 import { IWalletService } from '../wallets/interfaces/wallet.service.interface';
+import { OrderFactoryService } from './order-factory.service';
+import { ICartsService } from '../carts/interfaces/carts-service.interface';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { CartItemDto } from '../carts/dto/cart-item.dto';
 
 @Injectable()
 export class OrdersService implements IOrdersService {
   constructor(
-    @Inject('IProductsService') private readonly productService: IProductService,
+    @Inject('ICartsService') private readonly cartsService: ICartsService,
     @Inject('IWalletsService') private readonly walletsService: IWalletService,
     @Inject('OrderRepository') private readonly orderRepository: IOrderRepository,
+    private readonly orderFactory: OrderFactoryService,
   ) {}
 
-  async create(dto: CreateOrderDto, session?: ClientSession): Promise<IOrder> {
+  async create(dto: CreateOrderDto, session?: ClientSession): Promise<IOrder[]> {
+    const cart = await this.cartsService.getUserActiveCart(dto.userId);
+    if (!cart || cart.items.length === 0) {
+      throw new BadRequestException('Empty cart');
+    }
+
     const orderSession = session || (await this.orderRepository.startTransaction());
+
     try {
-      const orderData: CreateOrderDto = {
-        userId: dto.userId,
-        items: dto.items.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-        })),
-        totalPrice: dto.totalPrice,
-        status: dto.status || OrdersStatus.PENDING,
+      const orderDtos = this.orderFactory.buildOrdersFromCart(cart).map(order => ({
+        ...order,
         shippingAddress: dto.shippingAddress,
         paymentMethod: dto.paymentMethod,
-        companyId: dto.companyId,
-        transportId: dto.transportId,
-      };
-      let calculatedTotal = 0;
-      for (const item of dto.items) {
-        const product = await this.productService.findOne(item.productId, session);
-        calculatedTotal += product.basePrice * item.quantity;
+      }));
+
+      const orders: IOrder[] = [];
+
+      for (const orderDto of orderDtos) {
+        const cartItemsForOrder: CartItemDto[] = orderDto.items.map(orderItem => {
+          const cartItem = cart.items.find(ci => ci.productId.toString() === orderItem.productId.toString());
+          if (!cartItem) {
+            throw new BadRequestException(`Product ${orderItem.productId} not found in cart`);
+          }
+          return {
+            ...cartItem,
+            quantity: orderItem.quantity,
+          };
+        });
+
+        const calculatedTotal = this.cartsService.calculateTotal(cartItemsForOrder);
+
+        const validatedDto = {
+          ...orderDto,
+          totalPrice: calculatedTotal,
+          status: OrdersStatus.PENDING,
+        };
+
+
+        const createdOrder = await this.orderRepository.createOne(validatedDto, orderSession);
+        orders.push(createdOrder);
       }
-      if (calculatedTotal !== dto.totalPrice) {
-        throw new BadRequestException(
-          `Total price mismatch: expected ${calculatedTotal}, got ${dto.totalPrice}`,
-        );
-      }
-      const newOrder = await this.orderRepository.createOne(orderData, session);
-      if (!session) {
-        await this.orderRepository.commitTransaction(orderSession);
-      }
-      return newOrder;
-    } catch (error) {
-      if (!session) {
-        await this.orderRepository.abortTransaction(orderSession);
-      }
-      throw new BadRequestException(`Failed to create order: ${error.message}`);
+
+      await this.cartsService.checkout(dto.userId);
+      if (!session) await this.orderRepository.commitTransaction(orderSession);
+
+      return orders;
+    } catch (err) {
+      if (!session) await this.orderRepository.abortTransaction(orderSession);
+      throw err;
     }
   }
 
@@ -106,7 +122,7 @@ export class OrdersService implements IOrdersService {
         transportId: dto.transportId ? new Types.ObjectId(dto.transportId) : undefined,
       };
 
-      const updatedOrder = await this.orderRepository.updateById(dto.id, updateData, session);
+      const updatedOrder = await this.orderRepository.updateById(dto.id, updateData, orderSession);
       if (!updatedOrder) {
         throw new NotFoundException(`Order with ID '${dto.id}' not found`);
       }
@@ -125,7 +141,7 @@ export class OrdersService implements IOrdersService {
   async cancel(id: string, session?: ClientSession): Promise<Order> {
     const orderSession = session || (await this.orderRepository.startTransaction());
     try {
-      const order = await this.orderRepository.findById(id, { session });
+      const order = await this.orderRepository.findById(id, { session: orderSession });
       if (!order) {
         throw new NotFoundException(`Order with ID '${id}' not found`);
       }
@@ -143,7 +159,7 @@ export class OrdersService implements IOrdersService {
       }
 
       const updateData = { status: OrdersStatus.CANCELED };
-      const updatedOrder = await this.orderRepository.updateById(id, updateData, session);
+      const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
       if (!session) {
         await this.orderRepository.commitTransaction(orderSession);
       }
@@ -159,7 +175,7 @@ export class OrdersService implements IOrdersService {
   async markAsPaid(id: string, session?: ClientSession): Promise<Order> {
     const orderSession = session || (await this.orderRepository.startTransaction());
     try {
-      const order = await this.orderRepository.findById(id, { session });
+      const order = await this.orderRepository.findById(id, { session: orderSession });
       if (!order) {
         throw new NotFoundException(`Order with ID '${id}' not found`);
       }
@@ -170,7 +186,7 @@ export class OrdersService implements IOrdersService {
       }
 
       const updateData = { status: OrdersStatus.PAID };
-      const updatedOrder = await this.orderRepository.updateById(id, updateData, session);
+      const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
       if (!session) {
         await this.orderRepository.commitTransaction(orderSession);
       }
@@ -189,7 +205,7 @@ export class OrdersService implements IOrdersService {
     }
     const orderSession = session || (await this.orderRepository.startTransaction());
     try {
-      const order = await this.orderRepository.findById(id, { session });
+      const order = await this.orderRepository.findById(id, { session: orderSession });
       if (!order) {
         throw new NotFoundException(`Order with ID '${id}' not found`);
       }
@@ -201,9 +217,9 @@ export class OrdersService implements IOrdersService {
 
       const updateData: Partial<Order> = { status: OrdersStatus.SHIPPED };
       if (transportId) {
-        updateData.transportId;
+        updateData.transportId = transportId;
       }
-      const updatedOrder = await this.orderRepository.updateById(id, updateData, session);
+      const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
       if (!session) {
         await this.orderRepository.commitTransaction(orderSession);
       }
@@ -219,7 +235,7 @@ export class OrdersService implements IOrdersService {
   async markAsDelivered(id: string, session?: ClientSession): Promise<Order> {
     const orderSession = session || (await this.orderRepository.startTransaction());
     try {
-      const order = await this.orderRepository.findById(id, { session });
+      const order = await this.orderRepository.findById(id, { session: orderSession });
       if (!order) {
         throw new NotFoundException(`Order with ID '${id}' not found`);
       }
@@ -230,7 +246,7 @@ export class OrdersService implements IOrdersService {
       }
 
       const updateData = { status: OrdersStatus.DELIVERED, deliveredAt: new Date() };
-      const updatedOrder = await this.orderRepository.updateById(id, updateData, session);
+      const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
       if (!session) {
         await this.orderRepository.commitTransaction(orderSession);
       }
@@ -246,7 +262,7 @@ export class OrdersService implements IOrdersService {
   async refund(id: string, session?: ClientSession): Promise<IOrder> {
     const orderSession = session || (await this.orderRepository.startTransaction());
     try {
-      const order = await this.orderRepository.findById(id, { session });
+      const order = await this.orderRepository.findById(id, { session: orderSession });
       if (!order) {
         throw new NotFoundException(`Order with ID '${id}' not found`);
       }
@@ -257,7 +273,7 @@ export class OrdersService implements IOrdersService {
       }
 
       const updateData = { status: OrdersStatus.REFUNDED };
-      const updatedOrder = await this.orderRepository.updateById(id, updateData, session);
+      const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
       if (!session) {
         await this.orderRepository.commitTransaction(orderSession);
       }
@@ -273,7 +289,7 @@ export class OrdersService implements IOrdersService {
   async confirmDelivery(orderId: string, userId: string, session?: ClientSession): Promise<IOrder> {
     const orderSession = session || (await this.orderRepository.startTransaction());
     try {
-      const order = await this.orderRepository.findById(orderId, { session });
+      const order = await this.orderRepository.findById(orderId, { session: orderSession });
       if (!order) {
         throw new NotFoundException(`Order with ID '${orderId}' not found`);
       }
@@ -285,13 +301,13 @@ export class OrdersService implements IOrdersService {
       }
 
       const updateData = { status: OrdersStatus.COMPLETED, confirmedAt: new Date() };
-      const updatedOrder = await this.orderRepository.updateById(orderId, updateData, session);
+      const updatedOrder = await this.orderRepository.updateById(orderId, updateData, orderSession);
 
       await this.walletsService.transfer(
         { ownerId: 'INTERMEDIARY_ID', ownerType: WalletOwnerType.INTERMEDIARY },
         { ownerId: order.companyId.toString(), ownerType: WalletOwnerType.COMPANY },
         order.totalPrice,
-        session,
+        orderSession,
       );
 
       if (!session) {

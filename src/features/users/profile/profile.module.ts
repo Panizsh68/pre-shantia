@@ -6,16 +6,16 @@ import { Profile, ProfileSchema } from './entities/profile.entity';
 import { Model } from 'mongoose';
 import { IBaseCrudRepository } from 'src/libs/repository/interfaces/base-repo.interfaces';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
+import { IProfileRepository, ProfileRepository } from './repositories/profille.repository';
 
 @Module({
   imports: [MongooseModule.forFeature([{ name: Profile.name, schema: ProfileSchema }])],
   controllers: [ProfileController],
   providers: [
-    ProfileService,
     {
       provide: 'ProfileRepository',
-      useFactory: (profileModel: Model<Profile>): IBaseCrudRepository<Profile> => {
-        return new BaseCrudRepository(profileModel);
+      useFactory: (profileModel: Model<Profile>): IProfileRepository => {
+        return new ProfileRepository(profileModel);
       },
       inject: [getModelToken(Profile.name)],
     },

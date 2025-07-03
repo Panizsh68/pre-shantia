@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class SignInDto {
   @ApiProperty({
     description: 'Iranian phone number of the user',
-    example: '+989123456789',
+    example: '+09123456789',
   })
   @IsNotEmpty()
   @IsPhoneNumber('IR')

@@ -10,7 +10,9 @@
             "description": ""
           }
         },
-        "tags": ["App"]
+        "tags": [
+          "App"
+        ]
       }
     },
     "/api/health/mongo": {
@@ -22,7 +24,9 @@
             "description": ""
           }
         },
-        "tags": ["Health"]
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/api/health/cache-store": {
@@ -34,7 +38,9 @@
             "description": ""
           }
         },
-        "tags": ["Health"]
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/api/health/redis": {
@@ -46,7 +52,9 @@
             "description": ""
           }
         },
-        "tags": ["Health"]
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/api/health/config": {
@@ -58,7 +66,9 @@
             "description": ""
           }
         },
-        "tags": ["Health"]
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/api/health/jwt": {
@@ -70,7 +80,9 @@
             "description": ""
           }
         },
-        "tags": ["Health"]
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/api/auth/signup": {
@@ -92,7 +104,9 @@
             "description": ""
           }
         },
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/auth/signin": {
@@ -114,7 +128,9 @@
             "description": ""
           }
         },
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/auth/verify-otp": {
@@ -136,7 +152,9 @@
             "description": ""
           }
         },
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/auth/refresh": {
@@ -148,7 +166,9 @@
             "description": ""
           }
         },
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/auth/signout": {
@@ -160,7 +180,9 @@
             "description": ""
           }
         },
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/auth/me": {
@@ -172,7 +194,9 @@
             "description": ""
           }
         },
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/profile": {
@@ -194,7 +218,9 @@
             "description": ""
           }
         },
-        "tags": ["Profile"]
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/api/profile/{id}": {
@@ -225,7 +251,9 @@
             "description": ""
           }
         },
-        "tags": ["Profile"]
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/api/profile/{userId}": {
@@ -246,197 +274,9 @@
             "description": ""
           }
         },
-        "tags": ["Profile"]
-      }
-    },
-    "/api/roles": {
-      "post": {
-        "operationId": "RolesController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateRoleDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Role created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Role"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input"
-          }
-        },
-        "summary": "Create a new role",
-        "tags": ["roles"]
-      },
-      "get": {
-        "operationId": "RolesController_findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "List of roles",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Role"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "Get all roles",
-        "tags": ["roles"]
-      }
-    },
-    "/api/roles/{id}": {
-      "get": {
-        "operationId": "RolesController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Role ID",
-            "schema": {
-              "example": "507f1f77bcf86cd799439011",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Role found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Role"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Role not found"
-          }
-        },
-        "summary": "Get a role by ID",
-        "tags": ["roles"]
-      },
-      "put": {
-        "operationId": "RolesController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Role ID",
-            "schema": {
-              "example": "507f1f77bcf86cd799439011",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "description": "Partial role data to update",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateRoleDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Role updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Role"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Role not found"
-          }
-        },
-        "summary": "Update a role by ID",
-        "tags": ["roles"]
-      },
-      "delete": {
-        "operationId": "RolesController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Role ID",
-            "schema": {
-              "example": "507f1f77bcf86cd799439011",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Role deleted successfully"
-          },
-          "404": {
-            "description": "Role not found"
-          }
-        },
-        "summary": "Delete a role by ID",
-        "tags": ["roles"]
-      }
-    },
-    "/api/roles/name/{name}": {
-      "get": {
-        "operationId": "RolesController_findByName",
-        "parameters": [
-          {
-            "name": "name",
-            "required": true,
-            "in": "path",
-            "description": "Role name",
-            "schema": {
-              "example": "admin",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Role found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Role"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Role not found"
-          }
-        },
-        "summary": "Get a role by name",
-        "tags": ["roles"]
+        "tags": [
+          "Profile"
+        ]
       }
     },
     "/api/products": {
@@ -458,7 +298,9 @@
             "description": ""
           }
         },
-        "tags": ["Products"]
+        "tags": [
+          "Products"
+        ]
       },
       "get": {
         "operationId": "ProductsController_findAll",
@@ -485,7 +327,9 @@
             "description": ""
           }
         },
-        "tags": ["Products"]
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/api/products/{id}": {
@@ -506,7 +350,9 @@
             "description": ""
           }
         },
-        "tags": ["Products"]
+        "tags": [
+          "Products"
+        ]
       },
       "patch": {
         "operationId": "ProductsController_update",
@@ -535,7 +381,9 @@
             "description": ""
           }
         },
-        "tags": ["Products"]
+        "tags": [
+          "Products"
+        ]
       },
       "delete": {
         "operationId": "ProductsController_remove",
@@ -554,7 +402,9 @@
             "description": ""
           }
         },
-        "tags": ["Products"]
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/api/products/count/category/{categoryId}": {
@@ -575,7 +425,9 @@
             "description": ""
           }
         },
-        "tags": ["Products"]
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/api/products/top-sales": {
@@ -596,7 +448,9 @@
             "description": ""
           }
         },
-        "tags": ["Products"]
+        "tags": [
+          "Products"
+        ]
       }
     },
     "/api/tickets": {
@@ -618,7 +472,9 @@
             "description": ""
           }
         },
-        "tags": ["Ticketing"]
+        "tags": [
+          "Ticketing"
+        ]
       },
       "get": {
         "operationId": "TicketingController_findAll",
@@ -628,7 +484,9 @@
             "description": ""
           }
         },
-        "tags": ["Ticketing"]
+        "tags": [
+          "Ticketing"
+        ]
       }
     },
     "/api/tickets/{id}": {
@@ -649,7 +507,9 @@
             "description": ""
           }
         },
-        "tags": ["Ticketing"]
+        "tags": [
+          "Ticketing"
+        ]
       },
       "put": {
         "operationId": "TicketingController_update",
@@ -678,7 +538,9 @@
             "description": ""
           }
         },
-        "tags": ["Ticketing"]
+        "tags": [
+          "Ticketing"
+        ]
       },
       "delete": {
         "operationId": "TicketingController_delete",
@@ -697,7 +559,9 @@
             "description": ""
           }
         },
-        "tags": ["Ticketing"]
+        "tags": [
+          "Ticketing"
+        ]
       }
     },
     "/api/tickets/{id}/status": {
@@ -718,7 +582,9 @@
             "description": ""
           }
         },
-        "tags": ["Ticketing"]
+        "tags": [
+          "Ticketing"
+        ]
       },
       "put": {
         "operationId": "TicketingController_updateStatus",
@@ -737,7 +603,9 @@
             "description": ""
           }
         },
-        "tags": ["Ticketing"]
+        "tags": [
+          "Ticketing"
+        ]
       }
     },
     "/api/tickets/{id}/escalate": {
@@ -758,7 +626,9 @@
             "description": ""
           }
         },
-        "tags": ["Ticketing"]
+        "tags": [
+          "Ticketing"
+        ]
       }
     },
     "/api/transportings": {
@@ -784,7 +654,9 @@
           }
         },
         "summary": "Create a new transporting record",
-        "tags": ["transportings"]
+        "tags": [
+          "transportings"
+        ]
       },
       "patch": {
         "operationId": "TransportingsController_update",
@@ -808,7 +680,9 @@
           }
         },
         "summary": "Update a transporting record",
-        "tags": ["transportings"]
+        "tags": [
+          "transportings"
+        ]
       }
     },
     "/api/transportings/{id}": {
@@ -835,7 +709,9 @@
           }
         },
         "summary": "Get transporting record by ID",
-        "tags": ["transportings"]
+        "tags": [
+          "transportings"
+        ]
       }
     },
     "/api/transportings/order/{orderId}": {
@@ -862,7 +738,9 @@
           }
         },
         "summary": "Get transporting record by order ID",
-        "tags": ["transportings"]
+        "tags": [
+          "transportings"
+        ]
       }
     },
     "/api/transportings/company/{companyId}": {
@@ -889,7 +767,9 @@
           }
         },
         "summary": "Get transporting records by company ID",
-        "tags": ["transportings"]
+        "tags": [
+          "transportings"
+        ]
       }
     },
     "/api/transportings/{id}/cancel": {
@@ -919,7 +799,9 @@
           }
         },
         "summary": "Cancel a transporting record",
-        "tags": ["transportings"]
+        "tags": [
+          "transportings"
+        ]
       }
     },
     "/api/transportings/{id}/delivered": {
@@ -965,7 +847,9 @@
           }
         },
         "summary": "Mark a transporting record as delivered",
-        "tags": ["transportings"]
+        "tags": [
+          "transportings"
+        ]
       }
     },
     "/api/companies": {
@@ -977,7 +861,9 @@
             "description": ""
           }
         },
-        "tags": ["Companies"]
+        "tags": [
+          "Companies"
+        ]
       },
       "get": {
         "operationId": "CompaniesController_getAllCompanies",
@@ -987,7 +873,9 @@
             "description": ""
           }
         },
-        "tags": ["Companies"]
+        "tags": [
+          "Companies"
+        ]
       }
     },
     "/api/companies/{id}": {
@@ -1008,7 +896,9 @@
             "description": ""
           }
         },
-        "tags": ["Companies"]
+        "tags": [
+          "Companies"
+        ]
       },
       "delete": {
         "operationId": "CompaniesController_deleteCompany",
@@ -1027,7 +917,9 @@
             "description": ""
           }
         },
-        "tags": ["Companies"]
+        "tags": [
+          "Companies"
+        ]
       },
       "get": {
         "operationId": "CompaniesController_getCompanyById",
@@ -1046,7 +938,9 @@
             "description": ""
           }
         },
-        "tags": ["Companies"]
+        "tags": [
+          "Companies"
+        ]
       }
     },
     "/api/orders": {
@@ -1068,7 +962,9 @@
             "description": ""
           }
         },
-        "tags": ["Orders"]
+        "tags": [
+          "Orders"
+        ]
       },
       "get": {
         "operationId": "OrdersController_find",
@@ -1095,7 +991,9 @@
             "description": ""
           }
         },
-        "tags": ["Orders"]
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/api/orders/{id}": {
@@ -1116,7 +1014,9 @@
             "description": ""
           }
         },
-        "tags": ["Orders"]
+        "tags": [
+          "Orders"
+        ]
       },
       "patch": {
         "operationId": "OrdersController_update",
@@ -1145,7 +1045,9 @@
             "description": ""
           }
         },
-        "tags": ["Orders"]
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/api/orders/{id}/cancel": {
@@ -1166,7 +1068,9 @@
             "description": ""
           }
         },
-        "tags": ["Orders"]
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/api/orders/{id}/mark-paid": {
@@ -1187,7 +1091,9 @@
             "description": ""
           }
         },
-        "tags": ["Orders"]
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/api/orders/{id}/mark-shipped": {
@@ -1208,7 +1114,9 @@
             "description": ""
           }
         },
-        "tags": ["Orders"]
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/api/orders/{id}/mark-delivered": {
@@ -1229,7 +1137,9 @@
             "description": ""
           }
         },
-        "tags": ["Orders"]
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/api/orders/{id}/refund": {
@@ -1250,7 +1160,9 @@
             "description": ""
           }
         },
-        "tags": ["Orders"]
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/api/orders/{id}/confirm-delivery": {
@@ -1271,7 +1183,9 @@
             "description": ""
           }
         },
-        "tags": ["Orders"]
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/api/wallets": {
@@ -1283,209 +1197,9 @@
             "description": ""
           }
         },
-        "tags": ["Wallets"]
-      }
-    },
-    "/api/transaction": {
-      "post": {
-        "operationId": "TransactionController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTransactionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": ["Transaction"]
-      },
-      "get": {
-        "operationId": "TransactionController_findAll",
-        "parameters": [
-          {
-            "name": "terminalId",
-            "required": true,
-            "in": "query",
-            "description": "Zarinpal terminal ID",
-            "schema": {
-              "example": "a3c16110-f184-44e2-ad26-649387845a94",
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter",
-            "required": false,
-            "in": "query",
-            "description": "Filter for transactions",
-            "schema": {
-              "example": "all",
-              "type": "string"
-            }
-          },
-          {
-            "name": "offset",
-            "required": true,
-            "in": "query",
-            "description": "Offset for pagination",
-            "schema": {
-              "example": 0,
-              "type": "number"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "description": "Limit for pagination",
-            "schema": {
-              "example": 10,
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": ["Transaction"]
-      }
-    },
-    "/api/transaction/inquire": {
-      "post": {
-        "operationId": "TransactionController_inquire",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InquireZarinpalTransactionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": ["Transaction"]
-      }
-    },
-    "/api/payment/initiate": {
-      "post": {
-        "operationId": "PaymentController_initiatePayment",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InitiateZarinpalPaymentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": ["Payment"]
-      }
-    },
-    "/api/payment/verify": {
-      "post": {
-        "operationId": "PaymentController_verifyPayment",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyZarinpalPaymentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": ["Payment"]
-      }
-    },
-    "/api/payment/process-refund": {
-      "post": {
-        "operationId": "PaymentController_processRefund",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProcessRefundZarinpalDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": ["Payment"]
-      }
-    },
-    "/api/payment/unverified": {
-      "get": {
-        "operationId": "PaymentController_getUnverified",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": ["Payment"]
-      }
-    },
-    "/api/payment/callback": {
-      "get": {
-        "operationId": "PaymentController_handleCallback",
-        "parameters": [
-          {
-            "name": "Authority",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "Status",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": ["Payment"]
+        "tags": [
+          "Wallets"
+        ]
       }
     },
     "/api/carts/active": {
@@ -1510,7 +1224,9 @@
           }
         ],
         "summary": "Get the active cart for current user",
-        "tags": ["Carts"]
+        "tags": [
+          "Carts"
+        ]
       }
     },
     "/api/carts/populated": {
@@ -1538,7 +1254,9 @@
           }
         ],
         "summary": "Get carts with populated related data for current user",
-        "tags": ["Carts"]
+        "tags": [
+          "Carts"
+        ]
       }
     },
     "/api/carts/summary": {
@@ -1563,7 +1281,9 @@
           }
         ],
         "summary": "Get summary of user carts",
-        "tags": ["Carts"]
+        "tags": [
+          "Carts"
+        ]
       }
     },
     "/api/carts": {
@@ -1598,7 +1318,9 @@
           }
         ],
         "summary": "Create a new cart",
-        "tags": ["Carts"]
+        "tags": [
+          "Carts"
+        ]
       },
       "patch": {
         "operationId": "CartsController_updateCart",
@@ -1608,7 +1330,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PartialType"
+                "$ref": "#/components/schemas/UpdateCartDto"
               }
             }
           }
@@ -1631,7 +1353,9 @@
           }
         ],
         "summary": "Update the user's cart partially",
-        "tags": ["Carts"]
+        "tags": [
+          "Carts"
+        ]
       }
     },
     "/api/carts/items": {
@@ -1666,7 +1390,9 @@
           }
         ],
         "summary": "Add item to user's cart",
-        "tags": ["Carts"]
+        "tags": [
+          "Carts"
+        ]
       }
     },
     "/api/carts/items/{productId}": {
@@ -1701,7 +1427,9 @@
           }
         ],
         "summary": "Remove item from user's cart",
-        "tags": ["Carts"]
+        "tags": [
+          "Carts"
+        ]
       }
     },
     "/api/carts/clear": {
@@ -1726,7 +1454,9 @@
           }
         ],
         "summary": "Clear all items from user's cart",
-        "tags": ["Carts"]
+        "tags": [
+          "Carts"
+        ]
       }
     },
     "/api/carts/checkout": {
@@ -1751,7 +1481,54 @@
           }
         ],
         "summary": "Checkout the user's cart",
-        "tags": ["Carts"]
+        "tags": [
+          "Carts"
+        ]
+      }
+    },
+    "/api/payment/initiate": {
+      "post": {
+        "operationId": "PaymentController_initiatePayment",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payment"
+        ]
+      }
+    },
+    "/api/payment/callback": {
+      "get": {
+        "operationId": "PaymentController_handleCallback",
+        "parameters": [
+          {
+            "name": "Authority",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Payment"
+        ]
       }
     },
     "/api/categories": {
@@ -1763,7 +1540,9 @@
             "description": ""
           }
         },
-        "tags": ["Categories"]
+        "tags": [
+          "Categories"
+        ]
       },
       "get": {
         "operationId": "CategoriesController_findAll",
@@ -1773,7 +1552,9 @@
             "description": ""
           }
         },
-        "tags": ["Categories"]
+        "tags": [
+          "Categories"
+        ]
       }
     },
     "/api/categories/{id}": {
@@ -1794,7 +1575,9 @@
             "description": ""
           }
         },
-        "tags": ["Categories"]
+        "tags": [
+          "Categories"
+        ]
       },
       "patch": {
         "operationId": "CategoriesController_update",
@@ -1813,7 +1596,9 @@
             "description": ""
           }
         },
-        "tags": ["Categories"]
+        "tags": [
+          "Categories"
+        ]
       },
       "delete": {
         "operationId": "CategoriesController_remove",
@@ -1832,7 +1617,9 @@
             "description": ""
           }
         },
-        "tags": ["Categories"]
+        "tags": [
+          "Categories"
+        ]
       }
     },
     "/api/categories/{id}/status": {
@@ -1853,7 +1640,9 @@
             "description": ""
           }
         },
-        "tags": ["Categories"]
+        "tags": [
+          "Categories"
+        ]
       }
     },
     "/api/categories/parent/{parentId}": {
@@ -1874,7 +1663,9 @@
             "description": ""
           }
         },
-        "tags": ["Categories"]
+        "tags": [
+          "Categories"
+        ]
       }
     }
   },
@@ -1902,7 +1693,10 @@
             "example": "2284280072"
           }
         },
-        "required": ["phoneNumber", "nationalId"]
+        "required": [
+          "phoneNumber",
+          "nationalId"
+        ]
       },
       "SignInDto": {
         "type": "object",
@@ -1910,10 +1704,12 @@
           "phoneNumber": {
             "type": "string",
             "description": "Iranian phone number of the user",
-            "example": "+989123456789"
+            "example": "+09123456789"
           }
         },
-        "required": ["phoneNumber"]
+        "required": [
+          "phoneNumber"
+        ]
       },
       "VerifyOtpDto": {
         "type": "object",
@@ -1921,7 +1717,7 @@
           "phoneNumber": {
             "type": "string",
             "description": "Iranian phone number of the user",
-            "example": "+989123456789"
+            "example": "09123456789"
           },
           "otp": {
             "type": "string",
@@ -1929,7 +1725,10 @@
             "example": "1234"
           }
         },
-        "required": ["phoneNumber", "otp"]
+        "required": [
+          "phoneNumber",
+          "otp"
+        ]
       },
       "Cart": {
         "type": "object",
@@ -1970,7 +1769,10 @@
           },
           "orders": {
             "description": "List of order IDs associated with the user",
-            "example": ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"],
+            "example": [
+              "507f1f77bcf86cd799439011",
+              "507f1f77bcf86cd799439012"
+            ],
             "default": [],
             "type": "array",
             "items": {
@@ -1979,7 +1781,10 @@
           },
           "transactions": {
             "description": "List of transaction IDs associated with the user",
-            "example": ["507f1f77bcf86cd799439013", "507f1f77bcf86cd799439014"],
+            "example": [
+              "507f1f77bcf86cd799439013",
+              "507f1f77bcf86cd799439014"
+            ],
             "default": [],
             "type": "array",
             "items": {
@@ -1988,7 +1793,10 @@
           },
           "favorites": {
             "description": "List of favorite product IDs",
-            "example": ["507f1f77bcf86cd799439015", "507f1f77bcf86cd799439016"],
+            "example": [
+              "507f1f77bcf86cd799439015",
+              "507f1f77bcf86cd799439016"
+            ],
             "default": [],
             "type": "array",
             "items": {
@@ -2052,7 +1860,10 @@
           },
           "orders": {
             "description": "List of order IDs associated with the user",
-            "example": ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"],
+            "example": [
+              "507f1f77bcf86cd799439011",
+              "507f1f77bcf86cd799439012"
+            ],
             "default": [],
             "type": "array",
             "items": {
@@ -2061,7 +1872,10 @@
           },
           "transactions": {
             "description": "List of transaction IDs associated with the user",
-            "example": ["507f1f77bcf86cd799439013", "507f1f77bcf86cd799439014"],
+            "example": [
+              "507f1f77bcf86cd799439013",
+              "507f1f77bcf86cd799439014"
+            ],
             "default": [],
             "type": "array",
             "items": {
@@ -2070,7 +1884,10 @@
           },
           "favorites": {
             "description": "List of favorite product IDs",
-            "example": ["507f1f77bcf86cd799439015", "507f1f77bcf86cd799439016"],
+            "example": [
+              "507f1f77bcf86cd799439015",
+              "507f1f77bcf86cd799439016"
+            ],
             "default": [],
             "type": "array",
             "items": {
@@ -2088,45 +1905,6 @@
           }
         }
       },
-      "Permission": {
-        "type": "object",
-        "properties": {
-          "resource": {
-            "type": "string",
-            "enum": ["carts", "", "", "", "", "", "", "", "", "", "", "", "all"],
-            "example": ""
-          },
-          "actions": {
-            "type": "array",
-            "example": ["read", "update"],
-            "items": {
-              "type": "string",
-              "enum": ["read", "update", "create", "delete", "manage"]
-            }
-          }
-        },
-        "required": ["resource", "actions"]
-      },
-      "CreateRoleDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "admin"
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Permission"
-            }
-          }
-        },
-        "required": ["name", "permissions"]
-      },
-      "Role": {
-        "type": "object",
-        "properties": {}
-      },
       "StockDto": {
         "type": "object",
         "properties": {
@@ -2137,7 +1915,9 @@
             "minimum": 0
           }
         },
-        "required": ["quantity"]
+        "required": [
+          "quantity"
+        ]
       },
       "VariantOptionDto": {
         "type": "object",
@@ -2153,7 +1933,9 @@
             "example": 0
           }
         },
-        "required": ["value"]
+        "required": [
+          "value"
+        ]
       },
       "VariantDto": {
         "type": "object",
@@ -2171,7 +1953,10 @@
             }
           }
         },
-        "required": ["name", "options"]
+        "required": [
+          "name",
+          "options"
+        ]
       },
       "ImageDto": {
         "type": "object",
@@ -2182,7 +1967,9 @@
             "example": "https://example.com/cement-bag.jpg"
           }
         },
-        "required": ["url"]
+        "required": [
+          "url"
+        ]
       },
       "CreateProductDto": {
         "type": "object",
@@ -2215,7 +2002,9 @@
           },
           "categories": {
             "description": "List of category IDs",
-            "example": ["507f1f77bcf86cd799439012"],
+            "example": [
+              "507f1f77bcf86cd799439012"
+            ],
             "type": "array",
             "items": {
               "type": "string"
@@ -2252,7 +2041,10 @@
           },
           "tags": {
             "description": "Tags for filtering and search",
-            "example": ["cement", "construction"],
+            "example": [
+              "cement",
+              "construction"
+            ],
             "type": "array",
             "items": {
               "type": "string"
@@ -2267,7 +2059,10 @@
           },
           "comments": {
             "description": "User comments about the product",
-            "example": ["Great quality!", "Fast delivery"],
+            "example": [
+              "Great quality!",
+              "Fast delivery"
+            ],
             "type": "array",
             "items": {
               "type": "string"
@@ -2283,11 +2078,23 @@
           "status": {
             "type": "string",
             "description": "Status of the product",
-            "enum": ["active", "inactive", "draft", "archived"],
+            "enum": [
+              "active",
+              "inactive",
+              "draft",
+              "archived"
+            ],
             "example": "draft"
           }
         },
-        "required": ["name", "slug", "sku", "basePrice", "companyId", "stock"]
+        "required": [
+          "name",
+          "slug",
+          "sku",
+          "basePrice",
+          "companyId",
+          "stock"
+        ]
       },
       "UpdateProductDto": {
         "type": "object",
@@ -2298,7 +2105,9 @@
             "example": "507f1f77bcf86cd799439011"
           }
         },
-        "required": ["id"]
+        "required": [
+          "id"
+        ]
       },
       "CreateTicketDto": {
         "type": "object",
@@ -2316,13 +2125,25 @@
           "status": {
             "type": "string",
             "description": "Status of the ticket",
-            "enum": ["open", "in_progress", "resolved", "closed", "reopened", "escalated"],
+            "enum": [
+              "open",
+              "in_progress",
+              "resolved",
+              "closed",
+              "reopened",
+              "escalated"
+            ],
             "default": "open"
           },
           "priority": {
             "type": "string",
             "description": "Priority of the ticket",
-            "enum": ["low", "medium", "high", "urgent"],
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ],
             "default": "low"
           },
           "createdBy": {
@@ -2336,7 +2157,10 @@
             "example": "507f1f77bcf86cd799439012"
           }
         },
-        "required": ["title", "description"]
+        "required": [
+          "title",
+          "description"
+        ]
       },
       "UpdateTicketDto": {
         "type": "object",
@@ -2354,13 +2178,25 @@
           "status": {
             "type": "string",
             "description": "Status of the ticket",
-            "enum": ["open", "in_progress", "resolved", "closed", "reopened", "escalated"],
+            "enum": [
+              "open",
+              "in_progress",
+              "resolved",
+              "closed",
+              "reopened",
+              "escalated"
+            ],
             "example": "in_progress"
           },
           "priority": {
             "type": "string",
             "description": "Priority of the ticket",
-            "enum": ["low", "medium", "high", "urgent"],
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ],
             "example": "high"
           },
           "assignedTo": {
@@ -2396,7 +2232,12 @@
           "status": {
             "type": "string",
             "description": "Status of the shipment",
-            "enum": ["pending", "shipped", "delivered", "canceled"],
+            "enum": [
+              "pending",
+              "shipped",
+              "delivered",
+              "canceled"
+            ],
             "example": "shipped"
           },
           "estimatedDelivery": {
@@ -2406,7 +2247,12 @@
             "example": "2025-06-10"
           }
         },
-        "required": ["orderId", "companyId", "carrier", "trackingNumber"]
+        "required": [
+          "orderId",
+          "companyId",
+          "carrier",
+          "trackingNumber"
+        ]
       },
       "UpdateTransportingDto": {
         "type": "object",
@@ -2417,7 +2263,9 @@
             "example": "507f1f77bcf86cd799439011"
           }
         },
-        "required": ["id"]
+        "required": [
+          "id"
+        ]
       },
       "OrderItemDto": {
         "type": "object",
@@ -2434,7 +2282,10 @@
             "minimum": 1
           }
         },
-        "required": ["productId", "quantity"]
+        "required": [
+          "productId",
+          "quantity"
+        ]
       },
       "CreateOrderDto": {
         "type": "object",
@@ -2493,7 +2344,13 @@
             "example": "507f1f77bcf86cd799439011"
           }
         },
-        "required": ["userId", "items", "totalPrice", "status", "companyId"]
+        "required": [
+          "userId",
+          "items",
+          "totalPrice",
+          "status",
+          "companyId"
+        ]
       },
       "UpdateOrderDto": {
         "type": "object",
@@ -2504,100 +2361,9 @@
             "example": "507f1f77bcf86cd799439011"
           }
         },
-        "required": ["id"]
-      },
-      "CreateTransactionDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "InquireZarinpalTransactionDto": {
-        "type": "object",
-        "properties": {
-          "authority": {
-            "type": "string",
-            "description": "Transaction authority",
-            "example": "A00000000000000000000000000000000001"
-          }
-        },
-        "required": ["authority"]
-      },
-      "InitiateZarinpalPaymentDto": {
-        "type": "object",
-        "properties": {
-          "amount": {
-            "type": "number",
-            "description": "Payment amount in IRR",
-            "example": 100000
-          },
-          "callbackUrl": {
-            "type": "string",
-            "description": "Callback URL for payment",
-            "example": "http://localhost:3000/payment/callback"
-          },
-          "description": {
-            "type": "string",
-            "description": "Payment description",
-            "example": "Payment for order #123"
-          },
-          "mobile": {
-            "type": "string",
-            "description": "Mobile number of the payer",
-            "example": "09123456789"
-          },
-          "email": {
-            "type": "string",
-            "description": "Email address of the payer",
-            "example": "user@example.com"
-          }
-        },
-        "required": ["amount", "callbackUrl", "description"]
-      },
-      "VerifyZarinpalPaymentDto": {
-        "type": "object",
-        "properties": {
-          "authority": {
-            "type": "string",
-            "description": "Transaction authority",
-            "example": "A00000000000000000000000000000000001"
-          },
-          "amount": {
-            "type": "number",
-            "description": "Transaction amount in IRR",
-            "example": 100000
-          }
-        },
-        "required": ["authority", "amount"]
-      },
-      "ProcessRefundZarinpalDto": {
-        "type": "object",
-        "properties": {
-          "sessionId": {
-            "type": "string",
-            "description": "Transaction authority",
-            "example": "A00000000000000000000000000000000001"
-          },
-          "amount": {
-            "type": "number",
-            "description": "Refund amount in IRR",
-            "example": 50000
-          },
-          "description": {
-            "type": "string",
-            "description": "Refund description",
-            "example": "Refund for order #123"
-          },
-          "method": {
-            "type": "string",
-            "description": "Refund method",
-            "example": "bank_account"
-          },
-          "reason": {
-            "type": "string",
-            "description": "Reason for refund",
-            "example": "Customer requested refund"
-          }
-        },
-        "required": ["sessionId", "amount", "description", "method", "reason"]
+        "required": [
+          "id"
+        ]
       },
       "CartItemDto": {
         "type": "object",
@@ -2646,7 +2412,12 @@
             }
           }
         },
-        "required": ["productId", "companyId", "quantity", "priceAtAdd"]
+        "required": [
+          "productId",
+          "companyId",
+          "quantity",
+          "priceAtAdd"
+        ]
       },
       "CreateCartDto": {
         "type": "object",
@@ -2672,15 +2443,31 @@
           "status": {
             "type": "string",
             "description": "Status of the cart",
-            "enum": ["active", "abandoned", "checked_out"],
+            "enum": [
+              "active",
+              "abandoned",
+              "checked_out"
+            ],
             "example": "active"
           }
         },
-        "required": ["userId", "items"]
+        "required": [
+          "userId",
+          "items"
+        ]
       },
-      "PartialType": {
+      "UpdateCartDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the cart",
+            "example": "507f1f77bcf86cd799439011"
+          }
+        },
+        "required": [
+          "id"
+        ]
       }
     }
   }

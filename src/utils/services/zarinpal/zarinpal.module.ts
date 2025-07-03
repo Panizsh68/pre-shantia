@@ -1,15 +1,26 @@
-import { Module } from '@nestjs/common';
+import { DynamicModule, Module } from '@nestjs/common';
+import Zarinpal from 'zarinpal-node-sdk';
 import { ZarinpalService } from './zarinpal.service';
-import { TransactionModule } from 'src/features/transaction/transaction.module';
+import { IZarinpalModuleOptions } from './interfaces/zarinpal-modules-options.interface';
+import { IZARINPAL_SERVICE, ZARINPAL_SDK } from './constants/zarinpal.constants';
 
-@Module({
-  imports: [TransactionModule],
-  providers: [
-    {
-      provide: 'IZarinpalService',
-      useClass: ZarinpalService,
-    },
-  ],
-  exports: ['IZarinpalService'],
-})
-export class ZarinpalModule {}
+
+@Module({})
+export class ZarinpalModule {
+  static register(options: IZarinpalModuleOptions): DynamicModule {
+    return {
+      module: ZarinpalModule,
+      providers: [
+        {
+          provide: ZARINPAL_SDK,
+          useValue: new Zarinpal(options),
+        },
+        {
+          provide: IZARINPAL_SERVICE,
+          useClass: ZarinpalService,
+        },
+      ],
+      exports: [ZARINPAL_SDK, IZARINPAL_SERVICE],
+    };
+  }
+}

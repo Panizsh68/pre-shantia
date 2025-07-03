@@ -13,7 +13,7 @@ export interface ITransactionRepository
     IBaseTransactionRepository<Transaction> {}
 
 @Injectable()
-export class UserRepository
+export class TransactionRepository
   extends BaseCrudRepository<Transaction>
   implements ITransactionRepository
 {

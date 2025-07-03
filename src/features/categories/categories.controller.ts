@@ -8,6 +8,7 @@ import {
   Param,
   HttpStatus,
   HttpCode,
+  Inject,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
@@ -15,11 +16,12 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { TokenPayload } from '../auth/interfaces/token-payload.interface';
 import { Category } from './entities/category.entity';
 import { CategoryStatus } from './enums/category-status.enum';
+import { ICategoryService } from './interfaces/category.service.interface';
 
 @ApiTags('Categories')
 @Controller('categories')
 export class CategoriesController {
-  constructor(private readonly categoriesService: CategoriesService) {}
+  constructor(@Inject('ICategoryService') private readonly categoriesService: ICategoryService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

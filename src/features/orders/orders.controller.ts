@@ -20,59 +20,59 @@ export class OrdersController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateOrderDto) {
-    return this.ordersService.create(dto);
+  async create(@Body() dto: CreateOrderDto) {
+    return await this.ordersService.create(dto);
   }
 
   @Get(':id')
-  getById(@Param('id') id: string) {
-    return this.ordersService.findById(id);
+  async getById(@Param('id') id: string) {
+    return await this.ordersService.findById(id);
   }
 
   @Get()
-  find(@Query('userId') userId?: string, @Query('companyId') companyId?: string) {
+  async find(@Query('userId') userId?: string, @Query('companyId') companyId?: string) {
     if (userId) {
-      return this.ordersService.findByUserId(userId);
+      return await this.ordersService.findByUserId(userId);
     }
     if (companyId) {
-      return this.ordersService.findByCompanyId(companyId);
+      return await this.ordersService.findByCompanyId(companyId);
     }
     return [];
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateOrderDto) {
+  async update(@Param('id') id: string, @Body() dto: UpdateOrderDto) {
     dto.id = id;
-    return this.ordersService.update(dto);
+    return await this.ordersService.update(dto);
   }
 
   @Patch(':id/cancel')
-  cancel(@Param('id') id: string) {
-    return this.ordersService.cancel(id);
+  async cancel(@Param('id') id: string) {
+    return await this.ordersService.cancel(id);
   }
 
   @Patch(':id/mark-paid')
-  markAsPaid(@Param('id') id: string) {
-    return this.ordersService.markAsPaid(id);
+  async markAsPaid(@Param('id') id: string) {
+    return await this.ordersService.markAsPaid(id);
   }
 
   @Patch(':id/mark-shipped')
-  markAsShipped(@Param('id') id: string, @Body('transportId') transportId?: string) {
-    return this.ordersService.markAsShipped(id, transportId);
+  async markAsShipped(@Param('id') id: string, @Body('transportId') transportId?: string) {
+    return await this.ordersService.markAsShipped(id, transportId);
   }
 
   @Patch(':id/mark-delivered')
-  markAsDelivered(@Param('id') id: string) {
-    return this.ordersService.markAsDelivered(id);
+  async markAsDelivered(@Param('id') id: string) {
+    return await this.ordersService.markAsDelivered(id);
   }
 
   @Patch(':id/refund')
-  refund(@Param('id') id: string) {
-    return this.ordersService.refund(id);
+  async refund(@Param('id') id: string) {
+    return await this.ordersService.refund(id);
   }
 
   @Patch(':id/confirm-delivery')
-  confirmDelivery(@Param('id') id: string, @Body('userId') userId: string) {
-    return this.ordersService.confirmDelivery(id, userId);
+  async confirmDelivery(@Param('id') id: string, @Body('userId') userId: string) {
+    return await this.ordersService.confirmDelivery(id, userId);
   }
 }
