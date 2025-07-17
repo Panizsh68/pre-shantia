@@ -27,6 +27,7 @@ export class ProfileService {
       firstName: updateProfileDto.firstName,
       lastName: updateProfileDto.lastName,
       address: updateProfileDto.address,
+      cart: updateProfileDto.cart,
     };
     const updatedProfileResult = await this.profileRepository.updateById(id, updatedProfile);
     return updatedProfileResult;

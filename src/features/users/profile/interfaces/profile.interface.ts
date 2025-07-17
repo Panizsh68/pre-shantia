@@ -12,5 +12,5 @@ export interface IProfile {
   orders?: Types.ObjectId[];
   transactions?: Types.ObjectId[];
   favorites?: Types.ObjectId[];
-  cart?: ICart;
+  cart?: string;
 }

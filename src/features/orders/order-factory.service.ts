@@ -1,8 +1,8 @@
-import { Injectable } from "@nestjs/common";
-import { ICart } from "../carts/interfaces/cart.interface";
-import { CreateOrderDto } from "./dto/create-order.dto";
-import { CartItemDto } from "../carts/dto/cart-item.dto";
-import { OrdersStatus } from "./enums/orders.status.enum";
+import { Injectable } from '@nestjs/common';
+import { ICart } from '../carts/interfaces/cart.interface';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { CartItemDto } from '../carts/dto/cart-item.dto';
+import { OrdersStatus } from './enums/orders.status.enum';
 
 @Injectable()
 export class OrderFactoryService {
@@ -42,10 +42,7 @@ export class OrderFactoryService {
     const orders: CreateOrderDto[] = [];
 
     for (const [companyId, items] of grouped.entries()) {
-      const totalPrice = items.reduce(
-        (sum, item) => sum + item.priceAtAdd * item.quantity,
-        0,
-      );
+      const totalPrice = items.reduce((sum, item) => sum + item.priceAtAdd * item.quantity, 0);
 
       orders.push({
         userId: cart.userId,
@@ -65,4 +62,3 @@ export class OrderFactoryService {
     return orders;
   }
 }
-

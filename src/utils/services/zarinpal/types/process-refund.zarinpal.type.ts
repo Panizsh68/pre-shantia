@@ -8,10 +8,9 @@ export type ProcessRefundZarinpalType = {
   method: string;
 
   reason: string;
-}
+};
 
 export type RefundTransactionResponseType = {
-
   authority: string;
 
   status: string;
@@ -19,7 +18,7 @@ export type RefundTransactionResponseType = {
   refund_status?: string;
 
   refund_amount?: number;
-}
+};
 
 export type ProcessRefundZarinpalResponseType = {
   refundId: string;
@@ -29,4 +28,4 @@ export type ProcessRefundZarinpalResponseType = {
   status: string;
 
   transaction: RefundTransactionResponseType;
-}
+};

@@ -1,16 +1,25 @@
-import { Controller, Post, Get, Patch, Param, Body, Inject } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Param, Body, Inject, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { CreateTransportingDto } from './dto/create-transporting.dto';
 import { UpdateTransportingDto } from './dto/update-transporting.dto';
 import { ITransporting } from './interfaces/transporting.interface';
 import { ITransportingsService } from './interfaces/transporting.service.interface';
+import { AuthenticationGuard } from '../auth/guards/auth.guard';
+import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { PermissionsGuard } from '../permissions/guard/permission.guard';
+import { Resource } from '../permissions/enums/resources.enum';
+import { Action } from '../permissions/enums/actions.enum';
 
 @ApiTags('transportings')
 @Controller('transportings')
 export class TransportingsController {
-  constructor(@Inject('ITransportingsService') private readonly transportingsService: ITransportingsService) {}
+  constructor(
+    @Inject('ITransportingsService') private readonly transportingsService: ITransportingsService,
+  ) { }
 
   @Post()
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TRANSPORTING, Action.CREATE)
   @ApiOperation({ summary: 'Create a new transporting record' })
   @ApiBody({ type: CreateTransportingDto })
   @ApiResponse({ status: 201, description: 'Transporting record created successfully' })
@@ -20,6 +29,7 @@ export class TransportingsController {
   }
 
   @Get(':id')
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: 'Get transporting record by ID' })
   @ApiParam({ name: 'id', description: 'Transporting ID', example: '507f1f77bcf86cd799439011' })
   @ApiResponse({ status: 200, description: 'Transporting record found' })
@@ -29,6 +39,7 @@ export class TransportingsController {
   }
 
   @Get('order/:orderId')
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: 'Get transporting record by order ID' })
   @ApiParam({ name: 'orderId', description: 'Order ID', example: '507f1f77bcf86cd799439012' })
   @ApiResponse({ status: 200, description: 'Transporting record found' })
@@ -38,6 +49,7 @@ export class TransportingsController {
   }
 
   @Get('company/:companyId')
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: 'Get transporting records by company ID' })
   @ApiParam({ name: 'companyId', description: 'Company ID', example: '507f1f77bcf86cd799439013' })
   @ApiResponse({ status: 200, description: 'List of transporting records found' })
@@ -47,6 +59,8 @@ export class TransportingsController {
   }
 
   @Patch()
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TRANSPORTING, Action.UPDATE)
   @ApiOperation({ summary: 'Update a transporting record' })
   @ApiBody({ type: UpdateTransportingDto })
   @ApiResponse({ status: 200, description: 'Transporting record updated successfully' })
@@ -56,6 +70,8 @@ export class TransportingsController {
   }
 
   @Patch(':id/cancel')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TRANSPORTING, Action.UPDATE)
   @ApiOperation({ summary: 'Cancel a transporting record' })
   @ApiParam({ name: 'id', description: 'Transporting ID', example: '507f1f77bcf86cd799439011' })
   @ApiResponse({ status: 200, description: 'Transporting record canceled successfully' })
@@ -66,6 +82,8 @@ export class TransportingsController {
   }
 
   @Patch(':id/delivered')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TRANSPORTING, Action.UPDATE)
   @ApiOperation({ summary: 'Mark a transporting record as delivered' })
   @ApiParam({ name: 'id', description: 'Transporting ID', example: '507f1f77bcf86cd799439011' })
   @ApiBody({

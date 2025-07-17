@@ -16,5 +16,4 @@ export interface IUsersService {
   update(id: string, updateUserDto: UpdateProfileDto): Promise<User>;
 
   delete(id: string): Promise<void>;
-
 }

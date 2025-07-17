@@ -10,13 +10,9 @@ export class PermissionsGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const permissionMeta = this.reflector.get<PermissionMeta>(
-      PERMISSION_KEY,
-      context.getHandler(),
-    ) || this.reflector.get<PermissionMeta>(
-      PERMISSION_KEY,
-      context.getClass(),
-    );
+    const permissionMeta =
+      this.reflector.get<PermissionMeta>(PERMISSION_KEY, context.getHandler()) ||
+      this.reflector.get<PermissionMeta>(PERMISSION_KEY, context.getClass());
 
     if (!permissionMeta) return true;
 
@@ -26,8 +22,7 @@ export class PermissionsGuard implements CanActivate {
     const hasPermission = user?.permissions?.some((perm: IPermission) => {
       const isAllManage = perm.resource === Resource.ALL && perm.actions.includes(Action.MANAGE);
       const isMatching =
-        perm.resource === permissionMeta.resource &&
-        perm.actions.includes(permissionMeta.action);
+        perm.resource === permissionMeta.resource && perm.actions.includes(permissionMeta.action);
       return isMatching || isAllManage;
     });
 

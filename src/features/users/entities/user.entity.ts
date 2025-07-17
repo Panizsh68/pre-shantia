@@ -11,7 +11,15 @@ export class User extends Document {
   @Prop({ required: true })
   nationalId: string;
 
-  @Prop({ type: [String], default: [] })
+  @Prop({
+    type: [
+      {
+        resource: { type: String, required: true },
+        actions: [{ type: String, required: true }],
+      },
+    ],
+    default: [],
+  })
   permissions: IPermission[];
 }
 

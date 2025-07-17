@@ -12,7 +12,11 @@ export class RequestContextInterceptor implements NestInterceptor {
       request.socket?.remoteAddress ||
       'Unknown IP';
 
-    request.context = { userAgent, ip };
+    request.context = {
+      userAgent,
+      ip,
+      user: request.user, 
+    };
 
     return next.handle();
   }

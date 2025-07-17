@@ -19,9 +19,9 @@ import { CompanyRepository, ICompanyRepository } from './repositories/company.re
     },
     {
       provide: 'ICompanyService',
-      useClass: CompaniesService
+      useClass: CompaniesService,
     },
   ],
-  exports: ['ICompanyService']
+  exports: ['ICompanyService'],
 })
 export class CompaniesModule {}

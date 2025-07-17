@@ -1,20 +1,28 @@
-
-FROM node:23-slim as builder
+# ---------- Build Stage ----------
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm i
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile --production=false
 
 COPY . .
-RUN npm run build
+RUN yarn build
 
-FROM node:23-slim as runner
+# ---------- Run Stage ----------
+FROM node:22-slim AS runner
+
+RUN apt-get update && apt-get install -y procps && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/.env.production ./
 
-CMD ["npm", "run", "start:prod"]
+ENV NODE_ENV=PROD
+
+EXPOSE 3000
+
+CMD ["node", "dist/main.js"]

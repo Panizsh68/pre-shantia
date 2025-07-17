@@ -1,68 +1,116 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, Inject } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam } from '@nestjs/swagger';
 import { Ticket } from './entities/ticketing.entity';
 import { AuthenticationGuard } from 'src/features/auth/guards/auth.guard';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
-import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { ITicketingService } from './interfaces/ticketing.service.interface';
+import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
+import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { PermissionsGuard } from '../permissions/guard/permission.guard';
+import { Resource } from '../permissions/enums/resources.enum';
+import { Action } from '../permissions/enums/actions.enum';
 
-@Controller('tickets')
+@ApiTags('Tickets')
 @UseGuards(AuthenticationGuard)
+@Controller('tickets')
 export class TicketingController {
-  constructor(@Inject('ITicketingService') private readonly ticketingService: ITicketingService) {}
+  constructor(
+    @Inject('ITicketingService')
+    private readonly ticketingService: ITicketingService,
+  ) { }
 
   @Post()
+  @UseGuards(PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.CREATE)
+  @ApiOperation({ summary: 'Create a new ticket' })
+  @ApiBody({ type: CreateTicketDto })
+  @ApiResponse({ status: 201, description: 'Ticket created successfully' })
   async create(@Body() createTicketDto: CreateTicketDto): Promise<Ticket> {
-    const ticket = await this.ticketingService.create(createTicketDto);
-    return ticket;
+    return this.ticketingService.create(createTicketDto);
   }
 
   @Get()
+  @ApiOperation({ summary: 'Get all tickets (with optional filters)' })
+  @ApiResponse({ status: 200, description: 'List of tickets returned' })
   async findAll(@Body() options: FindManyOptions): Promise<Ticket[]> {
-    const tickets = await this.ticketingService.findAll(options);
-    return tickets;
+    return this.ticketingService.findAll(options);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get a ticket by ID' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiResponse({ status: 200, description: 'Ticket found' })
+  @ApiResponse({ status: 404, description: 'Ticket not found' })
   async findOne(@Param('id') id: string): Promise<Ticket | null> {
-    const ticket = await this.ticketingService.findOne(id);
-    return ticket;
+    return this.ticketingService.findOne(id);
   }
 
   @Get(':id/status')
+  @ApiOperation({ summary: 'Get status of a ticket by ID' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiResponse({ status: 200, description: 'Ticket status returned' })
   async findStatus(@Param('id') id: string): Promise<TicketStatus> {
-    const status = await this.ticketingService.findStatus(id);
-    return status;
+    return this.ticketingService.findStatus(id);
   }
 
   @Put(':id')
+  @UseGuards(PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.UPDATE)
+  @ApiOperation({ summary: 'Update ticket by ID' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: UpdateTicketDto })
+  @ApiResponse({ status: 200, description: 'Ticket updated successfully' })
   async update(
     @Param('id') id: string,
     @Body() updateTicketDto: UpdateTicketDto,
   ): Promise<Ticket | null> {
-    const updatedTicket = await this.ticketingService.update(id, updateTicketDto);
-    return updatedTicket;
+    return this.ticketingService.update(id, updateTicketDto);
   }
 
   @Put(':id/status')
+  @UseGuards(PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.UPDATE)
+  @ApiOperation({ summary: 'Update ticket status' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: Object.values(TicketStatus),
+          example: TicketStatus.Open,
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Ticket status updated' })
   async updateStatus(
     @Param('id') id: string,
     @Body('status') status: TicketStatus,
   ): Promise<Ticket | null> {
-    const updatedStatus = await this.ticketingService.updateStatus(id, status);
-    return updatedStatus;
+    return this.ticketingService.updateStatus(id, status);
   }
 
   @Delete(':id')
+  @UseGuards(PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.DELETE)
+  @ApiOperation({ summary: 'Delete ticket by ID' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiResponse({ status: 200, description: 'Ticket deleted successfully' })
   async delete(@Param('id') id: string): Promise<boolean> {
-    const removedTicket = await this.ticketingService.remove(id);
-    return removedTicket;
+    return this.ticketingService.remove(id);
   }
 
   @Post(':id/escalate')
+  @UseGuards(PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.UPDATE)
+  @ApiOperation({ summary: 'Escalate a ticket to a higher level' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiResponse({ status: 200, description: 'Ticket escalated' })
   async escalateTicket(@Param('id') ticketId: string): Promise<Ticket> {
-    const escalatedTicket = await this.ticketingService.escalateTicket(ticketId);
-    return escalatedTicket;
+    return this.ticketingService.escalateTicket(ticketId);
   }
 }

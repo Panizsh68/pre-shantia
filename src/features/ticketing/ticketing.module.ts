@@ -29,13 +29,13 @@ import { ITicketRepository, TicketRepository } from './repository/ticket.reposit
       inject: [getModelToken(Ticket.name)],
     },
     {
-      provide: 'ITicketingService', 
-      useClass: TicketingService
+      provide: 'ITicketingService',
+      useClass: TicketingService,
     },
     JwtService,
     TokensService,
     CachingService,
   ],
-  exports: ['ITicketingService']
+  exports: ['ITicketingService'],
 })
 export class TicketingModule {}

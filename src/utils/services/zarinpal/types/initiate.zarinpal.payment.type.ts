@@ -4,7 +4,7 @@ export type InitiateZarinpalPaymentType = {
   description: string;
   mobile?: string;
   email?: string;
-  userId: string; 
+  userId: string;
   orderId: string;
 };
 

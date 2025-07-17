@@ -18,14 +18,14 @@ import { ZarinpalModule } from 'src/utils/services/zarinpal/zarinpal.module';
     ZarinpalModule.register({
       merchantId: process.env.ZARINPAL_MERCHANT_ID || 'a3c16110-f184-44e2-ad26-649387845a94',
       sandbox: true,
-    })
+    }),
   ],
   controllers: [PaymentController],
   providers: [
     {
       provide: 'IPaymentService',
-      useClass: PaymentService
-    }
+      useClass: PaymentService,
+    },
   ],
 })
 export class PaymentModule {}

@@ -34,7 +34,7 @@ export class Profile extends Document {
   @Prop({ type: [{ type: String, ref: 'Product' }], default: [] })
   favorites: string[];
 
-  @Prop({ type: CartSchema })
-  cart: Cart;
+  @Prop({ type: String, ref: 'Cart' })
+  cart: string;
 }
 export const ProfileSchema = SchemaFactory.createForClass(Profile);

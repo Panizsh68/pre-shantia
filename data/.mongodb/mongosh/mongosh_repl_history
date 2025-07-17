@@ -1,0 +1,2 @@
+rs.remove("mongo:27017")
+rs.status()

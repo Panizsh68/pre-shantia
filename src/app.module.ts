@@ -6,6 +6,7 @@ import { RedisModule, RedisModuleOptions } from '@nestjs-modules/ioredis';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import configuration from './infrastructure/config/configuration';
+import configurationProd from './infrastructure/config/configuration.prod';
 import { UsersModule } from './features/users/users.module';
 import { OtpModule } from './utils/services/otp/otp.module';
 import { ShahkarModule } from './utils/services/shahkar/shahkar.module';
@@ -22,22 +23,28 @@ import { CartsModule } from './features/carts/carts.module';
 import { CategoriesModule } from './features/categories/categories.module';
 import { ZarinpalModule } from './utils/services/zarinpal/zarinpal.module';
 import { HealthController } from './health/health.controller';
-import { APP_GUARD } from '@nestjs/core';
-import { AuthenticationGuard } from './features/auth/guards/auth.guard';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CachingModule } from './infrastructure/caching/caching.module';
+import { RequestContextInterceptor } from './utils/interceptors/request-context.interceptor';
+import { SwaggerController } from './swagger.controller';
+import { SwaggerService } from './swagger.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [configuration],
-      envFilePath: '.env',
+      load: [process.env.NODE_ENV === 'production' ? configurationProd : configuration],
+      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
     }),
 
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (config: ConfigService) => ({
         uri: config.get<string>('MONGO_URL'),
+        retryAttempts: 10,
+        retryDelay: 2000,
+        serverSelectionTimeoutMS: 5000,
+        directConnection: true,
       }),
       inject: [ConfigService],
     }),
@@ -49,6 +56,7 @@ import { CachingModule } from './infrastructure/caching/caching.module';
         options: {
           host: configService.get<string>('REDIS_HOST', 'localhost'),
           port: configService.get<number>('REDIS_PORT', 6379),
+          password: configService.get<string>('REDIS_PASSWORD') || undefined,
         },
       }),
       inject: [ConfigService],
@@ -57,7 +65,7 @@ import { CachingModule } from './infrastructure/caching/caching.module';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (config: ConfigService) => ({
-        secret: config.get('JWT_SECRECT_KEY'),
+        secret: config.get('JWT_SECRET_KEY'),
         global: true,
       }),
       inject: [ConfigService],
@@ -79,13 +87,12 @@ import { CachingModule } from './infrastructure/caching/caching.module';
     CategoriesModule,
     ZarinpalModule,
   ],
-  controllers: [AppController, HealthController],
-  providers: [
-    AppService,
+  controllers: [AppController, HealthController, SwaggerController],
+  providers: [AppService, SwaggerService,
     {
-      provide: APP_GUARD,
-      useClass: AuthenticationGuard,
+      provide: APP_INTERCEPTOR,
+      useClass: RequestContextInterceptor,
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

@@ -10,26 +10,21 @@ import { Model } from 'mongoose';
 import { IProductRepository, ProductRepository } from './repositories/product.repository';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
-import { BASE_AGGREGATE_REPOSITORY, BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/tokens.constants';
+import {
+  BASE_AGGREGATE_REPOSITORY,
+  BASE_TRANSACTION_REPOSITORY,
+} from 'src/libs/repository/constants/tokens.constants';
 
 @Module({
-  imports: [GenericRepositoryModule.forFeature<Product>(Product.name, Product, ProductSchema),],
+  imports: [GenericRepositoryModule.forFeature<Product>(Product.name, Product, ProductSchema)],
   controllers: [ProductsController],
   providers: [
     {
       provide: 'ProductRepository',
-      useFactory: (
-        productModel,
-        aggregateRepo,
-        transactionRepo,
-      ): IProductRepository => {
+      useFactory: (productModel, aggregateRepo, transactionRepo): IProductRepository => {
         return new ProductRepository(productModel, aggregateRepo, transactionRepo);
       },
-      inject: [
-        getModelToken(Product.name),
-        BASE_AGGREGATE_REPOSITORY,
-        BASE_TRANSACTION_REPOSITORY
-      ],
+      inject: [getModelToken(Product.name), BASE_AGGREGATE_REPOSITORY, BASE_TRANSACTION_REPOSITORY],
     },
     {
       provide: 'IProductsService',

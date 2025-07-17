@@ -1,22 +1,27 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import rateLimit from 'express-rate-limit';
-import { writeFileSync } from 'fs';
 import { RequestContextInterceptor } from './utils/interceptors/request-context.interceptor';
+import cors from 'cors';
+import { SwaggerService } from './swagger.service';
+import { SwaggerModule } from '@nestjs/swagger';
+import express from 'express'; // نگه دار
+import { ExpressAdapter } from '@nestjs/platform-express';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const expressApp = express(); 
+  const adapter = new ExpressAdapter(expressApp); 
+  const app = await NestFactory.create(AppModule, adapter); 
+  app.use(cors({ origin: 'http://localhost:3001' }));
+  expressApp.set('trust proxy', true); 
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       forbidUnknownValues: true,
       transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
+      transformOptions: { enableImplicitConversion: true },
     }),
   );
 
@@ -31,17 +36,9 @@ async function bootstrap(): Promise<void> {
 
   app.useGlobalInterceptors(new RequestContextInterceptor());
 
-  const config = new DocumentBuilder()
-    .setTitle('practice')
-    .setDescription('API documentation for my practice app')
-    .setVersion('0.0.1')
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-
-  writeFileSync('./swagger.json', JSON.stringify(document, null, 2));
-
-  SwaggerModule.setup('api', app, document);
+  const swaggerService = app.get(SwaggerService);
+  const document = swaggerService.createDocument(app);
+  SwaggerModule.setup('docs', app, document); 
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

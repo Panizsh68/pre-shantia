@@ -94,16 +94,24 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SignUpDto"
+                "$ref": "#/components/schemas/CreateUserDto"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignUpResponseDto"
+                }
+              }
+            }
           }
         },
+        "summary": "Register a new user",
         "tags": [
           "Auth"
         ]
@@ -125,9 +133,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "User signed in successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResponseDto"
+                }
+              }
+            }
           }
         },
+        "summary": "Sign in with credentials",
         "tags": [
           "Auth"
         ]
@@ -148,10 +164,24 @@
           }
         },
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "OTP verified successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "Verify OTP code",
         "tags": [
           "Auth"
         ]
@@ -161,11 +191,41 @@
       "post": {
         "operationId": "AuthController_refreshToken",
         "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string",
+                    "example": "your-refresh-token"
+                  }
+                }
+              }
+            }
           }
         },
+        "responses": {
+          "200": {
+            "description": "New access token generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Refresh access token using a refresh token",
         "tags": [
           "Auth"
         ]
@@ -177,9 +237,23 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Successfully signed out"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "Sign out user and invalidate refresh token",
         "tags": [
           "Auth"
         ]
@@ -191,9 +265,74 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userId": {
+                      "type": "string",
+                      "example": "123456789"
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "resource": {
+                            "type": "string",
+                            "example": "orders"
+                          },
+                          "actions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "example": "r"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "Get current user profile and permissions",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/admin-signup": {
+      "post": {
+        "operationId": "AuthController_adminSignUp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignUpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User with permissions created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignUpResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Admin creates a user with permissions",
         "tags": [
           "Auth"
         ]
@@ -295,9 +434,10 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Product created successfully"
           }
         },
+        "summary": "Create a new product",
         "tags": [
           "Products"
         ]
@@ -307,26 +447,29 @@
         "parameters": [
           {
             "name": "limit",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
+              "example": "10",
               "type": "string"
             }
           },
           {
             "name": "page",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
+              "example": "2",
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of products returned"
           }
         },
+        "summary": "Get a paginated list of products",
         "tags": [
           "Products"
         ]
@@ -347,9 +490,13 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Product found"
+          },
+          "404": {
+            "description": "Product not found"
           }
         },
+        "summary": "Get product by ID",
         "tags": [
           "Products"
         ]
@@ -378,9 +525,10 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Product updated"
           }
         },
+        "summary": "Update product by ID",
         "tags": [
           "Products"
         ]
@@ -399,9 +547,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Product deleted"
           }
         },
+        "summary": "Delete product by ID",
         "tags": [
           "Products"
         ]
@@ -422,9 +571,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Number of products returned"
           }
         },
+        "summary": "Count products by category ID",
         "tags": [
           "Products"
         ]
@@ -436,18 +586,20 @@
         "parameters": [
           {
             "name": "limit",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
+              "example": "5",
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Top products returned"
           }
         },
+        "summary": "Get top-selling products",
         "tags": [
           "Products"
         ]
@@ -469,11 +621,12 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Ticket created successfully"
           }
         },
+        "summary": "Create a new ticket",
         "tags": [
-          "Ticketing"
+          "Tickets"
         ]
       },
       "get": {
@@ -481,11 +634,12 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of tickets returned"
           }
         },
+        "summary": "Get all tickets (with optional filters)",
         "tags": [
-          "Ticketing"
+          "Tickets"
         ]
       }
     },
@@ -504,11 +658,15 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Ticket found"
+          },
+          "404": {
+            "description": "Ticket not found"
           }
         },
+        "summary": "Get a ticket by ID",
         "tags": [
-          "Ticketing"
+          "Tickets"
         ]
       },
       "put": {
@@ -535,11 +693,12 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Ticket updated successfully"
           }
         },
+        "summary": "Update ticket by ID",
         "tags": [
-          "Ticketing"
+          "Tickets"
         ]
       },
       "delete": {
@@ -556,11 +715,12 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Ticket deleted successfully"
           }
         },
+        "summary": "Delete ticket by ID",
         "tags": [
-          "Ticketing"
+          "Tickets"
         ]
       }
     },
@@ -579,11 +739,12 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Ticket status returned"
           }
         },
+        "summary": "Get status of a ticket by ID",
         "tags": [
-          "Ticketing"
+          "Tickets"
         ]
       },
       "put": {
@@ -598,13 +759,38 @@
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": ""
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "open",
+                      "in_progress",
+                      "resolved",
+                      "closed",
+                      "reopened",
+                      "escalated"
+                    ],
+                    "example": "open"
+                  }
+                }
+              }
+            }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Ticket status updated"
+          }
+        },
+        "summary": "Update ticket status",
         "tags": [
-          "Ticketing"
+          "Tickets"
         ]
       }
     },
@@ -622,12 +808,13 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Ticket escalated"
           }
         },
+        "summary": "Escalate a ticket to a higher level",
         "tags": [
-          "Ticketing"
+          "Tickets"
         ]
       }
     },
@@ -856,11 +1043,29 @@
       "post": {
         "operationId": "CompaniesController_createCompany",
         "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Company"
+              }
+            }
           }
         },
+        "responses": {
+          "201": {
+            "description": "Company created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a new company",
         "tags": [
           "Companies"
         ]
@@ -870,9 +1075,20 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of all companies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Company"
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "Get all companies",
         "tags": [
           "Companies"
         ]
@@ -886,16 +1102,35 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Company ID",
             "schema": {
               "type": "string"
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": ""
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Company"
+              }
+            }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Company updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update a company by ID",
         "tags": [
           "Companies"
         ]
@@ -907,6 +1142,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Company ID",
             "schema": {
               "type": "string"
             }
@@ -914,9 +1150,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Company deleted successfully"
           }
         },
+        "summary": "Delete a company by ID",
         "tags": [
           "Companies"
         ]
@@ -928,6 +1165,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Company ID",
             "schema": {
               "type": "string"
             }
@@ -935,9 +1173,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Company fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
           }
         },
+        "summary": "Get a company by ID",
         "tags": [
           "Companies"
         ]
@@ -959,9 +1205,17 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Order created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
           }
         },
+        "summary": "Create a new order",
         "tags": [
           "Orders"
         ]
@@ -971,7 +1225,7 @@
         "parameters": [
           {
             "name": "userId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -979,7 +1233,7 @@
           },
           {
             "name": "companyId",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
               "type": "string"
@@ -988,9 +1242,20 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Orders found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "Find orders by userId or companyId",
         "tags": [
           "Orders"
         ]
@@ -1004,6 +1269,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Order ID",
             "schema": {
               "type": "string"
             }
@@ -1011,9 +1277,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Order found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
           }
         },
+        "summary": "Get order by ID",
         "tags": [
           "Orders"
         ]
@@ -1025,6 +1299,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Order ID",
             "schema": {
               "type": "string"
             }
@@ -1042,9 +1317,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Order updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
           }
         },
+        "summary": "Update an order by ID",
         "tags": [
           "Orders"
         ]
@@ -1058,6 +1341,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Order ID",
             "schema": {
               "type": "string"
             }
@@ -1065,9 +1349,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Order cancelled"
           }
         },
+        "summary": "Cancel an order",
         "tags": [
           "Orders"
         ]
@@ -1081,6 +1366,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Order ID",
             "schema": {
               "type": "string"
             }
@@ -1088,9 +1374,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Order marked as paid"
           }
         },
+        "summary": "Mark order as paid",
         "tags": [
           "Orders"
         ]
@@ -1104,16 +1391,34 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Order ID",
             "schema": {
               "type": "string"
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": ""
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "transportId": {
+                    "type": "string",
+                    "example": "transport_123"
+                  }
+                }
+              }
+            }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Order marked as shipped"
+          }
+        },
+        "summary": "Mark order as shipped",
         "tags": [
           "Orders"
         ]
@@ -1127,6 +1432,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Order ID",
             "schema": {
               "type": "string"
             }
@@ -1134,9 +1440,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Order marked as delivered"
           }
         },
+        "summary": "Mark order as delivered",
         "tags": [
           "Orders"
         ]
@@ -1150,6 +1457,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Order ID",
             "schema": {
               "type": "string"
             }
@@ -1157,9 +1465,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Order refunded"
           }
         },
+        "summary": "Refund an order",
         "tags": [
           "Orders"
         ]
@@ -1173,16 +1482,34 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Order ID",
             "schema": {
               "type": "string"
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": ""
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "example": "user_123"
+                  }
+                }
+              }
+            }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Order delivery confirmed by user"
+          }
+        },
+        "summary": "User confirms delivery of order",
         "tags": [
           "Orders"
         ]
@@ -1490,11 +1817,39 @@
       "post": {
         "operationId": "PaymentController_initiatePayment",
         "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitiatePaymentDto"
+              }
+            }
           }
         },
+        "responses": {
+          "201": {
+            "description": "Payment request created and redirect URL returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authority": {
+                      "type": "string",
+                      "example": "A00000000000000000000000000123456789"
+                    },
+                    "redirectUrl": {
+                      "type": "string",
+                      "example": "https://www.zarinpal.com/pg/StartPay/A00000000000000000000000000123456789"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Initiate a payment via Zarinpal",
         "tags": [
           "Payment"
         ]
@@ -1508,6 +1863,7 @@
             "name": "Authority",
             "required": true,
             "in": "query",
+            "description": "Zarinpal authority token",
             "schema": {
               "type": "string"
             }
@@ -1516,16 +1872,29 @@
             "name": "Status",
             "required": true,
             "in": "query",
+            "description": "Payment status from Zarinpal",
             "schema": {
+              "enum": [
+                "OK",
+                "NOK"
+              ],
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Payment verified or failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandleCallbackResponseDto"
+                }
+              }
+            }
           }
         },
+        "summary": "Handle Zarinpal callback after payment",
         "tags": [
           "Payment"
         ]
@@ -1535,11 +1904,29 @@
       "post": {
         "operationId": "CategoriesController_create",
         "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Category"
+              }
+            }
           }
         },
+        "responses": {
+          "201": {
+            "description": "Category created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a new category",
         "tags": [
           "Categories"
         ]
@@ -1549,9 +1936,20 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Category"
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "Get all categories for current user",
         "tags": [
           "Categories"
         ]
@@ -1565,6 +1963,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Category ID",
             "schema": {
               "type": "string"
             }
@@ -1572,9 +1971,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Category found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
           }
         },
+        "summary": "Get category by ID",
         "tags": [
           "Categories"
         ]
@@ -1586,16 +1993,35 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Category ID",
             "schema": {
               "type": "string"
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": ""
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Category"
+              }
+            }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Category updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Category"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update category by ID",
         "tags": [
           "Categories"
         ]
@@ -1607,6 +2033,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Category ID",
             "schema": {
               "type": "string"
             }
@@ -1614,9 +2041,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Category deleted"
           }
         },
+        "summary": "Delete category by ID",
         "tags": [
           "Categories"
         ]
@@ -1630,16 +2058,39 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Category ID",
             "schema": {
               "type": "string"
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": ""
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "inactive",
+                      "draft"
+                    ],
+                    "example": "active"
+                  }
+                }
+              }
+            }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Category status updated"
+          }
+        },
+        "summary": "Set status for a category",
         "tags": [
           "Categories"
         ]
@@ -1653,6 +2104,7 @@
             "name": "parentId",
             "required": true,
             "in": "path",
+            "description": "Parent category ID",
             "schema": {
               "type": "string"
             }
@@ -1660,9 +2112,20 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of child categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Category"
+                  }
+                }
+              }
+            }
           }
         },
+        "summary": "Get categories by parent ID",
         "tags": [
           "Categories"
         ]
@@ -1679,13 +2142,13 @@
   "servers": [],
   "components": {
     "schemas": {
-      "SignUpDto": {
+      "CreateUserDto": {
         "type": "object",
         "properties": {
           "phoneNumber": {
             "type": "string",
             "description": "Iranian phone number of the user",
-            "example": "0989123456789"
+            "example": "+989123456789"
           },
           "nationalId": {
             "type": "string",
@@ -1698,6 +2161,19 @@
           "nationalId"
         ]
       },
+      "SignUpResponseDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "example": "1234567890",
+            "description": "User phone number"
+          }
+        },
+        "required": [
+          "phoneNumber"
+        ]
+      },
       "SignInDto": {
         "type": "object",
         "properties": {
@@ -1705,6 +2181,19 @@
             "type": "string",
             "description": "Iranian phone number of the user",
             "example": "+09123456789"
+          }
+        },
+        "required": [
+          "phoneNumber"
+        ]
+      },
+      "SignInResponseDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "example": "1234567890",
+            "description": "User phone number"
           }
         },
         "required": [
@@ -1730,9 +2219,82 @@
           "otp"
         ]
       },
-      "Cart": {
+      "SignUpDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "description": "Iranian phone number of the user",
+            "example": "+989123456789"
+          },
+          "nationalId": {
+            "type": "string",
+            "description": "Iranian national ID (meli code)",
+            "example": "2284280072"
+          },
+          "permissions": {
+            "type": "array",
+            "description": "List of user permissions",
+            "example": [
+              {
+                "resource": "carts",
+                "actions": [
+                  "r",
+                  "m"
+                ]
+              },
+              {
+                "resource": "orders",
+                "actions": [
+                  "r"
+                ]
+              }
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "resource": {
+                  "type": "string",
+                  "enum": [
+                    "carts",
+                    "categories",
+                    "companies",
+                    "orders",
+                    "payment",
+                    "products",
+                    "roles",
+                    "ticketing",
+                    "transaction",
+                    "transporting",
+                    "users",
+                    "wallets",
+                    "all"
+                  ]
+                },
+                "actions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "r",
+                      "u",
+                      "c",
+                      "d",
+                      "m",
+                      "dc",
+                      "di",
+                      "du"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "phoneNumber",
+          "nationalId"
+        ]
       },
       "CreateProfileDto": {
         "type": "object",
@@ -1804,13 +2366,9 @@
             }
           },
           "cart": {
-            "description": "User’s shopping cart",
-            "default": [],
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Cart"
-              }
-            ]
+            "type": "string",
+            "description": "ObjectId of user’s shopping cart",
+            "example": "60f6c0c3d3b5e20017a0a3c2"
           }
         },
         "required": [
@@ -1895,13 +2453,9 @@
             }
           },
           "cart": {
-            "description": "User’s shopping cart",
-            "default": [],
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Cart"
-              }
-            ]
+            "type": "string",
+            "description": "ObjectId of user’s shopping cart",
+            "example": "60f6c0c3d3b5e20017a0a3c2"
           }
         }
       },
@@ -2267,6 +2821,10 @@
           "id"
         ]
       },
+      "Company": {
+        "type": "object",
+        "properties": {}
+      },
       "OrderItemDto": {
         "type": "object",
         "properties": {
@@ -2352,6 +2910,10 @@
           "companyId"
         ]
       },
+      "Order": {
+        "type": "object",
+        "properties": {}
+      },
       "UpdateOrderDto": {
         "type": "object",
         "properties": {
@@ -2364,6 +2926,10 @@
         "required": [
           "id"
         ]
+      },
+      "Cart": {
+        "type": "object",
+        "properties": {}
       },
       "CartItemDto": {
         "type": "object",
@@ -2468,6 +3034,81 @@
         "required": [
           "id"
         ]
+      },
+      "InitiatePaymentDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "callbackUrl": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "mobile": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "callbackUrl",
+          "description",
+          "userId",
+          "orderId"
+        ]
+      },
+      "InitiatePaymentResponseDto": {
+        "type": "object",
+        "properties": {
+          "authority": {
+            "type": "string",
+            "example": "A00000000000000000000000000123456789"
+          },
+          "redirectUrl": {
+            "type": "string",
+            "example": "https://www.zarinpal.com/pg/StartPay/A00000000000000000000000000123456789"
+          }
+        },
+        "required": [
+          "authority",
+          "redirectUrl"
+        ]
+      },
+      "HandleCallbackResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Payment verified successfully"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InitiatePaymentResponseDto"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ]
+      },
+      "Category": {
+        "type": "object",
+        "properties": {}
       }
     }
   }

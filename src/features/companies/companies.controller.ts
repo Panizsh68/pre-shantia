@@ -8,40 +8,67 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  UseGuards,
   Inject,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-import { CompaniesService } from './companies.service';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { Company } from './entities/company.entity';
 import { Public } from 'src/common/decorators/public.decorator';
 import { ICompanyService } from './interfaces/company.service.interface';
+import { AuthenticationGuard } from '../auth/guards/auth.guard';
+import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { PermissionsGuard } from '../permissions/guard/permission.guard';
+import { Resource } from '../permissions/enums/resources.enum';
+import { Action } from '../permissions/enums/actions.enum';
 
 @ApiTags('Companies')
 @Controller('companies')
 export class CompaniesController {
-  constructor(@Inject('ICompanyService') private readonly companiesService: ICompanyService) {}
+  constructor(
+    @Inject('ICompanyService')
+    private readonly companiesService: ICompanyService,
+  ) { }
 
   @Post()
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.COMPANIES, Action.CREATE)
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new company' })
+  @ApiBody({ type: Company })
+  @ApiResponse({ status: 201, description: 'Company created successfully', type: Company })
   createCompany(@Body() companyData: Partial<Company>) {
     return this.companiesService.createCompany(companyData);
   }
 
   @Patch(':id')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.COMPANIES, Action.UPDATE)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update a company by ID' })
+  @ApiParam({ name: 'id', description: 'Company ID' })
+  @ApiBody({ type: Company })
+  @ApiResponse({ status: 200, description: 'Company updated successfully', type: Company })
   updateCompany(@Param('id') id: string, @Body() updateData: Partial<Company>) {
     return this.companiesService.updateCompany(id, updateData);
   }
 
   @Delete(':id')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.COMPANIES, Action.DELETE)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a company by ID' })
+  @ApiParam({ name: 'id', description: 'Company ID' })
+  @ApiResponse({ status: 200, description: 'Company deleted successfully' })
   deleteCompany(@Param('id') id: string) {
     return this.companiesService.deleteCompany(id);
   }
 
   @Get(':id')
+  @UseGuards(AuthenticationGuard)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get a company by ID' })
+  @ApiParam({ name: 'id', description: 'Company ID' })
+  @ApiResponse({ status: 200, description: 'Company fetched successfully', type: Company })
   getCompanyById(@Param('id') id: string) {
     return this.companiesService.getCompanyById(id);
   }
@@ -49,6 +76,8 @@ export class CompaniesController {
   @Public()
   @Get()
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get all companies' })
+  @ApiResponse({ status: 200, description: 'List of all companies', type: [Company] })
   getAllCompanies() {
     return this.companiesService.getAllCompanies();
   }

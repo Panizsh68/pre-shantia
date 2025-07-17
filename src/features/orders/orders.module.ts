@@ -23,16 +23,10 @@ import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/token
   providers: [
     {
       provide: 'OrderRepository',
-      useFactory: (
-        orderModel,
-        transactionRepo
-      ): IOrderRepository => {
+      useFactory: (orderModel, transactionRepo): IOrderRepository => {
         return new OrderRepository(orderModel, transactionRepo);
       },
-      inject: [
-        getModelToken(Order.name),
-        BASE_TRANSACTION_REPOSITORY
-      ],
+      inject: [getModelToken(Order.name), BASE_TRANSACTION_REPOSITORY],
     },
     {
       provide: 'IOrdersService',

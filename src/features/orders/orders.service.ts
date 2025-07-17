@@ -41,7 +41,9 @@ export class OrdersService implements IOrdersService {
 
       for (const orderDto of orderDtos) {
         const cartItemsForOrder: CartItemDto[] = orderDto.items.map(orderItem => {
-          const cartItem = cart.items.find(ci => ci.productId.toString() === orderItem.productId.toString());
+          const cartItem = cart.items.find(
+            ci => ci.productId.toString() === orderItem.productId.toString(),
+          );
           if (!cartItem) {
             throw new BadRequestException(`Product ${orderItem.productId} not found in cart`);
           }
@@ -58,7 +60,6 @@ export class OrdersService implements IOrdersService {
           totalPrice: calculatedTotal,
           status: OrdersStatus.PENDING,
         };
-
 
         const createdOrder = await this.orderRepository.createOne(validatedDto, orderSession);
         orders.push(createdOrder);

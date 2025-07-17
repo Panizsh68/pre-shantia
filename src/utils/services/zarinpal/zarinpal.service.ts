@@ -36,9 +36,7 @@ export class ZarinpalService implements IZarinpalService {
     };
   }
 
-  verifyPayment(
-    dto: VerifyZarinpalPaymentRequestType,
-  ): Promise<VerifyZarinpalPaymentResponseType> {
+  verifyPayment(dto: VerifyZarinpalPaymentRequestType): Promise<VerifyZarinpalPaymentResponseType> {
     return this.zarinpal.verifications.verify({
       authority: dto.authority,
       amount: dto.amount,

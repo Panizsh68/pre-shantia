@@ -60,7 +60,7 @@ export class TransportingRepository
   async commitTransaction(session: ClientSession): Promise<void> {
     return this.baseTransactionRepo.commitTransaction(session);
   }
-  
+
   async abortTransaction(session: ClientSession): Promise<void> {
     return this.baseTransactionRepo.abortTransaction(session);
   }

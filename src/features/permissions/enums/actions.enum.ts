@@ -6,5 +6,5 @@ export enum Action {
   MANAGE = 'm',
   deposit_company = 'dc',
   deposit_intermediary = 'di',
-  deposit_user = 'du'
+  deposit_user = 'du',
 }

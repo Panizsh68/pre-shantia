@@ -20,9 +20,9 @@ import { CategoryRepository, ICategoryRepository } from './repositories/categori
     },
     {
       provide: 'ICategoryService',
-      useClass: CategoriesService
-    }
+      useClass: CategoriesService,
+    },
   ],
-  exports: ['ICategoryService']
+  exports: ['ICategoryService'],
 })
 export class CategoriesModule {}

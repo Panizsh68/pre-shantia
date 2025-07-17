@@ -13,26 +13,24 @@ import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/token
 
 @Module({
   imports: [
-    GenericRepositoryModule.forFeature<Transporting>(Transporting.name, Transporting, TransportingSchema)
+    GenericRepositoryModule.forFeature<Transporting>(
+      Transporting.name,
+      Transporting,
+      TransportingSchema,
+    ),
   ],
   controllers: [TransportingsController],
   providers: [
     {
       provide: 'TransportingRepository',
-      useFactory: (
-        transportingModel,
-        transactionRepo,
-      ): ITransportingRepository => {
+      useFactory: (transportingModel, transactionRepo): ITransportingRepository => {
         return new TransportingRepository(transportingModel, transactionRepo);
       },
-      inject: [
-        getModelToken(Transporting.name),
-        BASE_TRANSACTION_REPOSITORY
-      ],
+      inject: [getModelToken(Transporting.name), BASE_TRANSACTION_REPOSITORY],
     },
     {
       provide: 'ITransportingsService',
-      useClass: TransportingsService
+      useClass: TransportingsService,
     },
   ],
 })

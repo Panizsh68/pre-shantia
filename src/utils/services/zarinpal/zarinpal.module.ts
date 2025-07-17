@@ -4,7 +4,6 @@ import { ZarinpalService } from './zarinpal.service';
 import { IZarinpalModuleOptions } from './interfaces/zarinpal-modules-options.interface';
 import { IZARINPAL_SERVICE, ZARINPAL_SDK } from './constants/zarinpal.constants';
 
-
 @Module({})
 export class ZarinpalModule {
   static register(options: IZarinpalModuleOptions): DynamicModule {

@@ -24,11 +24,12 @@ export class PaymentService {
     try {
       const order = await this.ordersService.findById(orderId, session);
       if (!order) throw new NotFoundException('Order not found');
-      if (order.status !== OrdersStatus.PENDING) throw new BadRequestException('Order is not pending');
+      if (order.status !== OrdersStatus.PENDING)
+        throw new BadRequestException('Order is not pending');
       if (order.userId.toString() !== userId) throw new BadRequestException('Unauthorized');
 
       const createDto = {
-        authority: '', 
+        authority: '',
         amount,
         description: `Payment for order ${order.id}`,
         status: TransactionStatus.PENDING,
@@ -41,7 +42,9 @@ export class PaymentService {
 
       const { authority, url } = await this.zarinpalService.createPayment({
         amount,
-        callbackUrl: this.configService.get<string>('ZARINPAL_CALLBACK_URL') || 'https://yourdomain.com/payment/callback',
+        callbackUrl:
+          this.configService.get<string>('ZARINPAL_CALLBACK_URL') ||
+          'https://yourdomain.com/payment/callback',
         description: createDto.description,
         userId,
         orderId,
@@ -67,7 +70,10 @@ export class PaymentService {
       const transaction = await this.transactionService.findOne(authority, session);
       if (!transaction) throw new NotFoundException('Transaction not found');
 
-      const verificationResult = await this.zarinpalService.verifyPayment({ authority, amount: transaction.amount });
+      const verificationResult = await this.zarinpalService.verifyPayment({
+        authority,
+        amount: transaction.amount,
+      });
 
       if (verificationResult.status !== '100') throw new BadRequestException('Verification failed');
 
@@ -77,10 +83,28 @@ export class PaymentService {
         verifiedAt: new Date(),
       };
 
-      const updatedTransaction = await this.transactionService.update(authority, updateDto, session);
+      const updatedTransaction = await this.transactionService.update(
+        authority,
+        updateDto,
+        session,
+      );
 
-      await this.walletsService.debitWallet({ ownerId: transaction.userId, ownerType: WalletOwnerType.USER, amount: transaction.amount }, session);
-      await this.walletsService.creditWallet({ ownerId: 'INTERMEDIARY_ID', ownerType: WalletOwnerType.INTERMEDIARY, amount: transaction.amount }, session);
+      await this.walletsService.debitWallet(
+        {
+          ownerId: transaction.userId,
+          ownerType: WalletOwnerType.USER,
+          amount: transaction.amount,
+        },
+        session,
+      );
+      await this.walletsService.creditWallet(
+        {
+          ownerId: 'INTERMEDIARY_ID',
+          ownerType: WalletOwnerType.INTERMEDIARY,
+          amount: transaction.amount,
+        },
+        session,
+      );
 
       await this.ordersService.markAsPaid(transaction.orderId, session);
 

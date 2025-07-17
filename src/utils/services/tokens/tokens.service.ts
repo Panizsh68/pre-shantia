@@ -1,15 +1,7 @@
-import {
-  Injectable,
-  OnModuleInit,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { ITokensModels } from './Itokens.interface';
 import { JwtService } from '@nestjs/jwt';
-import {
-  randomBytes,
-  createCipheriv,
-  createDecipheriv,
-} from 'crypto';
+import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
 import { ConfigService } from '@nestjs/config';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
@@ -29,7 +21,8 @@ function isTokenPayload(obj: unknown): obj is TokenPayload {
 export class TokensService<
   TAccessToken extends ITokensModels = ITokensModels,
   TRefreshToken extends ITokensModels = TAccessToken,
-> implements OnModuleInit {
+> implements OnModuleInit
+{
   private key: Buffer;
 
   constructor(
@@ -146,8 +139,12 @@ export class TokensService<
         ip: string;
         userAgent: string;
         userId: string;
-      }>(`refresh-info:${token}`);      
-      if (!sessionInfo || sessionInfo.ip !== context.ip || sessionInfo.userAgent !== context.userAgent) {
+      }>(`refresh-info:${token}`);
+      if (
+        !sessionInfo ||
+        sessionInfo.ip !== context.ip ||
+        sessionInfo.userAgent !== context.userAgent
+      ) {
         throw new UnauthorizedException('Session context mismatch.');
       }
       return decrypted;
@@ -164,5 +161,29 @@ export class TokensService<
   ): Promise<string> {
     const payload = this.encryptPayload(data);
     return this.jwtService.signAsync(payload, { secret, algorithm, expiresIn });
+  }
+
+  /**
+   * Log the decrypted payload of a JWT token (access or refresh)
+   * @param token JWT token string
+   * @param type 'access' | 'refresh'
+   */
+  async logTokenPayload(token: string, type: 'access' | 'refresh' = 'access'): Promise<void> {
+    try {
+      const secret = this.configService.get<string>(
+        type === 'access' ? 'JWT_ACCESS_SECRET' : 'JWT_REFRESH_SECRET',
+      );
+      const decoded = await this.jwtService.verifyAsync<Record<string, string>>(token, {
+        secret,
+      });
+      delete decoded.iat;
+      delete decoded.exp;
+      const decrypted = this.decryptPayload(decoded);
+      // eslint-disable-next-line no-console
+      console.log(`Decoded ${type} token payload:`, decrypted);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to decode ${type} token:`, err);
+    }
   }
 }

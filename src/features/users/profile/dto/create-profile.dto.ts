@@ -15,20 +15,18 @@ export class CreateProfileDto extends CreateUserDto {
   @ApiProperty({
     description: 'First name of the user',
     example: 'Ali',
+    default: '',
   })
-  @IsNotEmpty()
   @IsString()
-  @IsOptional()
-  firstName?: string;
+  firstName?: string = '';
 
   @ApiProperty({
     description: 'Last name of the user',
     example: 'Hosseini',
+    default: '',
   })
-  @IsNotEmpty()
   @IsString()
-  @IsOptional()
-  lastName?: string;
+  lastName?: string = '';
 
   @ApiProperty({
     description: 'Iranian phone number of the user',
@@ -42,10 +40,8 @@ export class CreateProfileDto extends CreateUserDto {
     description: 'Address of the user',
     example: 'Tehran, Valiasr St., No. 123',
   })
-  @IsNotEmpty()
   @IsString()
-  @IsOptional()
-  address?: string;
+  address?: string = '';
 
   @ApiProperty({
     description: 'National ID of the user',
@@ -72,8 +68,7 @@ export class CreateProfileDto extends CreateUserDto {
   })
   @IsArray()
   @IsString({ each: true })
-  @IsOptional()
-  orders?: string[];
+  orders?: string[] = [];
 
   @ApiProperty({
     description: 'List of transaction IDs associated with the user',
@@ -83,8 +78,7 @@ export class CreateProfileDto extends CreateUserDto {
   })
   @IsArray()
   @IsString({ each: true })
-  @IsOptional()
-  transactions?: string[];
+  transactions?: string[] = [];
 
   @ApiProperty({
     description: 'List of favorite product IDs',
@@ -94,16 +88,15 @@ export class CreateProfileDto extends CreateUserDto {
   })
   @IsArray()
   @IsString({ each: true })
-  @IsOptional()
-  favorites?: string[];
+  favorites?: string[] = [];
 
   @ApiProperty({
-    description: 'User’s shopping cart',
-    type: () => Cart,
-    default: [],
+    description: 'ObjectId of user’s shopping cart',
+    type: String,
+    example: '60f6c0c3d3b5e20017a0a3c2',
+    required: false,
   })
-  @ValidateNested()
-  @Type(() => Cart)
+  @IsString()
   @IsOptional()
-  cart?: Cart;
+  cart?: string;
 }

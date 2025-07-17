@@ -12,17 +12,21 @@ import {
   BaseCrudRepository,
   BasePopulateRepository,
   BaseAggregateRepository,
-  BaseTransactionRepository
+  BaseTransactionRepository,
 } from './base-repos';
-import { BASE_AGGREGATE_REPOSITORY, BASE_CRUD_REPOSITORY, BASE_POPULATE_REPOSITORY, BASE_TRANSACTION_REPOSITORY } from './constants/tokens.constants';
+import {
+  BASE_AGGREGATE_REPOSITORY,
+  BASE_CRUD_REPOSITORY,
+  BASE_POPULATE_REPOSITORY,
+  BASE_TRANSACTION_REPOSITORY,
+} from './constants/tokens.constants';
 
 export class RepositoryHelperModule {
   static register<T extends Document>(entityName: string, schema: any): DynamicModule {
     const providers: Provider[] = [
       {
         provide: BASE_CRUD_REPOSITORY,
-        useFactory: (model: Model<T>): IBaseCrudRepository<T> =>
-          new BaseCrudRepository<T>(model),
+        useFactory: (model: Model<T>): IBaseCrudRepository<T> => new BaseCrudRepository<T>(model),
         inject: [getModelToken(entityName)],
       },
       {

@@ -1,6 +1,6 @@
-import { Action } from "src/features/permissions/enums/actions.enum";
-import { IPermission } from "src/features/permissions/interfaces/permissions.interface";
-import { WalletOwnerType } from "src/features/wallets/enums/wallet-ownertype.enum";
+import { Action } from 'src/features/permissions/enums/actions.enum';
+import { IPermission } from 'src/features/permissions/interfaces/permissions.interface';
+import { WalletOwnerType } from 'src/features/wallets/enums/wallet-ownertype.enum';
 
 const actionToOwnerTypeMap: Record<string, WalletOwnerType> = {
   deposit_company: WalletOwnerType.COMPANY,
@@ -34,4 +34,3 @@ export function determineOwnerTypeFromPermissions(permissions: IPermission[]): W
 
   return WalletOwnerType.USER;
 }
-

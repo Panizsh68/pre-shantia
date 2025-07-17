@@ -10,46 +10,46 @@ import { ICategory } from './interfaces/category.interface';
 export class CategoriesService implements ICategoryService {
   constructor(
     @Inject('CategoryRepository') private readonly categoryRepository: ICategoryRepository,
-  ) {}
+  ) { }
 
-  async create(data: Partial<Category>): Promise<ICategory> {
-    return this.categoryRepository.createOne(data);
+  async create(data: Partial<Category>, userId: string): Promise<ICategory> {
+    return this.categoryRepository.createOne({ ...data, companyId: new Types.ObjectId(userId) });
   }
 
-  async findAll(companyId: string): Promise<Category[]> {
+  async findAll(userId: string): Promise<Category[]> {
     return this.categoryRepository.findManyByCondition({
-      companyId: new Types.ObjectId(companyId),
+      userId: new Types.ObjectId(userId),
     });
   }
 
-  async findOne(id: string): Promise<ICategory> {
-    const category = await this.categoryRepository.findById(id);
+  async findOne(id: string, userId: string): Promise<ICategory> {
+    const category = await this.categoryRepository.findOneByCondition({ _id: id, userId: new Types.ObjectId(userId) });
     if (!category) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+      throw new NotFoundException(`Category with id ${id} not found or access denied`);
     }
     return category;
   }
 
-  async update(id: string, updates: Partial<Category>): Promise<ICategory> {
-    const updated = await this.categoryRepository.updateById(id, updates);
+  async update(id: string, updates: Partial<Category>, userId: string): Promise<ICategory> {
+    const updated = await this.categoryRepository.updateOneByCondition({ _id: id, userId: new Types.ObjectId(userId) }, updates);
     if (!updated) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+      throw new NotFoundException(`Category with id ${id} not found or access denied`);
     }
     return updated;
   }
 
-  async remove(id: string): Promise<void> {
-    const deleted = await this.categoryRepository.deleteById(id);
+  async remove(id: string, userId: string): Promise<void> {
+    const deleted = await this.categoryRepository.updateOneByCondition({ _id: id, userId: new Types.ObjectId(userId) }, { deletedAt: new Date() });
     if (!deleted) {
-      throw new NotFoundException(`Category with id ${id} not found`);
+      throw new NotFoundException(`Category with id ${id} not found or access denied`);
     }
   }
 
-  async setStatus(id: string, status: CategoryStatus): Promise<ICategory> {
-    return this.categoryRepository.updateOneByCondition({ id }, { status });
+  async setStatus(id: string, status: CategoryStatus, userId: string): Promise<ICategory> {
+    return this.categoryRepository.updateOneByCondition({ _id: id, userId: new Types.ObjectId(userId) }, { status });
   }
 
-  async findByParentId(parentId: string): Promise<ICategory[]> {
-    return this.categoryRepository.findManyByCondition({ parentId: new Types.ObjectId(parentId) });
+  async findByParentId(parentId: string, userId: string): Promise<ICategory[]> {
+    return this.categoryRepository.findManyByCondition({ parentId: new Types.ObjectId(parentId), userId: new Types.ObjectId(userId) });
   }
 }

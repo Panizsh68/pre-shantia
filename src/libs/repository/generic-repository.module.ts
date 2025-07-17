@@ -5,17 +5,18 @@ import { RepositoryHelperModule } from './repository-helper.module';
 
 @Module({})
 export class GenericRepositoryModule {
-  static forFeature<T extends Document>(entityName: string, entity: any, schema: any): DynamicModule {
+  static forFeature<T extends Document>(
+    entityName: string,
+    entity: any,
+    schema: any,
+  ): DynamicModule {
     return {
       module: GenericRepositoryModule,
       imports: [
         MongooseModule.forFeature([{ name: entityName, schema }]),
         RepositoryHelperModule.register<T>(entityName, schema),
       ],
-      exports: [
-        MongooseModule,
-        RepositoryHelperModule,
-      ],
+      exports: [MongooseModule, RepositoryHelperModule],
     };
   }
 }

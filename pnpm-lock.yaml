@@ -3515,7 +3515,11 @@ packages:
       {
         integrity: sha512-Kb2wC0fvsWfQrgk8HU5lW6U/Lcs8+9aaYcy4ZFc6DDlo4nZ7n70dEgE5rtR0oG6ufKDUnrwfWL1mXR5ljDatrQ==,
       }
-    deprecated: core-js@<3.23.3 is no longer maintained and not recommended for usage due to the number of issues. Because of the V8 engine whims, feature detection in old core-js versions could cause a slowdown up to 100x even if nothing is polyfilled. Some versions have web compatibility issues. Please, upgrade your dependencies to the actual version of core-js.
+    deprecated:
+      core-js@<3.23.3 is no longer maintained and not recommended for usage due to the number of
+      issues. Because of the V8 engine whims, feature detection in old core-js versions could cause
+      a slowdown up to 100x even if nothing is polyfilled. Some versions have web compatibility
+      issues. Please, upgrade your dependencies to the actual version of core-js.
 
   core-util-is@1.0.3:
     resolution:
@@ -4591,7 +4595,9 @@ packages:
         integrity: sha512-95MFT5qipMvUiesmuvGP1BI4hh5XWCzyTapiNJ/k8JBQda7rPy7UCWYItz2uZEdTgGNy1eInjzlL9Wx1O9fedg==,
       }
     engines: { node: '>=0.8.0' }
-    deprecated: 'Please upgrade to latest, formidable@v2 or formidable@v3! Check these notes: https://bit.ly/2ZEqIau'
+    deprecated:
+      'Please upgrade to latest, formidable@v2 or formidable@v3! Check these notes:
+      https://bit.ly/2ZEqIau'
 
   formidable@2.1.2:
     resolution:
@@ -5166,7 +5172,10 @@ packages:
       {
         integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==,
       }
-    deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+    deprecated:
+      This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want
+      a good and tested way to coalesce async requests by a key value, which is much more
+      comprehensive and powerful.
 
   inherits@2.0.4:
     resolution:
@@ -5734,7 +5743,8 @@ packages:
       {
         integrity: sha512-mkk3vzUHFjzKjpCXeu+IjXeZD+QOTjUUdubgmHtHTDwvAO2ZTkMTTVrapts5CWz3JvJryh/4KWZpjeZrCepZ3A==,
       }
-    deprecated: Jade has been renamed to pug, please install the latest version of pug instead of jade
+    deprecated:
+      Jade has been renamed to pug, please install the latest version of pug instead of jade
     hasBin: true
 
   jake@10.9.2:
@@ -6836,14 +6846,18 @@ packages:
       {
         integrity: sha512-OHsdUcVAQ6pOtg5JYWpCBo9W/GySVuwvP9hueRMW7UqshC0tbfzLv8wjySTPm3tfUZ/21CE9E1pJagOA91Pxew==,
       }
-    deprecated: Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1.x. (Note that the API surface has changed to use Promises in 1.x.)
+    deprecated:
+      Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1.x. (Note that the
+      API surface has changed to use Promises in 1.x.)
 
   mkdirp@0.5.1:
     resolution:
       {
         integrity: sha512-SknJC52obPfGQPnjIkXbmA6+5H15E+fR+E4iR2oQ3zzCLbd7/ONua69R/Gw7AgkTLsRG+r5fzksYwWe1AgTyWA==,
       }
-    deprecated: Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1.x. (Note that the API surface has changed to use Promises in 1.x.)
+    deprecated:
+      Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1.x. (Note that the
+      API surface has changed to use Promises in 1.x.)
     hasBin: true
 
   mkdirp@0.5.6:
@@ -6970,7 +6984,12 @@ packages:
         integrity: sha512-2wY2+xD4udX612aMqMcB8Ws2Voq6NIUPEtD1be6m411T4uDH/VtL9i//xvcyFlTVfRdaBsk7hV5tgrGQqhuBiw==,
       }
     engines: { node: '>= 0.10.0' }
-    deprecated: Multer 1.x is affected by CVE-2022-24434. This is fixed in v1.4.4-lts.1 which drops support for versions of Node.js before 6. Please upgrade to at least Node.js 6 and version 1.4.4-lts.1 of Multer. If you need support for older versions of Node.js, we are open to accepting patches that would fix the CVE on the main 1.x release line, whilst maintaining compatibility with Node.js 0.10.
+    deprecated:
+      Multer 1.x is affected by CVE-2022-24434. This is fixed in v1.4.4-lts.1 which drops support
+      for versions of Node.js before 6. Please upgrade to at least Node.js 6 and version 1.4.4-lts.1
+      of Multer. If you need support for older versions of Node.js, we are open to accepting patches
+      that would fix the CVE on the main 1.x release line, whilst maintaining compatibility with
+      Node.js 0.10.
 
   multer@1.4.5-lts.2:
     resolution:
@@ -8665,7 +8684,11 @@ packages:
         integrity: sha512-4h4R6fISQXvgjIqZ8DjONYy3y2XPxgZO0LgHsBI6tDAEhzJLpWuK+thM60SmUiERJOEJzmxlIGx/GP6+azky/A==,
       }
     engines: { node: '>= 0.8' }
-    deprecated: Please upgrade to v9.0.0+ as we have fixed a public vulnerability with formidable dependency. Note that v9.0.0+ requires Node.js v14.18.0+. See https://github.com/ladjs/superagent/pull/1800 for insight. This project is supported and maintained by the team at Forward Email @ https://forwardemail.net
+    deprecated:
+      Please upgrade to v9.0.0+ as we have fixed a public vulnerability with formidable dependency.
+      Note that v9.0.0+ requires Node.js v14.18.0+. See
+      https://github.com/ladjs/superagent/pull/1800 for insight. This project is supported and
+      maintained by the team at Forward Email @ https://forwardemail.net
 
   superagent@7.1.6:
     resolution:
@@ -8673,7 +8696,11 @@ packages:
         integrity: sha512-gZkVCQR1gy/oUXr+kxJMLDjla434KmSOKbx5iGD30Ql+AkJQ/YlPKECJy2nhqOsHLjGHzoDTXNSjhnvWhzKk7g==,
       }
     engines: { node: '>=6.4.0 <13 || >=14' }
-    deprecated: Please upgrade to v9.0.0+ as we have fixed a public vulnerability with formidable dependency. Note that v9.0.0+ requires Node.js v14.18.0+. See https://github.com/ladjs/superagent/pull/1800 for insight. This project is supported and maintained by the team at Forward Email @ https://forwardemail.net
+    deprecated:
+      Please upgrade to v9.0.0+ as we have fixed a public vulnerability with formidable dependency.
+      Note that v9.0.0+ requires Node.js v14.18.0+. See
+      https://github.com/ladjs/superagent/pull/1800 for insight. This project is supported and
+      maintained by the team at Forward Email @ https://forwardemail.net
 
   superagent@9.0.2:
     resolution:

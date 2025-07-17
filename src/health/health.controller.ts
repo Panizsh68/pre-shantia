@@ -12,7 +12,7 @@ export class HealthController {
     private readonly cachingService: CachingService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   @Get('mongo')
   checkMongoConnection() {
@@ -53,9 +53,12 @@ export class HealthController {
 
   @Get('config')
   checkConfig() {
+    // Try both namespaces for compatibility with dev and prod
     const appConfig = this.configService.get('app');
+    const prodConfig = this.configService.get('config');
     return {
-      fullConfig: appConfig,
+      fullConfig: appConfig || prodConfig,
+      env: process.env.NODE_ENV,
     };
   }
 

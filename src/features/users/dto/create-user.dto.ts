@@ -1,10 +1,15 @@
-import { IsNotEmpty, IsPhoneNumber, IsIdentityCard, Matches } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsPhoneNumber,
+  IsIdentityCard,
+  Matches
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserDto {
   @ApiProperty({
     description: 'Iranian phone number of the user',
-    example: '0989123456789',
+    example: '+989123456789',
   })
   @IsNotEmpty()
   @IsPhoneNumber('IR')

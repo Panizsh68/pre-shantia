@@ -10,7 +10,7 @@ import { ClientSession, Model } from 'mongoose';
 
 export interface IWalletRepository
   extends IBaseCrudRepository<Wallet>,
-    IBaseTransactionRepository<Wallet> {
+  IBaseTransactionRepository<Wallet> {
   findByIdAndType(
     ownerId: string,
     ownerType: WalletOwnerType,
@@ -22,17 +22,16 @@ export interface IWalletRepository
 export class WalletRepository extends BaseCrudRepository<Wallet> implements IWalletRepository {
   constructor(
     walletModel: Model<Wallet>,
-    private readonly baseTransactionRepo: IBaseTransactionRepository<Wallet>
-  ) { 
-    super(walletModel) 
+    private readonly baseTransactionRepo: IBaseTransactionRepository<Wallet>,
+  ) {
+    super(walletModel);
   }
   async findByIdAndType(
     ownerId: string,
     ownerType: WalletOwnerType,
     session?: ClientSession,
   ): Promise<Wallet | null> {
-    const wallet = this.findOneByCondition({ ownerId, ownerType, $session: session });
-    return wallet;
+    return this.findOneByCondition({ ownerId, ownerType }, { session });
   }
 
   async updateById(
