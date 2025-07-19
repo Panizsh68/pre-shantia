@@ -83,7 +83,7 @@ services:
     env_file:
       - .env.production
     environment:
-      - NODE_ENV=PROD
+      - NODE_ENV=production
       - MONGO_URL=mongodb://admin:shantia_ariaSakht0425@mongo:27017/test?replicaSet=rs0&authSource=admin
       - REDIS_HOST=redis
       - REDIS_PORT=6379

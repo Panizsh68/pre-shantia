@@ -85,7 +85,7 @@ services:
       - MONGO_URL=mongodb://mongo:27017/test?replicaSet=rs0
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - NODE_ENV=DEV
+      - NODE_ENV=development
     volumes:
       - .:/app
     command: npm run start:dev

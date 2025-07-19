@@ -1,6 +1,6 @@
 export default () => ({
   app: {
-    NODE_ENV: process.env.NODE_ENV || 'DEV',
+    NODE_ENV: process.env.NODE_ENV || 'development',
     MONGO_URL: process.env.MONGO_URL || 'mongodb://mongo:27017/test?replicaSet=rs0',
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
     JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
