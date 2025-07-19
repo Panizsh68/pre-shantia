@@ -17,11 +17,10 @@ services:
       timeout: 3s
       retries: 10
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=shantia_ariaSakht0425
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: shantia_ariaSakht0425
     networks:
       - app-network
-
 
   mongo-init:
     image: mongo:7.0
@@ -83,11 +82,11 @@ services:
     env_file:
       - .env.production
     environment:
-      - NODE_ENV=production
-      - MONGO_URL=mongodb://admin:shantia_ariaSakht0425@mongo:27017/test?replicaSet=rs0&authSource=admin
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=shantia_ariaSakht0425
+      NODE_ENV: production
+      MONGO_URL: mongodb://admin:shantia_ariaSakht0425@mongo:27017/test?replicaSet=rs0&authSource=admin
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: shantia_ariaSakht0425
     depends_on:
       mongo:
         condition: service_healthy
@@ -95,7 +94,7 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_started
-    entrypoint: npm run start:prod
+    entrypoint: ["npm", "run", "start:prod"]
     expose:
       - '3000'
     networks:
@@ -109,8 +108,8 @@ services:
       - '80:80'
       - '443:443'
     volumes:
-       - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
-       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - app
     networks:
@@ -123,4 +122,3 @@ volumes:
 networks:
   app-network:
     driver: bridge
-    internal: true
