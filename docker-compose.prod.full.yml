@@ -94,7 +94,6 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_started
-    entrypoint: ["npm", "run", "start:prod"]
     expose:
       - '3000'
     networks:
