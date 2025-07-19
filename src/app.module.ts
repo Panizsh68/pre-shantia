@@ -33,8 +33,7 @@ import { SwaggerService } from './swagger.service';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [process.env.NODE_ENV === 'production' ? configurationProd : configuration],
-      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
+      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
     }),
 
     MongooseModule.forRootAsync({
