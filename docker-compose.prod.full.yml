@@ -75,7 +75,7 @@ services:
       - app-network
 
   app:
-    container_name: nest-app-prod
+    container_name: app
     build:
       context: .
       dockerfile: Dockerfile
