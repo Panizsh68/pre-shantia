@@ -102,7 +102,7 @@ services:
       - app-network
 
   nginx:
-    image: nginx:1.25-alpine
+    image: nginx:1.25
     container_name: nginx
     restart: always
     ports:
