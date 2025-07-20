@@ -4,6 +4,8 @@ services:
   mongo:
     image: mongo:7.0
     container_name: mongo
+    ports:
+      - "127.0.0.1:27018:27017"
     volumes:
       - mongo-data:/data/db
       - ./mongo.conf:/etc/mongod.conf
