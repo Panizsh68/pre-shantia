@@ -20,6 +20,8 @@ import { Permission } from '../permissions/decoratorss/permissions.decorators';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
+import { UpdateCompanyDto } from './dto/update-company.dto';
+import { CreateCompanyDto } from './dto/create-company.dto';
 
 @ApiTags('Companies')
 @Controller('companies')
@@ -36,8 +38,8 @@ export class CompaniesController {
   @ApiOperation({ summary: 'Create a new company' })
   @ApiBody({ type: Company })
   @ApiResponse({ status: 201, description: 'Company created successfully', type: Company })
-  createCompany(@Body() companyData: Partial<Company>) {
-    return this.companiesService.createCompany(companyData);
+  createCompany(@Body() createCompanyDto: CreateCompanyDto) {
+    return this.companiesService.createCompany(createCompanyDto);
   }
 
   @Patch(':id')
@@ -48,8 +50,8 @@ export class CompaniesController {
   @ApiParam({ name: 'id', description: 'Company ID' })
   @ApiBody({ type: Company })
   @ApiResponse({ status: 200, description: 'Company updated successfully', type: Company })
-  updateCompany(@Param('id') id: string, @Body() updateData: Partial<Company>) {
-    return this.companiesService.updateCompany(id, updateData);
+  updateCompany(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto) {
+    return this.companiesService.updateCompany(id, updateCompanyDto);
   }
 
   @Delete(':id')
