@@ -10,10 +10,13 @@ import express from 'express'; // نگه دار
 import { ExpressAdapter } from '@nestjs/platform-express';
 
 async function bootstrap(): Promise<void> {
-  const expressApp = express(); 
-  const adapter = new ExpressAdapter(expressApp); 
-  const app = await NestFactory.create(AppModule, adapter); 
-  app.use(cors({ origin: 'http://localhost:3001' }));
+  const expressApp = express()
+  const adapter = new ExpressAdapter(expressApp)
+
+  // 2) ساخت Nest با آن adapter
+  const app = await NestFactory.create(AppModule, adapter)
+  app.use(cors({ origin: ['https://ariasakht.com', 'https://www.ariasakht.com'] }));
+
   expressApp.set('trust proxy', true); 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -25,8 +28,17 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  app.setGlobalPrefix('api');
 
+  app.setGlobalPrefix('api')
+
+  // 3) تولید داکیومنت Swagger
+  const swaggerService = app.get(SwaggerService)
+  const document = swaggerService.createDocument(app)
+  // 4) **دریافت instance اصلی Express** از زیرِ دست Nest
+  const server: any = app.getHttpAdapter().getInstance()
+
+  // 5) ثبت Swagger روی همین Express، مسیر دلخواه
+  SwaggerModule.setup('docs', server, document)
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000,
@@ -36,9 +48,8 @@ async function bootstrap(): Promise<void> {
 
   app.useGlobalInterceptors(new RequestContextInterceptor());
 
-  const swaggerService = app.get(SwaggerService);
-  const document = swaggerService.createDocument(app);
-  SwaggerModule.setup('docs', app, document); 
-  await app.listen(process.env.PORT ?? 3000);
+
+  
+  await app.listen(3000, '0.0.0.0');
 }
 bootstrap();
