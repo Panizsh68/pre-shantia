@@ -20,6 +20,10 @@ export class ProfileService {
     return creation;
   }
 
+  async getByUserId(userId: string): Promise<Profile | null> {
+  return this.profileRepository.findById(userId);
+}
+
   async update(id: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {
     const updatedProfile: Partial<CreateProfileDto> = {
       phoneNumber: updateProfileDto.phoneNumber,
