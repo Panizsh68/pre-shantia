@@ -5,8 +5,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { RedisModule, RedisModuleOptions } from '@nestjs-modules/ioredis';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import configuration from './infrastructure/config/configuration';
-import configurationProd from './infrastructure/config/configuration.prod';
 import { UsersModule } from './features/users/users.module';
 import { OtpModule } from './utils/services/otp/otp.module';
 import { ShahkarModule } from './utils/services/shahkar/shahkar.module';
@@ -27,17 +25,18 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CachingModule } from './infrastructure/caching/caching.module';
 import { RequestContextInterceptor } from './utils/interceptors/request-context.interceptor';
 
-
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
-    }),
-
+  ConfigModule.forRoot({
+    isGlobal: true,
+    envFilePath: [
+      `.env.${process.env.NODE_ENV}`,  
+      `.env`
+    ],
+  }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (config: ConfigService) => ({
+      useFactory: (config: ConfigService) => ({
         uri: config.get<string>('MONGO_URL'),
         retryAttempts: 10,
         retryDelay: 2000,
@@ -86,11 +85,12 @@ import { RequestContextInterceptor } from './utils/interceptors/request-context.
     ZarinpalModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService,
+  providers: [
+    AppService,
     {
       provide: APP_INTERCEPTOR,
       useClass: RequestContextInterceptor,
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

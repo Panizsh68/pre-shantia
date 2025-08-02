@@ -1,22 +1,16 @@
+import { Types } from 'mongoose';
 import { ProductStatus } from '../enums/product-status.enum';
 
 export interface IProduct {
   name: string;
   basePrice: number;
-  companyId: string;
-  categories?: string[];
+  companyId: Types.ObjectId;
+  categories: Types.ObjectId[];
   description?: string;
-  stock: {
-    quantity: number;
-  };
-  variants: {
-    name: string;
-    options: { value: string; priceModifier?: number }[];
-  }[];
+  stock: { quantity: number };
+  variants: { name: string; options: { value: string; priceModifier?: number }[] }[];
   attributes?: Record<string, string>;
-  tags?: string[];
   images: { url: string }[];
-  subcategory?: string;
   comments?: string[];
   rating?: number;
   status: ProductStatus;
@@ -24,4 +18,6 @@ export interface IProduct {
   finalPrice?: number;
   createdAt?: Date;
   updatedAt?: Date;
+  createdBy: Types.ObjectId;
+  updatedBy: Types.ObjectId;
 }

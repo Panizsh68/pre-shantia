@@ -33,7 +33,7 @@ import { UpdateCartDto } from './dto/update-cart.dto';
 @UseGuards(AuthenticationGuard)
 @Controller('carts')
 export class CartsController {
-  constructor(@Inject('ICartsService') private readonly cartsService: ICartsService) { }
+  constructor(@Inject('ICartsService') private readonly cartsService: ICartsService) {}
 
   @Get('active')
   @ApiOperation({ summary: 'Get the active cart for current user' })

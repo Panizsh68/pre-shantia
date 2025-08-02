@@ -12,7 +12,7 @@ export class HealthController {
     private readonly cachingService: CachingService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   @Get('mongo')
   checkMongoConnection() {

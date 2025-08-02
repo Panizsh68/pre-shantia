@@ -15,7 +15,7 @@ export class RequestContextInterceptor implements NestInterceptor {
     request.context = {
       userAgent,
       ip,
-      user: request.user, 
+      user: request.user,
     };
 
     return next.handle();

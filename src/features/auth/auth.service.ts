@@ -45,7 +45,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     @Inject('IProfileService') private readonly profileService: IProfileService,
     @Inject('AuthRepository') private readonly authRepository: IAuthRepository,
-  ) { }
+  ) {}
 
   // ۱. ثبت نام اولیه فقط ثبت داده و ارسال OTP (بدون پرمیشن از کاربر)
   async signUp(createUserDto: CreateUserDto): Promise<SignUpResponseDto> {
@@ -60,16 +60,23 @@ export class AuthService {
       if (!valid) throw new HttpException('Phone and National ID mismatch', HttpStatus.BAD_REQUEST);
 
       const ttl = this.configService.get<number>('app.OTP_TTL') ?? 300;
-      await this.cacheService.set(`signup:${createUserDto.phoneNumber}`, {
-        phoneNumber: createUserDto.phoneNumber,
-        nationalId: createUserDto.nationalId,
-      }, ttl);
+      await this.cacheService.set(
+        `signup:${createUserDto.phoneNumber}`,
+        {
+          phoneNumber: createUserDto.phoneNumber,
+          nationalId: createUserDto.nationalId,
+        },
+        ttl,
+      );
 
       await this.otpService.sendOtpToPhone(createUserDto.phoneNumber);
       return { phoneNumber: createUserDto.phoneNumber };
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new HttpException('Failed to sign up. Please try again later.', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to sign up. Please try again later.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -82,7 +89,10 @@ export class AuthService {
       return { phoneNumber: signInDto.phoneNumber };
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new HttpException('Failed to sign in. Please try again later.', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to sign in. Please try again later.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -133,7 +143,10 @@ export class AuthService {
           await this.cacheService.delete(`signup:${verifyOtpDto.phoneNumber}`);
         } catch (error) {
           await this.authRepository.abortTransaction(session);
-          throw new HttpException('Failed to create user or profile', HttpStatus.INTERNAL_SERVER_ERROR);
+          throw new HttpException(
+            'Failed to create user or profile',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
         }
       }
 
@@ -159,7 +172,10 @@ export class AuthService {
       return { accessToken, refreshToken };
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new HttpException('Failed to verify OTP. Please try again later.', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to verify OTP. Please try again later.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -172,7 +188,9 @@ export class AuthService {
       const payload = await this.tokensService.validateRefreshToken(refreshToken, context);
 
       // بررسی وجود session در کش
-      const sessionInfo = await this.cacheService.get<RefreshSessionInfo>(`refresh-info:${refreshToken}`);
+      const sessionInfo = await this.cacheService.get<RefreshSessionInfo>(
+        `refresh-info:${refreshToken}`,
+      );
       if (!sessionInfo) throw new UnauthorizedException('Refresh token revoked or expired');
       if (sessionInfo.ip !== context.ip || sessionInfo.userAgent !== context.userAgent)
         throw new UnauthorizedException('Session context mismatch');
@@ -189,7 +207,10 @@ export class AuthService {
       return { accessToken };
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new HttpException('Failed to refresh access token. Please try again later.', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to refresh access token. Please try again later.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -202,7 +223,10 @@ export class AuthService {
       await this.cacheService.delete(`permissions:${userId}`);
       return { message: 'Signed out successfully' };
     } catch (error) {
-      throw new HttpException('Failed to sign out. Please try again later.', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to sign out. Please try again later.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -235,7 +259,10 @@ export class AuthService {
       return { phoneNumber: user.phoneNumber, accessToken, refreshToken };
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new HttpException('Failed to sign up admin. Please try again later.', HttpStatus.INTERNAL_SERVER_ERROR);
+      throw new HttpException(
+        'Failed to sign up admin. Please try again later.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
@@ -248,4 +275,3 @@ export class AuthService {
     }
   }
 }
-

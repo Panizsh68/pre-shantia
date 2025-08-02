@@ -23,7 +23,7 @@ import { AuthenticationGuard } from './guards/auth.guard';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Public()
   @Post('signup')
@@ -73,7 +73,11 @@ export class AuthController {
         maxAge: 1000 * 60 * 60 * 48,
       });
     }
-    return { phoneNumber: verifyOtpDto.phoneNumber, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken };
+    return {
+      phoneNumber: verifyOtpDto.phoneNumber,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
   }
 
   @Public()

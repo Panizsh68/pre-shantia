@@ -15,7 +15,7 @@ import { Action } from '../permissions/enums/actions.enum';
 export class TransportingsController {
   constructor(
     @Inject('ITransportingsService') private readonly transportingsService: ITransportingsService,
-  ) { }
+  ) {}
 
   @Post()
   @UseGuards(AuthenticationGuard, PermissionsGuard)

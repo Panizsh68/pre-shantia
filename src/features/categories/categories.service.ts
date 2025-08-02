@@ -10,7 +10,7 @@ import { ICategory } from './interfaces/category.interface';
 export class CategoriesService implements ICategoryService {
   constructor(
     @Inject('CategoryRepository') private readonly categoryRepository: ICategoryRepository,
-  ) { }
+  ) {}
 
   async create(data: Partial<Category>, userId: string): Promise<ICategory> {
     return this.categoryRepository.createOne({ ...data, companyId: new Types.ObjectId(userId) });
@@ -23,7 +23,10 @@ export class CategoriesService implements ICategoryService {
   }
 
   async findOne(id: string, userId: string): Promise<ICategory> {
-    const category = await this.categoryRepository.findOneByCondition({ _id: id, userId: new Types.ObjectId(userId) });
+    const category = await this.categoryRepository.findOneByCondition({
+      _id: id,
+      userId: new Types.ObjectId(userId),
+    });
     if (!category) {
       throw new NotFoundException(`Category with id ${id} not found or access denied`);
     }
@@ -31,7 +34,10 @@ export class CategoriesService implements ICategoryService {
   }
 
   async update(id: string, updates: Partial<Category>, userId: string): Promise<ICategory> {
-    const updated = await this.categoryRepository.updateOneByCondition({ _id: id, userId: new Types.ObjectId(userId) }, updates);
+    const updated = await this.categoryRepository.updateOneByCondition(
+      { _id: id, userId: new Types.ObjectId(userId) },
+      updates,
+    );
     if (!updated) {
       throw new NotFoundException(`Category with id ${id} not found or access denied`);
     }
@@ -39,17 +45,26 @@ export class CategoriesService implements ICategoryService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    const deleted = await this.categoryRepository.updateOneByCondition({ _id: id, userId: new Types.ObjectId(userId) }, { deletedAt: new Date() });
+    const deleted = await this.categoryRepository.updateOneByCondition(
+      { _id: id, userId: new Types.ObjectId(userId) },
+      { deletedAt: new Date() },
+    );
     if (!deleted) {
       throw new NotFoundException(`Category with id ${id} not found or access denied`);
     }
   }
 
   async setStatus(id: string, status: CategoryStatus, userId: string): Promise<ICategory> {
-    return this.categoryRepository.updateOneByCondition({ _id: id, userId: new Types.ObjectId(userId) }, { status });
+    return this.categoryRepository.updateOneByCondition(
+      { _id: id, userId: new Types.ObjectId(userId) },
+      { status },
+    );
   }
 
   async findByParentId(parentId: string, userId: string): Promise<ICategory[]> {
-    return this.categoryRepository.findManyByCondition({ parentId: new Types.ObjectId(parentId), userId: new Types.ObjectId(userId) });
+    return this.categoryRepository.findManyByCondition({
+      parentId: new Types.ObjectId(parentId),
+      userId: new Types.ObjectId(userId),
+    });
   }
 }

@@ -1,118 +1,61 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ApiProperty } from '@nestjs/swagger';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { ProductStatus } from '../enums/product-status.enum';
 
-@Schema({
-  timestamps: true,
-  toJSON: { virtuals: true, getters: true },
-  toObject: { virtuals: true, getters: true },
-})
+@Schema({ timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } })
 export class Product extends Document {
-  @ApiProperty({ description: 'Name of the product', example: 'Laptop' })
-  @Prop({ required: true, index: true })
+  @Prop({ required: true }) 
   name: string;
 
-  @ApiProperty({ description: 'Base price of the product', example: 1000 })
-  @Prop({ required: true, min: 0, type: Number })
+  @Prop({ required: true, type: Number, min: 0 }) 
   basePrice: number;
 
-  @ApiProperty({ description: 'Discount percentage for the product', example: 10 })
-  @Prop({ type: Number, min: 0, max: 100, default: 0 })
+  @Prop({ type: Number, min: 0, max: 100, default: 0 }) 
   discount: number;
 
-  @ApiProperty({
-    description: 'Company ID associated with the product',
-    example: '507f1f77bcf86cd799439011',
-  })
-  @Prop({ type: String, ref: 'Company', required: true, index: true })
-  companyId: string;
+  @Prop({ type: Types.ObjectId, ref: 'Company', required: true }) 
+  companyId: Types.ObjectId;
 
-  @ApiProperty({
-    description: 'Categories associated with the product',
-    example: ['Electronics', 'Computers'],
-  })
-  @Prop({ type: [{ type: String, ref: 'Category' }], default: [] })
-  categories: string[];
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Category' }], default: [] })
+  categories: Types.ObjectId[];
 
-  @ApiProperty({ description: 'Description of the product', example: 'A high-performance laptop' })
-  @Prop()
+  @Prop() 
   description?: string;
 
-  @ApiProperty({ description: 'Stock information of the product' })
-  @Prop({
-    type: {
-      quantity: { type: Number, default: 0, min: 0 },
-    },
-    required: true,
-  })
+  @Prop({ type: { quantity: { type: Number, default: 0, min: 0 } }, required: true }) 
   stock: {
     quantity: number;
   };
 
-  @ApiProperty({ description: 'Variants of the product' })
-  @Prop([
-    {
-      name: { type: String, required: true },
-      options: [
-        {
-          value: { type: String, required: true },
-          priceModifier: { type: Number, default: 0 },
-        },
-      ],
-    },
-  ])
-  variants: {
-    name: string;
-    options: { value: string; priceModifier?: number }[];
-  }[];
+  @Prop([{ name: String, options: [{ value: String, priceModifier: Number }] }]) 
+  variants: any[];
 
-  @ApiProperty({ description: 'Attributes of the product', example: { color: 'red', size: 'M' } })
-  @Prop({ type: Map, of: String })
-  attributes: Record<string, string>;
+  @Prop({ type: Map, of: String }) 
+  attributes?: Record<string, string>;
 
-  @ApiProperty({ description: 'Images of the product' })
-  @Prop([{ url: { type: String, required: true } }])
+  @Prop([{ url: String }]) 
   images: { url: string }[];
 
-  @ApiProperty({
-    description: 'Comments on the product',
-    example: ['Great product!', 'Highly recommended'],
-  })
-  @Prop([String])
+  @Prop([String]) 
   comments?: string[];
 
-  @ApiProperty({ description: 'Rating of the product', example: 4.5 })
-  @Prop({ min: 1, max: 5 })
+  @Prop({ min: 1, max: 5 }) 
   rating?: number;
 
-  @ApiProperty({
-    description: 'Status of the product',
-    enum: ProductStatus,
-    example: ProductStatus.ACTIVE,
-  })
-  @Prop({
-    enum: ProductStatus,
-    type: String,
-    default: ProductStatus.ACTIVE,
-    index: true,
-  })
+  @Prop({ enum: ProductStatus, type: String, default: ProductStatus.ACTIVE }) 
   status: ProductStatus;
 
-  @ApiProperty({
-    description: 'Date when the product was deleted',
-    example: '2023-10-01T00:00:00.000Z',
-  })
-  @Prop()
+  @Prop() 
   deletedAt?: Date;
 
-  @ApiProperty({ description: 'Final price of the product after applying discount', example: 900 })
-  finalPrice?: number; // Virtual field
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true }) 
+  createdBy: Types.ObjectId;
+  
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true }) 
+  updatedBy: Types.ObjectId;
 }
-
 export const ProductSchema = SchemaFactory.createForClass(Product);
-
 ProductSchema.virtual('finalPrice').get(function (this: Product) {
-  const discountAmount = (this.basePrice * (this.discount || 0)) / 100;
-  return this.basePrice - discountAmount;
+  return this.basePrice - (this.basePrice * (this.discount || 0)) / 100;
 });

@@ -29,14 +29,14 @@ export class CompaniesController {
   constructor(
     @Inject('ICompanyService')
     private readonly companiesService: ICompanyService,
-  ) { }
+  ) {}
 
   @Post()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.COMPANIES, Action.CREATE)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new company' })
-  @ApiBody({ type: Company })
+  @ApiBody({ type: CreateCompanyDto })
   @ApiResponse({ status: 201, description: 'Company created successfully', type: Company })
   createCompany(@Body() createCompanyDto: CreateCompanyDto) {
     return this.companiesService.createCompany(createCompanyDto);

@@ -19,7 +19,7 @@ export class TicketingController {
   constructor(
     @Inject('ITicketingService')
     private readonly ticketingService: ITicketingService,
-  ) { }
+  ) {}
 
   @Post()
   @UseGuards(PermissionsGuard)

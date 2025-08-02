@@ -1,27 +1,45 @@
-import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Types, ClientSession, PipelineStage } from 'mongoose';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { IProductService } from './interfaces/product.service.interface';
-import { Product } from './entities/product.entity';
 import { IProductRepository } from './repositories/product.repository';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { IProduct } from './interfaces/product.interface';
 import { TopProduct } from './interfaces/top-product.interface';
+import { RequestContext } from 'src/common/types/request-context.interface';
 
 @Injectable()
 export class ProductsService implements IProductService {
   constructor(
-    @Inject('ProductRepository') private readonly productRepository: IProductRepository,
+    @Inject('ProductRepository')
+    private readonly repo: IProductRepository,
   ) {}
 
-  async create(createProductDto: CreateProductDto, session?: ClientSession): Promise<IProduct> {
-    const productData: CreateProductDto = {
-      ...createProductDto,
-      companyId: createProductDto.companyId,
-      categories: createProductDto.categories?.map(id => id) || [],
+  private toObjectId(id: string): Types.ObjectId {
+    return new Types.ObjectId(id);
+  }
+
+  private toObjectIdArray(ids?: string[]): Types.ObjectId[] {
+    return ids?.map(this.toObjectId) || [];
+  }
+
+  async create(
+    dto: CreateProductDto,
+    userId: string,
+    ctx: RequestContext,
+    session?: ClientSession,
+  ): Promise<IProduct> {
+    const { companyId, categories, ...rest } = dto;
+    const data: Partial<any> = {
+      ...rest,
+      companyId: this.toObjectId(companyId),
+      categories: this.toObjectIdArray(categories),
+      createdBy: this.toObjectId(userId),
+      updatedBy: this.toObjectId(userId),
     };
-    return this.productRepository.createOne(productData, session);
+    const productDoc = await this.repo.createOne(data, session);
+    return productDoc.toObject() as unknown as IProduct;
   }
 
   async findAll(options: FindManyOptions = {}, session?: ClientSession): Promise<IProduct[]> {
@@ -30,88 +48,70 @@ export class ProductsService implements IProductService {
       populate: options.populate || ['companyId', 'categories'],
       session,
     };
-    return this.productRepository.findAll(queryOptions);
+    const products = await this.repo.findAll(queryOptions);
+    return products.map(doc => doc.toObject() as unknown as IProduct);
   }
 
-  async findOne(id: string, session?: ClientSession): Promise<Product> {
-    const product = await this.productRepository.findById(id, { session });
-    if (!product) {
-      throw new NotFoundException(`Product with id:${id} not found`);
-    }
-    return product;
+  async findOne(id: string, session?: ClientSession): Promise<IProduct> {
+    const productDoc = await this.repo.findById(id, { session });
+    if (!productDoc) throw new NotFoundException(`Product with id ${id} not found`);
+    return productDoc.toObject() as unknown as IProduct;
   }
 
   async update(
     id: string,
-    updateProductDto: UpdateProductDto,
+    dto: UpdateProductDto,
+    userId: string,
     session?: ClientSession,
   ): Promise<IProduct> {
-    const updateData: UpdateProductDto = {
-      ...updateProductDto,
-      companyId: updateProductDto.companyId,
-      categories: updateProductDto.categories?.map(id => id) || [],
+    const existing = await this.repo.findById(id, { session });
+    if (!existing) throw new NotFoundException(`Product with id ${id} not found`);
+    if (existing.createdBy.toString() !== userId)
+      throw new ForbiddenException('You do not have permission to update this product');
+    const { companyId, categories, ...rest } = dto;
+    const data: Partial<any> = {
+      ...rest,
+      companyId: this.toObjectId(companyId!),
+      categories: this.toObjectIdArray(categories),
+      updatedBy: this.toObjectId(userId),
     };
-
-    const updatedProduct = await this.productRepository.updateById(id, updateData, session);
-    if (!updatedProduct) {
-      throw new NotFoundException(`Product with id:${id} not found`);
-    }
-    return updatedProduct;
+    const updatedDoc = await this.repo.updateById(id, data, session);
+    return updatedDoc.toObject() as unknown as IProduct;
   }
 
-  async remove(id: string, session?: ClientSession): Promise<boolean> {
-    const removed = await this.productRepository.deleteById(id, session);
-    if (!removed) {
-      throw new NotFoundException(`Product with id:${id} not found`);
-    }
-    return removed;
+  async remove(id: string, userId: string, session?: ClientSession): Promise<void> {
+    const existing = await this.repo.findById(id, { session });
+    if (!existing) throw new NotFoundException(`Product with id ${id} not found`);
+    if (existing.createdBy.toString() !== userId)
+      throw new ForbiddenException('You do not have permission to delete this product');
+    await this.repo.deleteById(id, session);
   }
 
   async existsByCompany(companyId: string, session?: ClientSession): Promise<boolean> {
-    return this.productRepository.existsByCondition(
-      {
-        companyId: new Types.ObjectId(companyId),
-      },
-      session,
-    );
+    return this.repo.existsByCondition({ companyId: this.toObjectId(companyId) }, session);
   }
 
   async countByCategory(categoryId: string, session?: ClientSession): Promise<number> {
-    return this.productRepository.countByCondition(
-      {
-        categories: new Types.ObjectId(categoryId),
-      },
-      session,
-    );
+    return this.repo.countByCondition({ categories: this.toObjectId(categoryId) }, session);
   }
 
   async getTopProductsBySales(limit = 5, session?: ClientSession): Promise<TopProduct[]> {
-    const pipeline: PipelineStage[] = [{ $sort: { sales: -1 } }, { $limit: limit }];
-    return this.productRepository.aggregate(pipeline, session);
+    return this.repo.aggregate<TopProduct>([{ $sort: { sales: -1 } }, { $limit: limit }], session);
   }
 
   async transactionalCreate(
-    createProductDto: CreateProductDto,
+    dto: CreateProductDto,
+    userId: string,
     session?: ClientSession,
   ): Promise<IProduct> {
-    const transactionSession = session || (await this.productRepository.startTransaction());
+    const txn = session || (await this.repo.startTransaction());
     try {
-      const productData: CreateProductDto = {
-        ...createProductDto,
-        companyId: createProductDto.companyId,
-        categories: createProductDto.categories?.map(id => id) || [],
-      };
-      const newProduct = await this.productRepository.createOne(productData, session);
-      const savedProduct = await this.productRepository.saveOne(newProduct, session);
-      if (!session) {
-        await this.productRepository.commitTransaction(transactionSession);
-      }
-      return savedProduct;
-    } catch (error) {
-      if (!session) {
-        await this.productRepository.abortTransaction(transactionSession);
-      }
-      throw new BadRequestException(`Transaction failed: ${error.message}`);
+      const result = await this.create(dto, userId, {} as any, txn);
+      if (!session) await this.repo.commitTransaction(txn);
+      return result;
+    } catch (err) {
+      if (!session) await this.repo.abortTransaction(txn);
+      throw err;
     }
   }
 }

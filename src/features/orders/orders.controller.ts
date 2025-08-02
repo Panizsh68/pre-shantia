@@ -25,7 +25,7 @@ import { Action } from '../permissions/enums/actions.enum';
 @ApiTags('Orders')
 @Controller('orders')
 export class OrdersController {
-  constructor(@Inject('IOrdersService') private readonly ordersService: IOrdersService) { }
+  constructor(@Inject('IOrdersService') private readonly ordersService: IOrdersService) {}
 
   @Post()
   @UseGuards(AuthenticationGuard, PermissionsGuard)

@@ -14,9 +14,11 @@ async function bootstrap(): Promise<void> {
 
   const app = await NestFactory.create(AppModule, adapter);
 
-  app.use(cors({
-    origin: ['https://ariasakht.com', 'https://www.ariasakht.com'],
-  }));
+  app.use(
+    cors({
+      origin: ['https://ariasakht.com', 'https://www.ariasakht.com'],
+    }),
+  );
 
   expressApp.set('trust proxy', true);
 
@@ -39,7 +41,7 @@ async function bootstrap(): Promise<void> {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document); 
+  SwaggerModule.setup('docs', app, document);
 
   app.use(
     rateLimit({

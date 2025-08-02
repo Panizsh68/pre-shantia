@@ -10,9 +10,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "App"
-        ]
+        "tags": ["App"]
       }
     },
     "/api/health/mongo": {
@@ -24,9 +22,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Health"
-        ]
+        "tags": ["Health"]
       }
     },
     "/api/health/cache-store": {
@@ -38,9 +34,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Health"
-        ]
+        "tags": ["Health"]
       }
     },
     "/api/health/redis": {
@@ -52,9 +46,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Health"
-        ]
+        "tags": ["Health"]
       }
     },
     "/api/health/config": {
@@ -66,9 +58,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Health"
-        ]
+        "tags": ["Health"]
       }
     },
     "/api/health/jwt": {
@@ -80,9 +70,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Health"
-        ]
+        "tags": ["Health"]
       }
     },
     "/api/auth/signup": {
@@ -112,9 +100,7 @@
           }
         },
         "summary": "Register a new user",
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/signin": {
@@ -144,9 +130,7 @@
           }
         },
         "summary": "Sign in with credentials",
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/verify-otp": {
@@ -182,9 +166,7 @@
           }
         },
         "summary": "Verify OTP code",
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/refresh": {
@@ -226,9 +208,7 @@
           }
         },
         "summary": "Refresh access token using a refresh token",
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/signout": {
@@ -254,9 +234,7 @@
           }
         },
         "summary": "Sign out user and invalidate refresh token",
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/me": {
@@ -301,9 +279,7 @@
           }
         },
         "summary": "Get current user profile and permissions",
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/auth/admin-signup": {
@@ -333,9 +309,7 @@
           }
         },
         "summary": "Admin creates a user with permissions",
-        "tags": [
-          "Auth"
-        ]
+        "tags": ["Auth"]
       }
     },
     "/api/profile": {
@@ -357,9 +331,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Profile"
-        ]
+        "tags": ["Profile"]
       }
     },
     "/api/profile/{id}": {
@@ -390,9 +362,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Profile"
-        ]
+        "tags": ["Profile"]
       }
     },
     "/api/profile/{userId}": {
@@ -413,9 +383,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Profile"
-        ]
+        "tags": ["Profile"]
       }
     },
     "/api/products": {
@@ -438,9 +406,7 @@
           }
         },
         "summary": "Create a new product",
-        "tags": [
-          "Products"
-        ]
+        "tags": ["Products"]
       },
       "get": {
         "operationId": "ProductsController_findAll",
@@ -470,9 +436,7 @@
           }
         },
         "summary": "Get a paginated list of products",
-        "tags": [
-          "Products"
-        ]
+        "tags": ["Products"]
       }
     },
     "/api/products/{id}": {
@@ -497,9 +461,7 @@
           }
         },
         "summary": "Get product by ID",
-        "tags": [
-          "Products"
-        ]
+        "tags": ["Products"]
       },
       "patch": {
         "operationId": "ProductsController_update",
@@ -529,9 +491,7 @@
           }
         },
         "summary": "Update product by ID",
-        "tags": [
-          "Products"
-        ]
+        "tags": ["Products"]
       },
       "delete": {
         "operationId": "ProductsController_remove",
@@ -551,9 +511,7 @@
           }
         },
         "summary": "Delete product by ID",
-        "tags": [
-          "Products"
-        ]
+        "tags": ["Products"]
       }
     },
     "/api/products/count/category/{categoryId}": {
@@ -575,9 +533,7 @@
           }
         },
         "summary": "Count products by category ID",
-        "tags": [
-          "Products"
-        ]
+        "tags": ["Products"]
       }
     },
     "/api/products/top-sales": {
@@ -600,9 +556,7 @@
           }
         },
         "summary": "Get top-selling products",
-        "tags": [
-          "Products"
-        ]
+        "tags": ["Products"]
       }
     },
     "/api/tickets": {
@@ -625,9 +579,7 @@
           }
         },
         "summary": "Create a new ticket",
-        "tags": [
-          "Tickets"
-        ]
+        "tags": ["Tickets"]
       },
       "get": {
         "operationId": "TicketingController_findAll",
@@ -638,9 +590,7 @@
           }
         },
         "summary": "Get all tickets (with optional filters)",
-        "tags": [
-          "Tickets"
-        ]
+        "tags": ["Tickets"]
       }
     },
     "/api/tickets/{id}": {
@@ -665,9 +615,7 @@
           }
         },
         "summary": "Get a ticket by ID",
-        "tags": [
-          "Tickets"
-        ]
+        "tags": ["Tickets"]
       },
       "put": {
         "operationId": "TicketingController_update",
@@ -697,9 +645,7 @@
           }
         },
         "summary": "Update ticket by ID",
-        "tags": [
-          "Tickets"
-        ]
+        "tags": ["Tickets"]
       },
       "delete": {
         "operationId": "TicketingController_delete",
@@ -719,9 +665,7 @@
           }
         },
         "summary": "Delete ticket by ID",
-        "tags": [
-          "Tickets"
-        ]
+        "tags": ["Tickets"]
       }
     },
     "/api/tickets/{id}/status": {
@@ -743,9 +687,7 @@
           }
         },
         "summary": "Get status of a ticket by ID",
-        "tags": [
-          "Tickets"
-        ]
+        "tags": ["Tickets"]
       },
       "put": {
         "operationId": "TicketingController_updateStatus",
@@ -768,14 +710,7 @@
                 "properties": {
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "open",
-                      "in_progress",
-                      "resolved",
-                      "closed",
-                      "reopened",
-                      "escalated"
-                    ],
+                    "enum": ["open", "in_progress", "resolved", "closed", "reopened", "escalated"],
                     "example": "open"
                   }
                 }
@@ -789,9 +724,7 @@
           }
         },
         "summary": "Update ticket status",
-        "tags": [
-          "Tickets"
-        ]
+        "tags": ["Tickets"]
       }
     },
     "/api/tickets/{id}/escalate": {
@@ -813,9 +746,7 @@
           }
         },
         "summary": "Escalate a ticket to a higher level",
-        "tags": [
-          "Tickets"
-        ]
+        "tags": ["Tickets"]
       }
     },
     "/api/transportings": {
@@ -841,9 +772,7 @@
           }
         },
         "summary": "Create a new transporting record",
-        "tags": [
-          "transportings"
-        ]
+        "tags": ["transportings"]
       },
       "patch": {
         "operationId": "TransportingsController_update",
@@ -867,9 +796,7 @@
           }
         },
         "summary": "Update a transporting record",
-        "tags": [
-          "transportings"
-        ]
+        "tags": ["transportings"]
       }
     },
     "/api/transportings/{id}": {
@@ -896,9 +823,7 @@
           }
         },
         "summary": "Get transporting record by ID",
-        "tags": [
-          "transportings"
-        ]
+        "tags": ["transportings"]
       }
     },
     "/api/transportings/order/{orderId}": {
@@ -925,9 +850,7 @@
           }
         },
         "summary": "Get transporting record by order ID",
-        "tags": [
-          "transportings"
-        ]
+        "tags": ["transportings"]
       }
     },
     "/api/transportings/company/{companyId}": {
@@ -954,9 +877,7 @@
           }
         },
         "summary": "Get transporting records by company ID",
-        "tags": [
-          "transportings"
-        ]
+        "tags": ["transportings"]
       }
     },
     "/api/transportings/{id}/cancel": {
@@ -986,9 +907,7 @@
           }
         },
         "summary": "Cancel a transporting record",
-        "tags": [
-          "transportings"
-        ]
+        "tags": ["transportings"]
       }
     },
     "/api/transportings/{id}/delivered": {
@@ -1034,9 +953,7 @@
           }
         },
         "summary": "Mark a transporting record as delivered",
-        "tags": [
-          "transportings"
-        ]
+        "tags": ["transportings"]
       }
     },
     "/api/companies": {
@@ -1066,9 +983,7 @@
           }
         },
         "summary": "Create a new company",
-        "tags": [
-          "Companies"
-        ]
+        "tags": ["Companies"]
       },
       "get": {
         "operationId": "CompaniesController_getAllCompanies",
@@ -1089,9 +1004,7 @@
           }
         },
         "summary": "Get all companies",
-        "tags": [
-          "Companies"
-        ]
+        "tags": ["Companies"]
       }
     },
     "/api/companies/{id}": {
@@ -1131,9 +1044,7 @@
           }
         },
         "summary": "Update a company by ID",
-        "tags": [
-          "Companies"
-        ]
+        "tags": ["Companies"]
       },
       "delete": {
         "operationId": "CompaniesController_deleteCompany",
@@ -1154,9 +1065,7 @@
           }
         },
         "summary": "Delete a company by ID",
-        "tags": [
-          "Companies"
-        ]
+        "tags": ["Companies"]
       },
       "get": {
         "operationId": "CompaniesController_getCompanyById",
@@ -1184,9 +1093,7 @@
           }
         },
         "summary": "Get a company by ID",
-        "tags": [
-          "Companies"
-        ]
+        "tags": ["Companies"]
       }
     },
     "/api/orders": {
@@ -1216,9 +1123,7 @@
           }
         },
         "summary": "Create a new order",
-        "tags": [
-          "Orders"
-        ]
+        "tags": ["Orders"]
       },
       "get": {
         "operationId": "OrdersController_find",
@@ -1256,9 +1161,7 @@
           }
         },
         "summary": "Find orders by userId or companyId",
-        "tags": [
-          "Orders"
-        ]
+        "tags": ["Orders"]
       }
     },
     "/api/orders/{id}": {
@@ -1288,9 +1191,7 @@
           }
         },
         "summary": "Get order by ID",
-        "tags": [
-          "Orders"
-        ]
+        "tags": ["Orders"]
       },
       "patch": {
         "operationId": "OrdersController_update",
@@ -1328,9 +1229,7 @@
           }
         },
         "summary": "Update an order by ID",
-        "tags": [
-          "Orders"
-        ]
+        "tags": ["Orders"]
       }
     },
     "/api/orders/{id}/cancel": {
@@ -1353,9 +1252,7 @@
           }
         },
         "summary": "Cancel an order",
-        "tags": [
-          "Orders"
-        ]
+        "tags": ["Orders"]
       }
     },
     "/api/orders/{id}/mark-paid": {
@@ -1378,9 +1275,7 @@
           }
         },
         "summary": "Mark order as paid",
-        "tags": [
-          "Orders"
-        ]
+        "tags": ["Orders"]
       }
     },
     "/api/orders/{id}/mark-shipped": {
@@ -1419,9 +1314,7 @@
           }
         },
         "summary": "Mark order as shipped",
-        "tags": [
-          "Orders"
-        ]
+        "tags": ["Orders"]
       }
     },
     "/api/orders/{id}/mark-delivered": {
@@ -1444,9 +1337,7 @@
           }
         },
         "summary": "Mark order as delivered",
-        "tags": [
-          "Orders"
-        ]
+        "tags": ["Orders"]
       }
     },
     "/api/orders/{id}/refund": {
@@ -1469,9 +1360,7 @@
           }
         },
         "summary": "Refund an order",
-        "tags": [
-          "Orders"
-        ]
+        "tags": ["Orders"]
       }
     },
     "/api/orders/{id}/confirm-delivery": {
@@ -1510,9 +1399,7 @@
           }
         },
         "summary": "User confirms delivery of order",
-        "tags": [
-          "Orders"
-        ]
+        "tags": ["Orders"]
       }
     },
     "/api/wallets": {
@@ -1524,9 +1411,7 @@
             "description": ""
           }
         },
-        "tags": [
-          "Wallets"
-        ]
+        "tags": ["Wallets"]
       }
     },
     "/api/carts/active": {
@@ -1551,9 +1436,7 @@
           }
         ],
         "summary": "Get the active cart for current user",
-        "tags": [
-          "Carts"
-        ]
+        "tags": ["Carts"]
       }
     },
     "/api/carts/populated": {
@@ -1581,9 +1464,7 @@
           }
         ],
         "summary": "Get carts with populated related data for current user",
-        "tags": [
-          "Carts"
-        ]
+        "tags": ["Carts"]
       }
     },
     "/api/carts/summary": {
@@ -1608,9 +1489,7 @@
           }
         ],
         "summary": "Get summary of user carts",
-        "tags": [
-          "Carts"
-        ]
+        "tags": ["Carts"]
       }
     },
     "/api/carts": {
@@ -1645,9 +1524,7 @@
           }
         ],
         "summary": "Create a new cart",
-        "tags": [
-          "Carts"
-        ]
+        "tags": ["Carts"]
       },
       "patch": {
         "operationId": "CartsController_updateCart",
@@ -1680,9 +1557,7 @@
           }
         ],
         "summary": "Update the user's cart partially",
-        "tags": [
-          "Carts"
-        ]
+        "tags": ["Carts"]
       }
     },
     "/api/carts/items": {
@@ -1717,9 +1592,7 @@
           }
         ],
         "summary": "Add item to user's cart",
-        "tags": [
-          "Carts"
-        ]
+        "tags": ["Carts"]
       }
     },
     "/api/carts/items/{productId}": {
@@ -1754,9 +1627,7 @@
           }
         ],
         "summary": "Remove item from user's cart",
-        "tags": [
-          "Carts"
-        ]
+        "tags": ["Carts"]
       }
     },
     "/api/carts/clear": {
@@ -1781,9 +1652,7 @@
           }
         ],
         "summary": "Clear all items from user's cart",
-        "tags": [
-          "Carts"
-        ]
+        "tags": ["Carts"]
       }
     },
     "/api/carts/checkout": {
@@ -1808,9 +1677,7 @@
           }
         ],
         "summary": "Checkout the user's cart",
-        "tags": [
-          "Carts"
-        ]
+        "tags": ["Carts"]
       }
     },
     "/api/payment/initiate": {
@@ -1850,9 +1717,7 @@
           }
         },
         "summary": "Initiate a payment via Zarinpal",
-        "tags": [
-          "Payment"
-        ]
+        "tags": ["Payment"]
       }
     },
     "/api/payment/callback": {
@@ -1874,10 +1739,7 @@
             "in": "query",
             "description": "Payment status from Zarinpal",
             "schema": {
-              "enum": [
-                "OK",
-                "NOK"
-              ],
+              "enum": ["OK", "NOK"],
               "type": "string"
             }
           }
@@ -1895,9 +1757,7 @@
           }
         },
         "summary": "Handle Zarinpal callback after payment",
-        "tags": [
-          "Payment"
-        ]
+        "tags": ["Payment"]
       }
     },
     "/api/categories": {
@@ -1927,9 +1787,7 @@
           }
         },
         "summary": "Create a new category",
-        "tags": [
-          "Categories"
-        ]
+        "tags": ["Categories"]
       },
       "get": {
         "operationId": "CategoriesController_findAll",
@@ -1950,9 +1808,7 @@
           }
         },
         "summary": "Get all categories for current user",
-        "tags": [
-          "Categories"
-        ]
+        "tags": ["Categories"]
       }
     },
     "/api/categories/{id}": {
@@ -1982,9 +1838,7 @@
           }
         },
         "summary": "Get category by ID",
-        "tags": [
-          "Categories"
-        ]
+        "tags": ["Categories"]
       },
       "patch": {
         "operationId": "CategoriesController_update",
@@ -2022,9 +1876,7 @@
           }
         },
         "summary": "Update category by ID",
-        "tags": [
-          "Categories"
-        ]
+        "tags": ["Categories"]
       },
       "delete": {
         "operationId": "CategoriesController_remove",
@@ -2045,9 +1897,7 @@
           }
         },
         "summary": "Delete category by ID",
-        "tags": [
-          "Categories"
-        ]
+        "tags": ["Categories"]
       }
     },
     "/api/categories/{id}/status": {
@@ -2073,11 +1923,7 @@
                 "properties": {
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "active",
-                      "inactive",
-                      "draft"
-                    ],
+                    "enum": ["active", "inactive", "draft"],
                     "example": "active"
                   }
                 }
@@ -2091,9 +1937,7 @@
           }
         },
         "summary": "Set status for a category",
-        "tags": [
-          "Categories"
-        ]
+        "tags": ["Categories"]
       }
     },
     "/api/categories/parent/{parentId}": {
@@ -2126,9 +1970,7 @@
           }
         },
         "summary": "Get categories by parent ID",
-        "tags": [
-          "Categories"
-        ]
+        "tags": ["Categories"]
       }
     }
   },
@@ -2156,10 +1998,7 @@
             "example": "2284280072"
           }
         },
-        "required": [
-          "phoneNumber",
-          "nationalId"
-        ]
+        "required": ["phoneNumber", "nationalId"]
       },
       "SignUpResponseDto": {
         "type": "object",
@@ -2170,9 +2009,7 @@
             "description": "User phone number"
           }
         },
-        "required": [
-          "phoneNumber"
-        ]
+        "required": ["phoneNumber"]
       },
       "SignInDto": {
         "type": "object",
@@ -2183,9 +2020,7 @@
             "example": "+09123456789"
           }
         },
-        "required": [
-          "phoneNumber"
-        ]
+        "required": ["phoneNumber"]
       },
       "SignInResponseDto": {
         "type": "object",
@@ -2196,9 +2031,7 @@
             "description": "User phone number"
           }
         },
-        "required": [
-          "phoneNumber"
-        ]
+        "required": ["phoneNumber"]
       },
       "VerifyOtpDto": {
         "type": "object",
@@ -2214,10 +2047,7 @@
             "example": "1234"
           }
         },
-        "required": [
-          "phoneNumber",
-          "otp"
-        ]
+        "required": ["phoneNumber", "otp"]
       },
       "SignUpDto": {
         "type": "object",
@@ -2238,16 +2068,11 @@
             "example": [
               {
                 "resource": "carts",
-                "actions": [
-                  "r",
-                  "m"
-                ]
+                "actions": ["r", "m"]
               },
               {
                 "resource": "orders",
-                "actions": [
-                  "r"
-                ]
+                "actions": ["r"]
               }
             ],
             "items": {
@@ -2275,26 +2100,14 @@
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "enum": [
-                      "r",
-                      "u",
-                      "c",
-                      "d",
-                      "m",
-                      "dc",
-                      "di",
-                      "du"
-                    ]
+                    "enum": ["r", "u", "c", "d", "m", "dc", "di", "du"]
                   }
                 }
               }
             }
           }
         },
-        "required": [
-          "phoneNumber",
-          "nationalId"
-        ]
+        "required": ["phoneNumber", "nationalId"]
       },
       "CreateProfileDto": {
         "type": "object",
@@ -2331,10 +2144,7 @@
           },
           "orders": {
             "description": "List of order IDs associated with the user",
-            "example": [
-              "507f1f77bcf86cd799439011",
-              "507f1f77bcf86cd799439012"
-            ],
+            "example": ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"],
             "default": [],
             "type": "array",
             "items": {
@@ -2343,10 +2153,7 @@
           },
           "transactions": {
             "description": "List of transaction IDs associated with the user",
-            "example": [
-              "507f1f77bcf86cd799439013",
-              "507f1f77bcf86cd799439014"
-            ],
+            "example": ["507f1f77bcf86cd799439013", "507f1f77bcf86cd799439014"],
             "default": [],
             "type": "array",
             "items": {
@@ -2355,10 +2162,7 @@
           },
           "favorites": {
             "description": "List of favorite product IDs",
-            "example": [
-              "507f1f77bcf86cd799439015",
-              "507f1f77bcf86cd799439016"
-            ],
+            "example": ["507f1f77bcf86cd799439015", "507f1f77bcf86cd799439016"],
             "default": [],
             "type": "array",
             "items": {
@@ -2418,10 +2222,7 @@
           },
           "orders": {
             "description": "List of order IDs associated with the user",
-            "example": [
-              "507f1f77bcf86cd799439011",
-              "507f1f77bcf86cd799439012"
-            ],
+            "example": ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"],
             "default": [],
             "type": "array",
             "items": {
@@ -2430,10 +2231,7 @@
           },
           "transactions": {
             "description": "List of transaction IDs associated with the user",
-            "example": [
-              "507f1f77bcf86cd799439013",
-              "507f1f77bcf86cd799439014"
-            ],
+            "example": ["507f1f77bcf86cd799439013", "507f1f77bcf86cd799439014"],
             "default": [],
             "type": "array",
             "items": {
@@ -2442,10 +2240,7 @@
           },
           "favorites": {
             "description": "List of favorite product IDs",
-            "example": [
-              "507f1f77bcf86cd799439015",
-              "507f1f77bcf86cd799439016"
-            ],
+            "example": ["507f1f77bcf86cd799439015", "507f1f77bcf86cd799439016"],
             "default": [],
             "type": "array",
             "items": {
@@ -2469,9 +2264,7 @@
             "minimum": 0
           }
         },
-        "required": [
-          "quantity"
-        ]
+        "required": ["quantity"]
       },
       "VariantOptionDto": {
         "type": "object",
@@ -2487,9 +2280,7 @@
             "example": 0
           }
         },
-        "required": [
-          "value"
-        ]
+        "required": ["value"]
       },
       "VariantDto": {
         "type": "object",
@@ -2507,10 +2298,7 @@
             }
           }
         },
-        "required": [
-          "name",
-          "options"
-        ]
+        "required": ["name", "options"]
       },
       "ImageDto": {
         "type": "object",
@@ -2521,9 +2309,7 @@
             "example": "https://example.com/cement-bag.jpg"
           }
         },
-        "required": [
-          "url"
-        ]
+        "required": ["url"]
       },
       "CreateProductDto": {
         "type": "object",
@@ -2556,9 +2342,7 @@
           },
           "categories": {
             "description": "List of category IDs",
-            "example": [
-              "507f1f77bcf86cd799439012"
-            ],
+            "example": ["507f1f77bcf86cd799439012"],
             "type": "array",
             "items": {
               "type": "string"
@@ -2595,10 +2379,7 @@
           },
           "tags": {
             "description": "Tags for filtering and search",
-            "example": [
-              "cement",
-              "construction"
-            ],
+            "example": ["cement", "construction"],
             "type": "array",
             "items": {
               "type": "string"
@@ -2613,10 +2394,7 @@
           },
           "comments": {
             "description": "User comments about the product",
-            "example": [
-              "Great quality!",
-              "Fast delivery"
-            ],
+            "example": ["Great quality!", "Fast delivery"],
             "type": "array",
             "items": {
               "type": "string"
@@ -2632,23 +2410,11 @@
           "status": {
             "type": "string",
             "description": "Status of the product",
-            "enum": [
-              "active",
-              "inactive",
-              "draft",
-              "archived"
-            ],
+            "enum": ["active", "inactive", "draft", "archived"],
             "example": "draft"
           }
         },
-        "required": [
-          "name",
-          "slug",
-          "sku",
-          "basePrice",
-          "companyId",
-          "stock"
-        ]
+        "required": ["name", "slug", "sku", "basePrice", "companyId", "stock"]
       },
       "UpdateProductDto": {
         "type": "object",
@@ -2659,9 +2425,7 @@
             "example": "507f1f77bcf86cd799439011"
           }
         },
-        "required": [
-          "id"
-        ]
+        "required": ["id"]
       },
       "CreateTicketDto": {
         "type": "object",
@@ -2679,25 +2443,13 @@
           "status": {
             "type": "string",
             "description": "Status of the ticket",
-            "enum": [
-              "open",
-              "in_progress",
-              "resolved",
-              "closed",
-              "reopened",
-              "escalated"
-            ],
+            "enum": ["open", "in_progress", "resolved", "closed", "reopened", "escalated"],
             "default": "open"
           },
           "priority": {
             "type": "string",
             "description": "Priority of the ticket",
-            "enum": [
-              "low",
-              "medium",
-              "high",
-              "urgent"
-            ],
+            "enum": ["low", "medium", "high", "urgent"],
             "default": "low"
           },
           "createdBy": {
@@ -2711,10 +2463,7 @@
             "example": "507f1f77bcf86cd799439012"
           }
         },
-        "required": [
-          "title",
-          "description"
-        ]
+        "required": ["title", "description"]
       },
       "UpdateTicketDto": {
         "type": "object",
@@ -2732,25 +2481,13 @@
           "status": {
             "type": "string",
             "description": "Status of the ticket",
-            "enum": [
-              "open",
-              "in_progress",
-              "resolved",
-              "closed",
-              "reopened",
-              "escalated"
-            ],
+            "enum": ["open", "in_progress", "resolved", "closed", "reopened", "escalated"],
             "example": "in_progress"
           },
           "priority": {
             "type": "string",
             "description": "Priority of the ticket",
-            "enum": [
-              "low",
-              "medium",
-              "high",
-              "urgent"
-            ],
+            "enum": ["low", "medium", "high", "urgent"],
             "example": "high"
           },
           "assignedTo": {
@@ -2786,12 +2523,7 @@
           "status": {
             "type": "string",
             "description": "Status of the shipment",
-            "enum": [
-              "pending",
-              "shipped",
-              "delivered",
-              "canceled"
-            ],
+            "enum": ["pending", "shipped", "delivered", "canceled"],
             "example": "shipped"
           },
           "estimatedDelivery": {
@@ -2801,12 +2533,7 @@
             "example": "2025-06-10"
           }
         },
-        "required": [
-          "orderId",
-          "companyId",
-          "carrier",
-          "trackingNumber"
-        ]
+        "required": ["orderId", "companyId", "carrier", "trackingNumber"]
       },
       "UpdateTransportingDto": {
         "type": "object",
@@ -2817,9 +2544,7 @@
             "example": "507f1f77bcf86cd799439011"
           }
         },
-        "required": [
-          "id"
-        ]
+        "required": ["id"]
       },
       "Company": {
         "type": "object",
@@ -2840,10 +2565,7 @@
             "minimum": 1
           }
         },
-        "required": [
-          "productId",
-          "quantity"
-        ]
+        "required": ["productId", "quantity"]
       },
       "CreateOrderDto": {
         "type": "object",
@@ -2902,13 +2624,7 @@
             "example": "507f1f77bcf86cd799439011"
           }
         },
-        "required": [
-          "userId",
-          "items",
-          "totalPrice",
-          "status",
-          "companyId"
-        ]
+        "required": ["userId", "items", "totalPrice", "status", "companyId"]
       },
       "Order": {
         "type": "object",
@@ -2923,9 +2639,7 @@
             "example": "507f1f77bcf86cd799439011"
           }
         },
-        "required": [
-          "id"
-        ]
+        "required": ["id"]
       },
       "Cart": {
         "type": "object",
@@ -2978,12 +2692,7 @@
             }
           }
         },
-        "required": [
-          "productId",
-          "companyId",
-          "quantity",
-          "priceAtAdd"
-        ]
+        "required": ["productId", "companyId", "quantity", "priceAtAdd"]
       },
       "CreateCartDto": {
         "type": "object",
@@ -3009,18 +2718,11 @@
           "status": {
             "type": "string",
             "description": "Status of the cart",
-            "enum": [
-              "active",
-              "abandoned",
-              "checked_out"
-            ],
+            "enum": ["active", "abandoned", "checked_out"],
             "example": "active"
           }
         },
-        "required": [
-          "userId",
-          "items"
-        ]
+        "required": ["userId", "items"]
       },
       "UpdateCartDto": {
         "type": "object",
@@ -3031,9 +2733,7 @@
             "example": "507f1f77bcf86cd799439011"
           }
         },
-        "required": [
-          "id"
-        ]
+        "required": ["id"]
       },
       "InitiatePaymentDto": {
         "type": "object",
@@ -3060,13 +2760,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "amount",
-          "callbackUrl",
-          "description",
-          "userId",
-          "orderId"
-        ]
+        "required": ["amount", "callbackUrl", "description", "userId", "orderId"]
       },
       "InitiatePaymentResponseDto": {
         "type": "object",
@@ -3080,10 +2774,7 @@
             "example": "https://www.zarinpal.com/pg/StartPay/A00000000000000000000000000123456789"
           }
         },
-        "required": [
-          "authority",
-          "redirectUrl"
-        ]
+        "required": ["authority", "redirectUrl"]
       },
       "HandleCallbackResponseDto": {
         "type": "object",
@@ -3100,11 +2791,7 @@
             "$ref": "#/components/schemas/InitiatePaymentResponseDto"
           }
         },
-        "required": [
-          "success",
-          "message",
-          "data"
-        ]
+        "required": ["success", "message", "data"]
       },
       "Category": {
         "type": "object",

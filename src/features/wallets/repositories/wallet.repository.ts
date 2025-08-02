@@ -10,7 +10,7 @@ import { ClientSession, Model } from 'mongoose';
 
 export interface IWalletRepository
   extends IBaseCrudRepository<Wallet>,
-  IBaseTransactionRepository<Wallet> {
+    IBaseTransactionRepository<Wallet> {
   findByIdAndType(
     ownerId: string,
     ownerType: WalletOwnerType,

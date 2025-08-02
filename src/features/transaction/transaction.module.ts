@@ -13,6 +13,7 @@ import {
   TransactionRepository,
 } from './repositories/transaction.repository';
 import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/tokens.constants';
+import { TransactionController } from './transaction.controller';
 
 @Module({
   imports: [
@@ -40,5 +41,6 @@ import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/token
     },
   ],
   exports: ['ITransactionsService', 'TransactionRepository'],
+  controllers: [TransactionController],
 })
 export class TransactionModule {}

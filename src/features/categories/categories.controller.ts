@@ -31,7 +31,7 @@ export class CategoriesController {
   constructor(
     @Inject('ICategoryService')
     private readonly categoriesService: ICategoryService,
-  ) { }
+  ) {}
 
   @Post()
   @UseGuards(PermissionsGuard)
@@ -41,7 +41,10 @@ export class CategoriesController {
   @ApiBody({ type: Category })
   @ApiResponse({ status: 201, description: 'Category created successfully', type: Category })
   create(@CurrentUser() user: TokenPayload, @Body() data: Partial<Category>) {
-    return this.categoriesService.create({ ...data, companyId: new Types.ObjectId(user.userId) }, user.userId);
+    return this.categoriesService.create(
+      { ...data, companyId: new Types.ObjectId(user.userId) },
+      user.userId,
+    );
   }
 
   @Get()
@@ -69,8 +72,16 @@ export class CategoriesController {
   @ApiParam({ name: 'id', type: 'string', description: 'Category ID' })
   @ApiBody({ type: Category })
   @ApiResponse({ status: 200, description: 'Category updated', type: Category })
-  update(@CurrentUser() user: TokenPayload, @Param('id') id: string, @Body() data: Partial<Category>) {
-    return this.categoriesService.update(id, { ...data, companyId: new Types.ObjectId(user.userId) }, user.userId);
+  update(
+    @CurrentUser() user: TokenPayload,
+    @Param('id') id: string,
+    @Body() data: Partial<Category>,
+  ) {
+    return this.categoriesService.update(
+      id,
+      { ...data, companyId: new Types.ObjectId(user.userId) },
+      user.userId,
+    );
   }
 
   @Delete(':id')
@@ -103,7 +114,11 @@ export class CategoriesController {
     },
   })
   @ApiResponse({ status: 200, description: 'Category status updated' })
-  setStatus(@CurrentUser() user: TokenPayload, @Param('id') id: string, @Body('status') status: CategoryStatus) {
+  setStatus(
+    @CurrentUser() user: TokenPayload,
+    @Param('id') id: string,
+    @Body('status') status: CategoryStatus,
+  ) {
     return this.categoriesService.setStatus(id, status, user.userId);
   }
 

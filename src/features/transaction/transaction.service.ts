@@ -54,4 +54,9 @@ export class TransactionService implements ITransactionService {
   async abortSession(session: ClientSession): Promise<void> {
     await this.transactionRepository.abortTransaction(session);
   }
+
+  async findAllByProfile(userId: string) {
+    return this.transactionRepository
+      .findManyByCondition({ userId })
+  }
 }
