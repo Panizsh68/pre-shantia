@@ -1,19 +1,16 @@
-# Ignore git folder (history و فایل‌های مربوط به گیت)
 .git
-
-# Ignore node_modules چون توی build مجدداً نصب میشه
+.gitignore
 node_modules
-
-# پوشه تست‌ها که در پروفاکت تولید لازم نیست
 test
 tests
-
-# فایل‌های تست در src با پسوند spec.ts
 src/**/*.spec.ts
-
-# فایل‌های لاگ بی‌فایده برای ایمیج
+src/**/*.test.ts
 *.log
-
-# فایل‌های محیط (env) که می‌خواهی جدا نگه داری یا نداری اجازه کپی‌شون
 .env
 .env.*
+.vscode
+.idea
+*.local
+*.DS_Store
+README.md
+docs

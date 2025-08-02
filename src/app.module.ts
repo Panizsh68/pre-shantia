@@ -26,8 +26,7 @@ import { HealthController } from './health/health.controller';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CachingModule } from './infrastructure/caching/caching.module';
 import { RequestContextInterceptor } from './utils/interceptors/request-context.interceptor';
-import { SwaggerController } from './swagger.controller';
-import { SwaggerService } from './swagger.service';
+
 
 @Module({
   imports: [
@@ -86,8 +85,8 @@ import { SwaggerService } from './swagger.service';
     CategoriesModule,
     ZarinpalModule,
   ],
-  controllers: [AppController, HealthController, SwaggerController],
-  providers: [AppService, SwaggerService,
+  controllers: [AppController, HealthController],
+  providers: [AppService,
     {
       provide: APP_INTERCEPTOR,
       useClass: RequestContextInterceptor,
