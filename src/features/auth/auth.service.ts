@@ -47,7 +47,6 @@ export class AuthService {
     @Inject('AuthRepository') private readonly authRepository: IAuthRepository,
   ) {}
 
-  // ۱. ثبت نام اولیه فقط ثبت داده و ارسال OTP (بدون پرمیشن از کاربر)
   async signUp(createUserDto: CreateUserDto): Promise<SignUpResponseDto> {
     try {
       const exists = await this.usersService.findUserByPhoneNumber(createUserDto.phoneNumber);
@@ -80,7 +79,6 @@ export class AuthService {
     }
   }
 
-  // ۲. شروع ورود (ارسال OTP)
   async signIn(signInDto: SignInDto): Promise<SignInResponseDto> {
     try {
       const user = await this.usersService.findUserByPhoneNumber(signInDto.phoneNumber);
@@ -96,7 +94,6 @@ export class AuthService {
     }
   }
 
-  // ۳. تایید OTP، ایجاد یا برگرداندن توکن، مدیریت کش، و ذخیره refresh token امن
   async verifyOtp(
     verifyOtpDto: VerifyOtpDto,
     context: RequestContext,
@@ -105,21 +102,17 @@ export class AuthService {
       const validOtp = await this.otpService.verifyOtp(verifyOtpDto.phoneNumber, verifyOtpDto.otp);
       if (!validOtp) throw new HttpException('Invalid or expired OTP', HttpStatus.BAD_REQUEST);
 
-      // اگر داده signUp قبلی وجود نداشت، کاربر باید قبلا ثبت نام کرده باشه (برای signIn)
       let signUpData = await this.cacheService.get<{ phoneNumber: string; nationalId: string }>(
         `signup:${verifyOtpDto.phoneNumber}`,
       );
 
-      // کاربر رو با شماره تلفن پیدا کن
       let user = await this.usersService.findUserByPhoneNumber(verifyOtpDto.phoneNumber);
 
       if (!user) {
-        // اگر کاربر نبود، ولی داده ثبت نام وجود داشت، ثبتش کن
         if (!signUpData) {
           throw new HttpException('User not found and no sign-up data', HttpStatus.BAD_REQUEST);
         }
 
-        // اگر سوپرادمین هست، پرمیشن بده، وگرنه پرمیشن پیش‌فرض خالی
         const isSuperAdmin =
           signUpData.nationalId === this.configService.get<string>('SUPERADMIN_MELICODE') &&
           signUpData.phoneNumber === this.configService.get<string>('SUPERADMIN_PHONE');
@@ -128,7 +121,6 @@ export class AuthService {
           ? [{ resource: Resource.ALL, actions: [Action.MANAGE] }]
           : [];
 
-        // ذخیره کاربر و پروفایل در تراکنش
         const session = await this.authRepository.startTransaction();
         try {
           const userCreateInput: any = {
@@ -138,10 +130,13 @@ export class AuthService {
           if (isSuperAdmin) {
             userCreateInput.permissions = permissions;
           }
+          console.log('🚀 Creating user with:', userCreateInput);
           user = await this.usersService.create(userCreateInput, session);
+          console.log('✅ User created:', user);
           await this.authRepository.commitTransaction(session);
           await this.cacheService.delete(`signup:${verifyOtpDto.phoneNumber}`);
         } catch (error) {
+          console.error('❌ Error during user creation:', error);
           await this.authRepository.abortTransaction(session);
           throw new HttpException(
             'Failed to create user or profile',
