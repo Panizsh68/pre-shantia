@@ -18,6 +18,7 @@ export interface PopulateOptions {
 export interface FindOptions {
   select?: string | string[];
   populate?: string | string[] | PopulateOptions[];
+  conditions?: Record<string, any>;
   session?: ClientSession;
 }
 

@@ -20,7 +20,7 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  expressApp.set('trust proxy', true);
+  expressApp.set('trust proxy', 1);
 
   app.useGlobalPipes(
     new ValidationPipe({

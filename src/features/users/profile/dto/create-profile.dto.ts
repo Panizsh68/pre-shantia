@@ -51,14 +51,6 @@ export class CreateProfileDto extends CreateUserDto {
   @IsString()
   nationalId: string;
 
-  @ApiProperty({
-    description: 'Wallet ID associated with the user (optional)',
-    example: '507f1f77bcf86cd799439011',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  walletId?: string;
 
   @ApiProperty({
     description: 'List of order IDs associated with the user',

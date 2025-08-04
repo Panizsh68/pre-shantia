@@ -13,6 +13,7 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
+import { SortOrder } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import {
   ApiTags,
   ApiOperation,
@@ -41,10 +42,137 @@ import { RequestContext as IRequestContext } from 'src/common/types/request-cont
 @ApiBearerAuth()
 @Controller('products')
 export class ProductsController {
+  @Get('advanced-search')
+  @UseGuards(AuthenticationGuard)
+  @ApiOperation({ summary: 'Advanced search for products with multiple filters' })
+  @ApiQuery({ name: 'query', required: false, type: String })
+  @ApiQuery({ name: 'maxPrice', required: false, type: Number })
+  @ApiQuery({ name: 'companyName', required: false, type: String })
+  @ApiQuery({ name: 'categoryIds', required: false, type: [String] })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'sort', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'Advanced search results returned' })
+  async advancedSearch(
+    @Query('query') query?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('companyName') companyName?: string,
+    @Query('categoryIds') categoryIds?: string[],
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('sort') sort?: string,
+  ) {
+    const params: any = {};
+    if (query) params.query = query;
+    if (maxPrice !== undefined) {
+      const parsedMaxPrice = parseFloat(maxPrice);
+      if (isNaN(parsedMaxPrice) || parsedMaxPrice < 0) throw new BadRequestException('maxPrice must be a non-negative number');
+      params.maxPrice = parsedMaxPrice;
+    }
+    if (companyName) params.companyName = companyName;
+    if (categoryIds) params.categoryIds = Array.isArray(categoryIds) ? categoryIds : [categoryIds];
+    if (page !== undefined) {
+      const parsedPage = parseInt(page, 10);
+      if (isNaN(parsedPage) || parsedPage < 1) throw new BadRequestException('Page must be a positive integer');
+      params.page = parsedPage;
+    }
+    if (limit !== undefined) {
+      const parsedLimit = parseInt(limit, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1) throw new BadRequestException('Limit must be a positive integer');
+      params.limit = parsedLimit;
+    }
+    if (sort) params.sort = sort;
+    return this.productsService.advancedSearchAggregate(params);
+  }
+
   constructor(
     @Inject('IProductsService')
     private readonly productsService: IProductService,
-  ) {}
+  ) { }
+
+  @Get('search-by-price-company')
+  @UseGuards(AuthenticationGuard)
+  @ApiOperation({ summary: 'Search products by max price and company name' })
+  @ApiQuery({ name: 'maxPrice', required: false, type: Number, example: 500000 })
+  @ApiQuery({ name: 'companyName', required: false, type: String, example: 'Nike' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'sort', required: false, type: String, example: 'basePrice:desc' })
+  @ApiResponse({ status: 200, description: 'Search results returned' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async searchByPriceAndCompany(
+    @Query('maxPrice') maxPrice?: string,
+    @Query('companyName') companyName?: string,
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+    @Query('sort') sort?: string,
+  ) {
+    const options: FindManyOptions = {};
+    if (limit) {
+      const parsedLimit = parseInt(limit, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1) {
+        throw new BadRequestException('Limit must be a positive integer');
+      }
+      options.perPage = parsedLimit;
+    }
+    if (page) {
+      const parsedPage = parseInt(page, 10);
+      if (isNaN(parsedPage) || parsedPage < 1) {
+        throw new BadRequestException('Page must be a positive integer');
+      }
+      options.page = parsedPage;
+    }
+    if (sort) {
+      // Example: 'basePrice:desc' or 'name:asc'
+      const [field, order] = sort.split(':');
+      if (!field || !order || !['asc', 'desc'].includes(order.toLowerCase())) {
+        throw new BadRequestException('Sort must be in format field:asc|desc');
+      }
+      options.sort = [{ field, order: order.toLowerCase() === 'asc' ? SortOrder.ASC : SortOrder.DESC }];
+    }
+    let max: number | undefined = undefined;
+    if (maxPrice !== undefined) {
+      max = parseInt(maxPrice, 10);
+      if (isNaN(max) || max < 0) {
+        throw new BadRequestException('maxPrice must be a non-negative number');
+      }
+    }
+    return this.productsService.searchByPriceAndCompany({ maxPrice: max, companyName }, options);
+  }
+
+  @Get('search')
+  @UseGuards(AuthenticationGuard)
+  @ApiOperation({ summary: 'Search products by name, company, or category' })
+  @ApiQuery({ name: 'query', required: true, type: String, example: 'کفش' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiResponse({ status: 200, description: 'Search results returned' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async searchProducts(
+    @Query('query') query: string,
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+  ) {
+    if (!query || typeof query !== 'string' || !query.trim()) {
+      throw new BadRequestException('Query parameter is required');
+    }
+    const options: FindManyOptions = {};
+    if (limit) {
+      const parsedLimit = parseInt(limit, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1) {
+        throw new BadRequestException('Limit must be a positive integer');
+      }
+      options.perPage = parsedLimit;
+    }
+    if (page) {
+      const parsedPage = parseInt(page, 10);
+      if (isNaN(parsedPage) || parsedPage < 1) {
+        throw new BadRequestException('Page must be a positive integer');
+      }
+      options.page = parsedPage;
+    }
+    return this.productsService.searchProducts(query, options);
+  }
 
   @Post()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
@@ -158,6 +286,25 @@ export class ProductsController {
     if (isNaN(lim) || lim < 1) {
       throw new BadRequestException('Limit must be a positive integer');
     }
-    return this.productsService.getTopProductsBySales(lim);
+    return this.productsService.getTopProductsByRating(lim);
+  }
+
+  @Get('exists/name/:name')
+  @UseGuards(AuthenticationGuard)
+  @ApiOperation({ summary: 'Check if a product exists by name' })
+  @ApiParam({ name: 'name', type: String, description: 'Product name' })
+  @ApiResponse({ status: 200, description: 'Existence result' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async existsByName(@Param('name') name: string) {
+    return { exists: await this.productsService.existsByName(name) };
+  }
+
+  @Get('count')
+  @UseGuards(AuthenticationGuard)
+  @ApiOperation({ summary: 'Get total number of products' })
+  @ApiResponse({ status: 200, description: 'Total count returned' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async count() {
+    return { count: await this.productsService.count() };
   }
 }

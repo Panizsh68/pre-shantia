@@ -19,6 +19,7 @@ import { TokenPayload } from './interfaces/token-payload.interface';
 import { TokenType } from 'src/utils/services/tokens/tokentype.enum';
 import { IUsersService } from '../users/interfaces/user.service.interface';
 import { IProfileService } from '../users/profile/interfaces/profile.service.interface';
+import { IWalletService } from '../wallets/interfaces/wallet.service.interface';
 import { SignUpResponseDto } from './dto/sign-up.response.dto';
 import { SignInResponseDto } from './dto/signn-in.response.dto';
 import { ConfigService } from '@nestjs/config';
@@ -44,8 +45,9 @@ export class AuthService {
     private readonly cacheService: CachingService,
     private readonly configService: ConfigService,
     @Inject('IProfileService') private readonly profileService: IProfileService,
+    @Inject('IWalletsService') private readonly walletsService: IWalletService,
     @Inject('AuthRepository') private readonly authRepository: IAuthRepository,
-  ) {}
+  ) { }
 
   async signUp(createUserDto: CreateUserDto): Promise<SignUpResponseDto> {
     try {
@@ -133,6 +135,22 @@ export class AuthService {
           console.log('🚀 Creating user with:', userCreateInput);
           user = await this.usersService.create(userCreateInput, session);
           console.log('✅ User created:', user);
+
+          // Create wallet for user after signup
+          const { WalletOwnerType } = await import('../wallets/enums/wallet-ownertype.enum');
+          const wallet = await this.walletsService.createWallet({
+            ownerId: user.id.toString(),
+            ownerType: WalletOwnerType.USER,
+            balance: 0,
+            currency: 'IRR',
+          });
+
+          // Store walletId in profile
+          const profile = await this.profileService.getByUserId(user.id.toString());
+          if (profile) {
+            await this.profileService.update(profile.id, { walletId: wallet.id });
+          }
+
           await this.authRepository.commitTransaction(session);
           await this.cacheService.delete(`signup:${verifyOtpDto.phoneNumber}`);
         } catch (error) {
@@ -157,7 +175,6 @@ export class AuthService {
       const refreshPayload: TokenPayload = { ...payload, tokenType: TokenType.refresh };
       const refreshToken = await this.tokensService.getRefreshToken(refreshPayload);
 
-      // ذخیره امن refreshToken با context (ip و userAgent) توی کش برای اعتبارسنجی بعدی
       await this.cacheService.set(
         `refresh-info:${refreshToken}`,
         { ip: context.ip, userAgent: context.userAgent, userId: user.id.toString() },
@@ -216,6 +233,8 @@ export class AuthService {
         await this.cacheService.delete(`refresh-info:${refreshToken}`);
       }
       await this.cacheService.delete(`permissions:${userId}`);
+      // فقط پروفایل کاربر حذف شود، نه خود یوزر
+      await this.profileService.deleteByUserId(userId);
       return { message: 'Signed out successfully' };
     } catch (error) {
       throw new HttpException(

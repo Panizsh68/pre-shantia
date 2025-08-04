@@ -10,7 +10,15 @@ import { Wallet } from './entities/wallet.entity';
 
 @Injectable()
 export class WalletsService implements IWalletService {
-  constructor(@Inject('WalletRepository') private readonly walletRepository: IWalletRepository) {}
+  async createWallet(data: { ownerId: string; ownerType: string; balance?: number; currency?: string }): Promise<Wallet> {
+    return await this.walletRepository.createOne({
+      ownerId: data.ownerId,
+      ownerType: data.ownerType,
+      balance: data.balance ?? 0,
+      currency: data.currency ?? 'IRR',
+    });
+  }
+  constructor(@Inject('WalletRepository') private readonly walletRepository: IWalletRepository) { }
 
   async creditWallet(creditWalletDto: CreditWalletDto, session?: ClientSession): Promise<Wallet> {
     const transactionSession = session || (await this.walletRepository.startTransaction());
@@ -129,10 +137,16 @@ export class WalletsService implements IWalletService {
       throw new BadRequestException('ownerType is required');
     }
 
-    const wallet = await this.walletRepository.findByIdAndType(ownerId, ownerType, session);
+    let wallet = await this.walletRepository.findByIdAndType(ownerId, ownerType, session);
 
     if (!wallet) {
-      throw new NotFoundException('Wallet not found');
+      // Lazy creation: create wallet with initial values
+      wallet = await this.walletRepository.createOne({
+        ownerId,
+        ownerType,
+        balance: 0,
+        currency: 'IRR',
+      });
     }
 
     return wallet;

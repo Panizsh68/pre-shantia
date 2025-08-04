@@ -12,60 +12,74 @@ export class HealthController {
     private readonly cachingService: CachingService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
-  @Get('mongo')
-  checkMongoConnection() {
-    return {
-      readyState: this.connection.readyState,
-    };
-  }
+  @Get()
+  async checkAll() {
+    // Mongo
+    const mongo = { readyState: this.connection.readyState };
+    const mongoOk = mongo.readyState === 1;
 
-  @Get('cache-store')
-  checkCacheStore() {
-    const storeName = this.cachingService.getStoreName();
-    return { storeName };
-  }
-
-  @Get('redis')
-  async checkRedis() {
-    const key = `health-check-${Date.now()}`;
-    const expected = `value-${Math.random()}`;
-
+    // Cache
+    let cacheStore: string | null = null;
+    let cacheOk = false;
     try {
-      const storeName = this.cachingService.getStoreName();
-      const setResult = await this.cachingService.set(key, expected, 300);
-      const stored = await this.cachingService.get(key);
-      const isMatch = stored === expected;
-
-      return {
-        storeName,
-        key,
-        expected,
-        stored,
-        isMatch,
-        redis: isMatch && setResult,
-      };
-    } catch (err) {
-      return { redis: false, error: err.message };
+      cacheStore = this.cachingService.getStoreName();
+      cacheOk = !!cacheStore;
+    } catch (e) {
+      cacheStore = null;
+      cacheOk = false;
     }
-  }
 
-  @Get('config')
-  checkConfig() {
-    // Try both namespaces for compatibility with dev and prod
-    const appConfig = this.configService.get('app');
-    const prodConfig = this.configService.get('config');
+    // Redis
+    let redisOk = false;
+    let redisError = null;
+    try {
+      const key = `health-check-${Date.now()}`;
+      const expected = `value-${Math.random()}`;
+      await this.cachingService.set(key, expected, 300);
+      const stored = await this.cachingService.get(key);
+      redisOk = stored === expected;
+    } catch (err) {
+      redisOk = false;
+      redisError = err.message;
+    }
+
+    // Config
+    let configOk = false;
+    let configEnv = process.env.NODE_ENV;
+    let configFull = null;
+    try {
+      const appConfig = this.configService.get('app');
+      const prodConfig = this.configService.get('config');
+      configFull = appConfig || prodConfig;
+      configOk = !!configFull;
+    } catch (e) {
+      configOk = false;
+    }
+
+    // JWT
+    let jwtOk = false;
+    let jwtToken: string | null = null;
+    let jwtDecoded: string | object | null = null;
+    try {
+      jwtToken = this.jwtService.sign({ user: 'test' });
+      jwtDecoded = this.jwtService.decode(jwtToken);
+      jwtOk = !!jwtDecoded;
+    } catch (e) {
+      jwtOk = false;
+    }
+
+    // Overall
+    const allOk = mongoOk && cacheOk && redisOk && configOk && jwtOk;
+
     return {
-      fullConfig: appConfig || prodConfig,
-      env: process.env.NODE_ENV,
+      ok: allOk,
+      mongo: { ok: mongoOk, ...mongo },
+      cache: { ok: cacheOk, store: cacheStore },
+      redis: { ok: redisOk, error: redisError },
+      config: { ok: configOk, env: configEnv, config: configFull },
+      jwt: { ok: jwtOk, token: jwtToken, decoded: jwtDecoded },
     };
-  }
-
-  @Get('jwt')
-  checkJwt() {
-    const token = this.jwtService.sign({ user: 'test' });
-    const decoded = this.jwtService.decode(token);
-    return { token, decoded };
   }
 }

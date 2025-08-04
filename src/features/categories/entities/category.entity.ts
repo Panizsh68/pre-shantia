@@ -19,6 +19,12 @@ export class Category extends Document {
   @Prop({ type: Types.ObjectId, ref: 'Company', required: true, index: true })
   companyId: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  createdBy: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
+  updatedBy: Types.ObjectId;
+
   @Prop({
     type: String,
     enum: CategoryStatus,

@@ -12,6 +12,7 @@ import { UsersModule } from '../users/users.module';
 import { RefreshToken, RefreshTokenSchema } from './schemas/refresh-token.schema';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { ProfileModule } from '../users/profile/profile.module';
+import { WalletsModule } from '../wallets/wallets.module';
 import { User, UserSchema } from '../users/entities/user.entity';
 import { AuthRepository, IAuthRepository } from './repositories/auth.repository';
 import { Model } from 'mongoose';
@@ -33,6 +34,7 @@ import { Model } from 'mongoose';
     OtpModule,
     ProfileModule,
     forwardRef(() => UsersModule),
+    WalletsModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -51,4 +53,4 @@ import { Model } from 'mongoose';
     CachingService,
   ],
 })
-export class AuthModule {}
+export class AuthModule { }

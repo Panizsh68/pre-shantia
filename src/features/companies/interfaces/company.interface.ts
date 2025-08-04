@@ -7,4 +7,6 @@ export interface ICompany {
   isActive?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  createdBy?: string;
+  updatedBy?: string;
 }

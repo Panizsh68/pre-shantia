@@ -3,8 +3,10 @@ import { CreditWalletDto } from '../dto/credit-wallet.dto';
 import { WalletOwnerType } from '../enums/wallet-ownertype.enum';
 import { DebitWalletDto } from '../dto/debit-wallet.dto';
 import { GetWalletDto } from '../dto/get-wallet.dto';
+import { Wallet } from '../entities/wallet.entity';
 
 export interface IWalletService {
+  createWallet(data: { ownerId: string; ownerType: string; balance?: number; currency?: string }): Promise<Wallet>;
   creditWallet(creditWalletDto: CreditWalletDto, session?: ClientSession);
   debitWallet(debitWalletDto: DebitWalletDto, session?: ClientSession);
   transfer(

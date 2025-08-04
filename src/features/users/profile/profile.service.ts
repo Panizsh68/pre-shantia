@@ -9,7 +9,7 @@ import { ClientSession } from 'mongoose';
 export class ProfileService {
   constructor(
     @Inject('ProfileRepository') private readonly profileRepository: IProfileRepository,
-  ) {}
+  ) { }
 
   async create(createProfileDto: CreateProfileDto, session?: ClientSession): Promise<Profile> {
     const profile: CreateProfileDto = {
@@ -21,17 +21,18 @@ export class ProfileService {
   }
 
   async getByUserId(userId: string): Promise<Profile | null> {
-  return this.profileRepository.findById(userId);
-}
+    return this.profileRepository.findById(userId);
+  }
 
   async update(id: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {
-    const updatedProfile: Partial<CreateProfileDto> = {
+    const updatedProfile: Partial<CreateProfileDto & UpdateProfileDto> = {
       phoneNumber: updateProfileDto.phoneNumber,
       nationalId: updateProfileDto.nationalId,
       firstName: updateProfileDto.firstName,
       lastName: updateProfileDto.lastName,
       address: updateProfileDto.address,
       cart: updateProfileDto.cart,
+      walletId: updateProfileDto.walletId,
     };
     const updatedProfileResult = await this.profileRepository.updateById(id, updatedProfile);
     return updatedProfileResult;

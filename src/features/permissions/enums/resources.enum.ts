@@ -3,7 +3,6 @@ export enum Resource {
   CATEGORIES = 'categories',
   COMPANIES = 'companies',
   ORDERS = 'orders',
-  PAYMENT = 'payment',
   PRODUCTS = 'products',
   ROLES = 'roles',
   TICKETING = 'ticketing',

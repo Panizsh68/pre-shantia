@@ -1,3 +1,4 @@
+
 import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Types, ClientSession, PipelineStage } from 'mongoose';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -8,13 +9,24 @@ import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-option
 import { IProduct } from './interfaces/product.interface';
 import { TopProduct } from './interfaces/top-product.interface';
 import { RequestContext } from 'src/common/types/request-context.interface';
+import { ProductStatus } from './enums/product-status.enum';
+import { AdvancedSearchParams } from './types/advanced-search-params.type';
 
 @Injectable()
 export class ProductsService implements IProductService {
+  async searchByPriceAndCompany(
+    params: { maxPrice?: number; companyName?: string },
+    options: FindManyOptions = {},
+  ): Promise<IProduct[]> {
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const perPage = options.perPage && options.perPage > 0 ? options.perPage : 10;
+    const sort = options.sort?.map(s => ({ field: s.field, order: s.order }));
+    return this.repo.searchByPriceAndCompanyAggregate(params, page, perPage, undefined, sort);
+  }
   constructor(
     @Inject('ProductRepository')
     private readonly repo: IProductRepository,
-  ) {}
+  ) { }
 
   private toObjectId(id: string): Types.ObjectId {
     return new Types.ObjectId(id);
@@ -45,6 +57,7 @@ export class ProductsService implements IProductService {
   async findAll(options: FindManyOptions = {}, session?: ClientSession): Promise<IProduct[]> {
     const queryOptions: FindManyOptions = {
       ...options,
+      conditions: { ...options.conditions, status: ProductStatus.ACTIVE },
       populate: options.populate || ['companyId', 'categories'],
       session,
     };
@@ -54,7 +67,7 @@ export class ProductsService implements IProductService {
 
   async findOne(id: string, session?: ClientSession): Promise<IProduct> {
     const productDoc = await this.repo.findById(id, { session });
-    if (!productDoc) throw new NotFoundException(`Product with id ${id} not found`);
+    if (!productDoc || productDoc.status !== ProductStatus.ACTIVE) throw new NotFoundException(`Product with id ${id} not found or inactive`);
     return productDoc.toObject() as unknown as IProduct;
   }
 
@@ -95,8 +108,8 @@ export class ProductsService implements IProductService {
     return this.repo.countByCondition({ categories: this.toObjectId(categoryId) }, session);
   }
 
-  async getTopProductsBySales(limit = 5, session?: ClientSession): Promise<TopProduct[]> {
-    return this.repo.aggregate<TopProduct>([{ $sort: { sales: -1 } }, { $limit: limit }], session);
+  async getTopProductsByRating(limit = 5, session?: ClientSession): Promise<TopProduct[]> {
+    return this.repo.getTopProductsByRating(limit, session);
   }
 
   async transactionalCreate(
@@ -113,5 +126,29 @@ export class ProductsService implements IProductService {
       if (!session) await this.repo.abortTransaction(txn);
       throw err;
     }
+  }
+
+  async existsByName(name: string, session?: ClientSession): Promise<boolean> {
+    return this.repo.existsByCondition({ name }, session);
+  }
+
+  async count(session?: ClientSession): Promise<number> {
+    return this.repo.countByCondition({}, session);
+  }
+
+  async searchProducts(
+    query: string,
+    options: FindManyOptions = {},
+  ): Promise<IProduct[]> {
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const perPage = options.perPage && options.perPage > 0 ? options.perPage : 10;
+    // Only ACTIVE products
+    if (!options.conditions) options.conditions = {};
+    options.conditions.status = ProductStatus.ACTIVE;
+    return this.repo.searchProductsAggregate(query, page, perPage);
+  }
+
+  async advancedSearchAggregate(params: AdvancedSearchParams): Promise<IProduct[]> {
+    return this.repo.advancedSearchAggregate(params);
   }
 }

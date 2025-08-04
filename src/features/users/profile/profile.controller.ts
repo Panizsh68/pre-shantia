@@ -27,15 +27,9 @@ import {
 @ApiBearerAuth()
 @Controller('profile')
 export class ProfileController {
-  constructor(@Inject('IProfileService') private readonly profileService: ProfileService) {}
+  constructor(@Inject('IProfileService') private readonly profileService: ProfileService) { }
 
-  @Post()
-  @ApiOperation({ summary: 'Create a new profile' })
-  @ApiBody({ type: CreateProfileDto })
-  @ApiResponse({ status: 201, description: 'Profile created', type: Profile })
-  async create(@Body() createProfileDto: CreateProfileDto): Promise<Profile> {
-    return this.profileService.create(createProfileDto);
-  }
+
 
   @Get()
   @ApiOperation({ summary: 'Get current user profile' })
@@ -56,11 +50,5 @@ export class ProfileController {
     return this.profileService.update(id, updateProfileDto);
   }
 
-  @Delete(':userId')
-  @ApiOperation({ summary: 'Delete profile by userId' })
-  @ApiParam({ name: 'userId', type: String })
-  @ApiResponse({ status: 200, description: 'Profile deleted', type: Boolean })
-  async deleteByUserId(@Param('userId') userId: string): Promise<boolean> {
-    return this.profileService.deleteByUserId(userId);
-  }
+
 }
