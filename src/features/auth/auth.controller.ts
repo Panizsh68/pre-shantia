@@ -167,10 +167,11 @@ export class AuthController {
   async getProfile(
     @CurrentUser() user: TokenPayload,
   ): Promise<{ userId: string; permissions: IPermission[] }> {
-    return {
-      userId: user.userId,
-      permissions: user.permissions,
-    };
+    const permissions =
+      Array.isArray(user.permissions) && user.permissions.length > 0
+        ? user.permissions
+        : [{ resource: Resource.ALL, actions: [Action.DEFAULT] }];
+    return { userId: user.userId, permissions };
   }
 
   @Post('admin-signup')
