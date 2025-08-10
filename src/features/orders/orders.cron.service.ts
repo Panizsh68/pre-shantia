@@ -12,7 +12,7 @@ export class OrderCronService {
     @Inject('OrderRepository') private readonly orderRepository: IOrderRepository,
     private readonly ordersService: OrdersService,
     private readonly walletsService: WalletsService,
-  ) {}
+  ) { }
 
   @Cron('0 0 */1 * * *')
   async handleExpiredOrders(): Promise<void> {
@@ -22,6 +22,10 @@ export class OrderCronService {
         status: OrdersStatus.DELIVERED,
         deliveredAt: { $lte: threeDaysAgo },
         confirmedAt: null,
+        $or: [
+          { ticketId: null },
+          { ticketId: { $exists: false } },
+        ],
       },
     });
 

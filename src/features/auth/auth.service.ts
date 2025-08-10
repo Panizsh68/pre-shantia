@@ -108,6 +108,7 @@ export class AuthService {
         `signup:${verifyOtpDto.phoneNumber}`,
       );
 
+
       let user = await this.usersService.findUserByPhoneNumber(verifyOtpDto.phoneNumber);
 
       if (!user) {
@@ -119,19 +120,18 @@ export class AuthService {
           signUpData.nationalId === this.configService.get<string>('SUPERADMIN_MELICODE') &&
           signUpData.phoneNumber === this.configService.get<string>('SUPERADMIN_PHONE');
 
+        // اگر سوپرادمین نبود، permission پایه default را ست کن
         const permissions = isSuperAdmin
           ? [{ resource: Resource.ALL, actions: [Action.MANAGE] }]
-          : [];
+          : [{ resource: Resource.ALL, actions: [Action.DEFAULT] }];
 
         const session = await this.authRepository.startTransaction();
         try {
           const userCreateInput: any = {
             phoneNumber: signUpData.phoneNumber,
             nationalId: signUpData.nationalId,
+            permissions,
           };
-          if (isSuperAdmin) {
-            userCreateInput.permissions = permissions;
-          }
           console.log('🚀 Creating user with:', userCreateInput);
           user = await this.usersService.create(userCreateInput, session);
           console.log('✅ User created:', user);

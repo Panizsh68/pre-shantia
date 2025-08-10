@@ -16,6 +16,10 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } 
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { IRatingService } from './interfaces/rating.service.interface';
 import { AuthenticationGuard } from 'src/features/auth/guards/auth.guard';
+import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { PermissionsGuard } from '../permissions/guard/permission.guard';
+import { Resource } from '../permissions/enums/resources.enum';
+import { Action } from '../permissions/enums/actions.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
 
@@ -29,7 +33,8 @@ export class RatingController {
   ) { }
 
   @Post()
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.RATINGS, Action.DEFAULT)
   @ApiOperation({ summary: 'Create or update a rating for a product' })
   @ApiBody({ type: CreateRatingDto })
   @ApiResponse({ status: 201, description: 'Rating created/updated', type: Object })
@@ -43,7 +48,8 @@ export class RatingController {
   }
 
   @Get('product/:productId')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.RATINGS, Action.DEFAULT)
   @ApiOperation({ summary: 'Get all ratings for a product' })
   @ApiParam({ name: 'productId', type: String })
   @ApiResponse({ status: 200, description: 'Ratings returned', type: [Object] })
@@ -54,7 +60,8 @@ export class RatingController {
   }
 
   @Get('product/:productId/average')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.RATINGS, Action.DEFAULT)
   @ApiOperation({ summary: 'Get average rating for a product' })
   @ApiParam({ name: 'productId', type: String })
   @ApiResponse({ status: 200, description: 'Average rating returned', schema: { example: { average: 4.5 } } })
@@ -65,7 +72,8 @@ export class RatingController {
   }
 
   @Get('product/:productId/count')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.RATINGS, Action.DEFAULT)
   @ApiOperation({ summary: 'Get ratings count for a product' })
   @ApiParam({ name: 'productId', type: String })
   @ApiResponse({ status: 200, description: 'Ratings count returned', schema: { example: { count: 12 } } })
@@ -76,7 +84,8 @@ export class RatingController {
   }
 
   @Get('product/:productId/user/:userId')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.RATINGS, Action.DEFAULT)
   @ApiOperation({ summary: 'Get a user\'s rating for a product' })
   @ApiParam({ name: 'productId', type: String })
   @ApiParam({ name: 'userId', type: String })

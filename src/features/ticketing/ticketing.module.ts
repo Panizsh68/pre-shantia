@@ -10,6 +10,8 @@ import { User, UserSchema } from 'src/features/users/entities/user.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { Model } from 'mongoose';
 import { ITicketRepository, TicketRepository } from './repository/ticket.repository';
+import { OrdersModule } from '../orders/orders.module';
+import { WalletsModule } from '../wallets/wallets.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { ITicketRepository, TicketRepository } from './repository/ticket.reposit
       { name: User.name, schema: UserSchema },
     ]),
     ScheduleModule.forRoot(),
+    OrdersModule, // Added OrdersModule to imports
+    WalletsModule, // Added WalletsModule to imports
   ],
   controllers: [TicketingController],
   providers: [
@@ -38,4 +42,4 @@ import { ITicketRepository, TicketRepository } from './repository/ticket.reposit
   ],
   exports: ['ITicketingService'],
 })
-export class TicketingModule {}
+export class TicketingModule { }

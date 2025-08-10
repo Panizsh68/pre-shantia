@@ -21,19 +21,20 @@ import { CartsModule } from './features/carts/carts.module';
 import { CategoriesModule } from './features/categories/categories.module';
 import { ZarinpalModule } from './utils/services/zarinpal/zarinpal.module';
 import { HealthController } from './health/health.controller';
+import { SchedulerModule } from './features/scheduler/scheduler.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CachingModule } from './infrastructure/caching/caching.module';
 import { RequestContextInterceptor } from './utils/interceptors/request-context.interceptor';
 
 @Module({
   imports: [
-  ConfigModule.forRoot({
-    isGlobal: true,
-    envFilePath: [
-      `.env.${process.env.NODE_ENV}`,  
-      `.env`
-    ],
-  }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        `.env.${process.env.NODE_ENV}`,
+        `.env`
+      ],
+    }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
@@ -81,6 +82,7 @@ import { RequestContextInterceptor } from './utils/interceptors/request-context.
     TransactionModule,
     PaymentModule,
     CartsModule,
+    SchedulerModule,
     CategoriesModule,
     ZarinpalModule,
   ],
@@ -93,4 +95,4 @@ import { RequestContextInterceptor } from './utils/interceptors/request-context.
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

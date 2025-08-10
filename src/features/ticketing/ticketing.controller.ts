@@ -13,16 +13,15 @@ import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
 
 @ApiTags('Tickets')
-@UseGuards(AuthenticationGuard)
 @Controller('tickets')
 export class TicketingController {
   constructor(
     @Inject('ITicketingService')
     private readonly ticketingService: ITicketingService,
-  ) {}
+  ) { }
 
   @Post()
-  @UseGuards(PermissionsGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.TICKETING, Action.CREATE)
   @ApiOperation({ summary: 'Create a new ticket' })
   @ApiBody({ type: CreateTicketDto })
@@ -32,6 +31,8 @@ export class TicketingController {
   }
 
   @Get()
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.DEFAULT)
   @ApiOperation({ summary: 'Get all tickets (with optional filters)' })
   @ApiResponse({ status: 200, description: 'List of tickets returned' })
   async findAll(@Body() options: FindManyOptions): Promise<Ticket[]> {
@@ -39,6 +40,8 @@ export class TicketingController {
   }
 
   @Get(':id')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.DEFAULT)
   @ApiOperation({ summary: 'Get a ticket by ID' })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 200, description: 'Ticket found' })
@@ -48,6 +51,8 @@ export class TicketingController {
   }
 
   @Get(':id/status')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.DEFAULT)
   @ApiOperation({ summary: 'Get status of a ticket by ID' })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 200, description: 'Ticket status returned' })

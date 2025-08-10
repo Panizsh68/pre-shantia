@@ -17,7 +17,7 @@ export class PaymentService {
     @Inject('IWalletsService') private readonly walletsService: IWalletService,
     @Inject('IOrdersService') private readonly ordersService: IOrdersService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async initiatePayment(userId: string, orderId: string, amount: number) {
     const session = await this.transactionService.startSession();
@@ -65,17 +65,31 @@ export class PaymentService {
   async handleCallback(authority: string, status: string) {
     const session = await this.transactionService.startSession();
     try {
-      if (status !== 'OK') throw new BadRequestException('Payment failed');
-
       const transaction = await this.transactionService.findOne(authority, session);
       if (!transaction) throw new NotFoundException('Transaction not found');
+
+      if (status !== 'OK') {
+        // پرداخت ناموفق: سفارش failed شود
+        await this.ordersService.update({
+          id: transaction.orderId,
+          status: OrdersStatus.FAILED,
+        }, session);
+        throw new BadRequestException('Payment failed');
+      }
 
       const verificationResult = await this.zarinpalService.verifyPayment({
         authority,
         amount: transaction.amount,
       });
 
-      if (verificationResult.status !== '100') throw new BadRequestException('Verification failed');
+      if (verificationResult.status !== '100') {
+        // پرداخت تایید نشد: سفارش failed شود
+        await this.ordersService.update({
+          id: transaction.orderId,
+          status: OrdersStatus.FAILED,
+        }, session);
+        throw new BadRequestException('Verification failed');
+      }
 
       const updateDto = {
         ref_id: verificationResult.ref_id,

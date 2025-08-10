@@ -23,6 +23,9 @@ export class Ticket extends Document {
   @Prop({ type: String })
   assignedTo: string;
 
+  @Prop({ type: String, index: true })
+  orderId?: string;
+
   id: Types.ObjectId;
 }
 

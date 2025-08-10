@@ -100,4 +100,12 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   transportId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Ticket id if user opened a ticket for this order',
+    example: '507f1f77bcf86cd799439099',
+  })
+  @IsOptional()
+  @IsString()
+  ticketId?: string | null;
 }

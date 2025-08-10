@@ -7,8 +7,14 @@ import {
   Delete,
   Inject,
   Get,
+  UseGuards,
 } from '@nestjs/common';
+import { Permission } from 'src/features/permissions/decoratorss/permissions.decorators';
+import { PermissionsGuard } from 'src/features/permissions/guard/permission.guard';
+import { Resource } from 'src/features/permissions/enums/resources.enum';
+import { Action } from 'src/features/permissions/enums/actions.enum';
 import { ProfileService } from './profile.service';
+import { AuthenticationGuard } from 'src/features/auth/guards/auth.guard';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Profile } from './entities/profile.entity';
@@ -32,6 +38,8 @@ export class ProfileController {
 
 
   @Get()
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.USERS, Action.DEFAULT)
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'User profile', type: Profile })
   async getMyProfile(@CurrentUser() user: TokenPayload): Promise<Profile | null> {
@@ -39,6 +47,8 @@ export class ProfileController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.USERS, Action.DEFAULT)
   @ApiOperation({ summary: 'Update profile by ID' })
   @ApiParam({ name: 'id', type: String })
   @ApiBody({ type: UpdateProfileDto })

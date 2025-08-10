@@ -12,7 +12,6 @@ export interface IOrdersService {
   findByCompanyId(companyId: string): Promise<Order[]>;
   findActiveOrdersByUserId(userId: string): Promise<Order[]>;
   update(dto: UpdateOrderDto, session?: ClientSession): Promise<Order>;
-  cancel(id: string, session?: ClientSession): Promise<Order>;
   markAsPaid(id: string, session?: ClientSession): Promise<Order>;
   markAsShipped(id: string, transportId?: string, session?: ClientSession): Promise<Order>;
   markAsDelivered(id: string, session?: ClientSession): Promise<Order>;

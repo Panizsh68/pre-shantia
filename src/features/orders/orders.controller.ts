@@ -25,11 +25,11 @@ import { Action } from '../permissions/enums/actions.enum';
 @ApiTags('Orders')
 @Controller('orders')
 export class OrdersController {
-  constructor(@Inject('IOrdersService') private readonly ordersService: IOrdersService) {}
+  constructor(@Inject('IOrdersService') private readonly ordersService: IOrdersService) { }
 
   @Post()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.ORDERS, Action.CREATE)
+  @Permission(Resource.ORDERS, Action.DEFAULT)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new order' })
   @ApiBody({ type: CreateOrderDto })
@@ -39,7 +39,8 @@ export class OrdersController {
   }
 
   @Get(':id')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.ORDERS, Action.DEFAULT)
   @ApiOperation({ summary: 'Get order by ID' })
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, description: 'Order found', type: Order })
@@ -48,7 +49,8 @@ export class OrdersController {
   }
 
   @Get()
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.ORDERS, Action.DEFAULT)
   @ApiOperation({ summary: 'Find orders by userId or companyId' })
   @ApiQuery({ name: 'userId', required: false, type: String })
   @ApiQuery({ name: 'companyId', required: false, type: String })
@@ -63,27 +65,17 @@ export class OrdersController {
     return [];
   }
 
-  @Patch(':id')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.ORDERS, Action.UPDATE)
-  @ApiOperation({ summary: 'Update an order by ID' })
-  @ApiParam({ name: 'id', description: 'Order ID' })
-  @ApiBody({ type: UpdateOrderDto })
-  @ApiResponse({ status: 200, description: 'Order updated successfully', type: Order })
-  async update(@Param('id') id: string, @Body() dto: UpdateOrderDto) {
-    dto.id = id;
-    return await this.ordersService.update(dto);
-  }
-
-  @Patch(':id/cancel')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.ORDERS, Action.UPDATE)
-  @ApiOperation({ summary: 'Cancel an order' })
-  @ApiParam({ name: 'id', description: 'Order ID' })
-  @ApiResponse({ status: 200, description: 'Order cancelled' })
-  async cancel(@Param('id') id: string) {
-    return await this.ordersService.cancel(id);
-  }
+  // @Patch(':id')
+  // @UseGuards(AuthenticationGuard, PermissionsGuard)
+  // @Permission(Resource.ORDERS, Action.UPDATE)
+  // @ApiOperation({ summary: 'Update an order by ID' })
+  // @ApiParam({ name: 'id', description: 'Order ID' })
+  // @ApiBody({ type: UpdateOrderDto })
+  // @ApiResponse({ status: 200, description: 'Order updated successfully', type: Order })
+  // async update(@Param('id') id: string, @Body() dto: UpdateOrderDto) {
+  //   dto.id = id;
+  //   return await this.ordersService.update(dto);
+  // }
 
   @Patch(':id/mark-paid')
   @UseGuards(AuthenticationGuard, PermissionsGuard)

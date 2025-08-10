@@ -1,4 +1,9 @@
-import { Body, Controller, Get, Inject, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Post, Query, UseGuards } from '@nestjs/common';
+import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { PermissionsGuard } from '../permissions/guard/permission.guard';
+import { Resource } from '../permissions/enums/resources.enum';
+import { Action } from '../permissions/enums/actions.enum';
+import { AuthenticationGuard } from '../auth/guards/auth.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { PaymentService } from './payment.service';
 import { InitiatePaymentDto } from '../../utils/services/zarinpal/dtos';
@@ -7,9 +12,11 @@ import { HandleCallbackResponseDto } from './handle-callback.dto';
 @ApiTags('Payment')
 @Controller('payment')
 export class PaymentController {
-  constructor(@Inject('IPaymentService') private readonly paymentService: PaymentService) {}
+  constructor(@Inject('IPaymentService') private readonly paymentService: PaymentService) { }
 
   @Post('initiate')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PAYMENT, Action.DEFAULT)
   @ApiOperation({ summary: 'Initiate a payment via Zarinpal' })
   @ApiBody({ type: InitiatePaymentDto })
   @ApiResponse({
@@ -31,6 +38,8 @@ export class PaymentController {
   }
 
   @Get('callback')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PAYMENT, Action.DEFAULT)
   @ApiOperation({ summary: 'Handle Zarinpal callback after payment' })
   @ApiQuery({
     name: 'Authority',

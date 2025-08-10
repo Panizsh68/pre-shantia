@@ -10,5 +10,7 @@ export enum Resource {
   TRANSPORTING = 'transporting',
   USERS = 'users',
   WALLETS = 'wallets',
+  PAYMENT = 'payment',
+  RATINGS = 'ratings',
   ALL = 'all',
 }

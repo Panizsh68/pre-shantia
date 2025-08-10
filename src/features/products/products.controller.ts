@@ -43,7 +43,8 @@ import { RequestContext as IRequestContext } from 'src/common/types/request-cont
 @Controller('products')
 export class ProductsController {
   @Get('advanced-search')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PRODUCTS, Action.DEFAULT)
   @ApiOperation({ summary: 'Advanced search for products with multiple filters' })
   @ApiQuery({ name: 'query', required: false, type: String })
   @ApiQuery({ name: 'maxPrice', required: false, type: Number })
@@ -91,7 +92,8 @@ export class ProductsController {
   ) { }
 
   @Get('search-by-price-company')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PRODUCTS, Action.DEFAULT)
   @ApiOperation({ summary: 'Search products by max price and company name' })
   @ApiQuery({ name: 'maxPrice', required: false, type: Number, example: 500000 })
   @ApiQuery({ name: 'companyName', required: false, type: String, example: 'Nike' })
@@ -141,7 +143,8 @@ export class ProductsController {
   }
 
   @Get('search')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PRODUCTS, Action.DEFAULT)
   @ApiOperation({ summary: 'Search products by name, company, or category' })
   @ApiQuery({ name: 'query', required: true, type: String, example: 'کفش' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -192,7 +195,8 @@ export class ProductsController {
   }
 
   @Get()
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PRODUCTS, Action.DEFAULT)
   @ApiOperation({ summary: 'Get a paginated list of products' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
@@ -221,7 +225,8 @@ export class ProductsController {
   }
 
   @Get(':id')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PRODUCTS, Action.DEFAULT)
   @ApiOperation({ summary: 'Get product by ID' })
   @ApiParam({ name: 'id', type: String, description: 'Product ID' })
   @ApiResponse({ status: 200, description: 'Product found' })
@@ -266,7 +271,8 @@ export class ProductsController {
   }
 
   @Get('count/category/:categoryId')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PRODUCTS, Action.DEFAULT)
   @ApiOperation({ summary: 'Count products by category ID' })
   @ApiParam({ name: 'categoryId', type: String, description: 'Category ID' })
   @ApiResponse({ status: 200, description: 'Number of products returned' })
@@ -276,7 +282,8 @@ export class ProductsController {
   }
 
   @Get('top-sales')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PRODUCTS, Action.DEFAULT)
   @ApiOperation({ summary: 'Get top-selling products' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 5 })
   @ApiResponse({ status: 200, description: 'Top products returned' })
@@ -290,7 +297,8 @@ export class ProductsController {
   }
 
   @Get('exists/name/:name')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PRODUCTS, Action.DEFAULT)
   @ApiOperation({ summary: 'Check if a product exists by name' })
   @ApiParam({ name: 'name', type: String, description: 'Product name' })
   @ApiResponse({ status: 200, description: 'Existence result' })
@@ -300,7 +308,8 @@ export class ProductsController {
   }
 
   @Get('count')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PRODUCTS, Action.DEFAULT)
   @ApiOperation({ summary: 'Get total number of products' })
   @ApiResponse({ status: 200, description: 'Total count returned' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

@@ -34,6 +34,6 @@ import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/token
     },
     OrderFactoryService,
   ],
-  exports: ['IOrdersService', 'OrderRepository'],
+  exports: ['IOrdersService', 'OrderRepository', GenericRepositoryModule], // Added GenericRepositoryModule to exports
 })
-export class OrdersModule {}
+export class OrdersModule { }

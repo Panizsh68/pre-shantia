@@ -27,6 +27,9 @@ export class Order extends Document {
 
   @Prop()
   transportId: string;
+
+  @Prop({ type: String, default: null })
+  ticketId: string | null;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

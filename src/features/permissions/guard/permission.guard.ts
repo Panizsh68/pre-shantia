@@ -7,7 +7,7 @@ import { Resource } from '../enums/resources.enum';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const permissionMeta =
@@ -23,7 +23,12 @@ export class PermissionsGuard implements CanActivate {
       const isAllManage = perm.resource === Resource.ALL && perm.actions.includes(Action.MANAGE);
       const isMatching =
         perm.resource === permissionMeta.resource && perm.actions.includes(permissionMeta.action);
-      return isMatching || isAllManage;
+      // اگر action مورد نیاز DEFAULT باشد و کاربر فقط همین را داشته باشد، اجازه بده
+      const isDefault =
+        permissionMeta.action === Action.DEFAULT &&
+        perm.resource === Resource.ALL &&
+        perm.actions.includes(Action.DEFAULT);
+      return isMatching || isAllManage || isDefault;
     });
 
     if (!hasPermission) {

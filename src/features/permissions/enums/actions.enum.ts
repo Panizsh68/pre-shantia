@@ -1,4 +1,5 @@
 export enum Action {
+  DEFAULT = 'default',
   READ = 'r',
   UPDATE = 'u',
   CREATE = 'c',

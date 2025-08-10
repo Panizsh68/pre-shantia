@@ -18,6 +18,10 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { WalletsService } from './wallets.service';
+import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { PermissionsGuard } from '../permissions/guard/permission.guard';
+import { Resource } from '../permissions/enums/resources.enum';
+import { Action } from '../permissions/enums/actions.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
 import { GetWalletDto } from './dto/get-wallet.dto';
@@ -37,7 +41,8 @@ export class WalletsController {
   constructor(@Inject('IWalletsService') private readonly walletsService: WalletsService) { }
 
   @Get()
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.WALLETS, Action.DEFAULT)
   @ApiOperation({ summary: 'Get wallet for authenticated user' })
   @ApiResponse({ status: 200, description: 'Wallet returned', type: Wallet })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

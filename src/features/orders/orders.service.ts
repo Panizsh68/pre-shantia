@@ -139,40 +139,6 @@ export class OrdersService implements IOrdersService {
     }
   }
 
-  async cancel(id: string, session?: ClientSession): Promise<Order> {
-    const orderSession = session || (await this.orderRepository.startTransaction());
-    try {
-      const order = await this.orderRepository.findById(id, { session: orderSession });
-      if (!order) {
-        throw new NotFoundException(`Order with ID '${id}' not found`);
-      }
-      if (order.status === OrdersStatus.CANCELED) {
-        throw new BadRequestException(`Order with ID '${id}' is already canceled`);
-      }
-      if (
-        [OrdersStatus.DELIVERED, OrdersStatus.COMPLETED, OrdersStatus.REFUNDED].includes(
-          order.status,
-        )
-      ) {
-        throw new BadRequestException(
-          `Cannot cancel order with ID '${id}' in status '${order.status}'`,
-        );
-      }
-
-      const updateData = { status: OrdersStatus.CANCELED };
-      const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
-      if (!session) {
-        await this.orderRepository.commitTransaction(orderSession);
-      }
-      return updatedOrder;
-    } catch (error) {
-      if (!session) {
-        await this.orderRepository.abortTransaction(orderSession);
-      }
-      throw new BadRequestException(`Failed to cancel order: ${error.message}`);
-    }
-  }
-
   async markAsPaid(id: string, session?: ClientSession): Promise<Order> {
     const orderSession = session || (await this.orderRepository.startTransaction());
     try {

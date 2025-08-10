@@ -53,4 +53,12 @@ export class CreateTicketDto {
   @IsOptional()
   @IsString()
   assignedTo?: string;
+
+  @ApiPropertyOptional({
+    description: 'Order id if this ticket is related to an order',
+    example: '507f1f77bcf86cd799439099',
+  })
+  @IsOptional()
+  @IsString()
+  orderId?: string;
 }

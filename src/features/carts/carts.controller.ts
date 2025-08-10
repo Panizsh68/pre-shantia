@@ -30,12 +30,12 @@ import { UpdateCartDto } from './dto/update-cart.dto';
 
 @ApiTags('Carts')
 @ApiBearerAuth()
-@UseGuards(AuthenticationGuard)
 @Controller('carts')
 export class CartsController {
-  constructor(@Inject('ICartsService') private readonly cartsService: ICartsService) {}
+  constructor(@Inject('ICartsService') private readonly cartsService: ICartsService) { }
 
   @Get('active')
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: 'Get the active cart for current user' })
   @ApiResponse({ status: 200, description: 'User active cart returned', type: Cart })
   @HttpCode(HttpStatus.OK)
@@ -44,6 +44,7 @@ export class CartsController {
   }
 
   @Get('populated')
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: 'Get carts with populated related data for current user' })
   @ApiResponse({ status: 200, description: 'Populated carts list returned', type: [Cart] })
   @HttpCode(HttpStatus.OK)
@@ -52,6 +53,7 @@ export class CartsController {
   }
 
   @Get('summary')
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: 'Get summary of user carts' })
   @ApiResponse({ status: 200, description: 'Cart summary returned', type: Object })
   @HttpCode(HttpStatus.OK)
@@ -60,6 +62,7 @@ export class CartsController {
   }
 
   @Post()
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: 'Create a new cart' })
   @ApiBody({ type: CreateCartDto })
   @ApiResponse({ status: 201, description: 'Cart created', type: Cart })
@@ -69,6 +72,7 @@ export class CartsController {
   }
 
   @Post('items')
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: "Add item to user's cart" })
   @ApiBody({ type: CartItemDto })
   @ApiResponse({ status: 200, description: 'Item added to cart', type: Cart })
@@ -78,6 +82,7 @@ export class CartsController {
   }
 
   @Delete('items/:productId')
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: "Remove item from user's cart" })
   @ApiParam({ name: 'productId', description: 'ID of the product to remove' })
   @ApiResponse({ status: 200, description: 'Item removed from cart', type: Cart })
@@ -87,6 +92,7 @@ export class CartsController {
   }
 
   @Delete('clear')
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: "Clear all items from user's cart" })
   @ApiResponse({ status: 200, description: 'Cart cleared', type: Cart })
   @HttpCode(HttpStatus.OK)
@@ -95,6 +101,7 @@ export class CartsController {
   }
 
   @Post('checkout')
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: "Checkout the user's cart" })
   @ApiResponse({ status: 200, description: 'Cart checked out successfully', type: Object })
   @HttpCode(HttpStatus.OK)
@@ -103,6 +110,7 @@ export class CartsController {
   }
 
   @Patch()
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: "Update the user's cart partially" })
   @ApiBody({ type: UpdateCartDto })
   @ApiResponse({ status: 200, description: 'Cart updated', type: Cart })

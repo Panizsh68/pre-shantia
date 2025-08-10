@@ -10,4 +10,11 @@ export class UpdateOrderDto extends PartialType(CreateOrderDto) {
   })
   @IsMongoId()
   id: string;
+
+  @ApiProperty({
+    description: 'Ticket id if user opened a ticket for this order',
+    example: '507f1f77bcf86cd799439099',
+    required: false,
+  })
+  ticketId?: string | null;
 }

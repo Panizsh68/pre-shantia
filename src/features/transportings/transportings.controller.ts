@@ -15,7 +15,7 @@ import { Action } from '../permissions/enums/actions.enum';
 export class TransportingsController {
   constructor(
     @Inject('ITransportingsService') private readonly transportingsService: ITransportingsService,
-  ) {}
+  ) { }
 
   @Post()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
@@ -29,7 +29,8 @@ export class TransportingsController {
   }
 
   @Get(':id')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TRANSPORTING, Action.DEFAULT)
   @ApiOperation({ summary: 'Get transporting record by ID' })
   @ApiParam({ name: 'id', description: 'Transporting ID', example: '507f1f77bcf86cd799439011' })
   @ApiResponse({ status: 200, description: 'Transporting record found' })
@@ -39,7 +40,8 @@ export class TransportingsController {
   }
 
   @Get('order/:orderId')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TRANSPORTING, Action.DEFAULT)
   @ApiOperation({ summary: 'Get transporting record by order ID' })
   @ApiParam({ name: 'orderId', description: 'Order ID', example: '507f1f77bcf86cd799439012' })
   @ApiResponse({ status: 200, description: 'Transporting record found' })
@@ -49,7 +51,8 @@ export class TransportingsController {
   }
 
   @Get('company/:companyId')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TRANSPORTING, Action.DEFAULT)
   @ApiOperation({ summary: 'Get transporting records by company ID' })
   @ApiParam({ name: 'companyId', description: 'Company ID', example: '507f1f77bcf86cd799439013' })
   @ApiResponse({ status: 200, description: 'List of transporting records found' })

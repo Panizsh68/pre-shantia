@@ -10,6 +10,7 @@ export interface IOrder {
   paymentMethod?: string;
   companyId: string;
   transportId?: string;
+  ticketId?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
