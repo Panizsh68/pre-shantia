@@ -42,7 +42,6 @@ import { RequestContextInterceptor } from './utils/interceptors/request-context.
         retryAttempts: 10,
         retryDelay: 2000,
         serverSelectionTimeoutMS: 5000,
-        directConnection: true,
       }),
       inject: [ConfigService],
     }),

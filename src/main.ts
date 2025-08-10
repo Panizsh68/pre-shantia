@@ -14,11 +14,16 @@ async function bootstrap(): Promise<void> {
 
   const app = await NestFactory.create(AppModule, adapter);
 
-  app.use(
-    cors({
-      origin: ['https://ariasakht.com', 'https://www.ariasakht.com'],
-    }),
-  );
+  app.enableCors({
+    origin: [
+      'https://ariasakht.com',
+      'https://www.ariasakht.com',
+      'http://localhost:3000'
+    ],
+    methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    credentials: true,
+    preflightContinue: false,  
+  });
 
   expressApp.set('trust proxy', 1);
 
