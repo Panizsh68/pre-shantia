@@ -43,7 +43,7 @@ export class WalletsController {
   @Get()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.WALLETS, Action.DEFAULT)
-  @ApiOperation({ summary: 'Get wallet for authenticated user' })
+  @ApiOperation({ summary: 'Get wallet for authenticated user', description: 'This route is open for default users.' })
   @ApiResponse({ status: 200, description: 'Wallet returned', type: Wallet })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getWallet(@Req() request: AuthenticatedRequest & { user: TokenPayload }): Promise<Wallet> {

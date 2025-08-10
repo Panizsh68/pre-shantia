@@ -45,7 +45,7 @@ export class ProductsController {
   @Get('advanced-search')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.PRODUCTS, Action.DEFAULT)
-  @ApiOperation({ summary: 'Advanced search for products with multiple filters' })
+  @ApiOperation({ summary: 'Advanced search for products with multiple filters', description: 'This route is open for default users.' })
   @ApiQuery({ name: 'query', required: false, type: String })
   @ApiQuery({ name: 'maxPrice', required: false, type: Number })
   @ApiQuery({ name: 'companyName', required: false, type: String })

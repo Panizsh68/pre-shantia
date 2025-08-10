@@ -40,7 +40,7 @@ export class ProfileController {
   @Get()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.USERS, Action.DEFAULT)
-  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiOperation({ summary: 'Get current user profile', description: 'This route is open for default users.' })
   @ApiResponse({ status: 200, description: 'User profile', type: Profile })
   async getMyProfile(@CurrentUser() user: TokenPayload): Promise<Profile | null> {
     return this.profileService.getByUserId(user.userId);
@@ -49,7 +49,7 @@ export class ProfileController {
   @Patch(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.USERS, Action.DEFAULT)
-  @ApiOperation({ summary: 'Update profile by ID' })
+  @ApiOperation({ summary: 'Update profile by ID', description: 'This route is open for default users.' })
   @ApiParam({ name: 'id', type: String })
   @ApiBody({ type: UpdateProfileDto })
   @ApiResponse({ status: 200, description: 'Profile updated', type: Profile })

@@ -31,7 +31,7 @@ export class OrdersController {
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.ORDERS, Action.DEFAULT)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new order' })
+  @ApiOperation({ summary: 'Create a new order', description: 'This route is open for default users.' })
   @ApiBody({ type: CreateOrderDto })
   @ApiResponse({ status: 201, description: 'Order created successfully', type: Order })
   async create(@Body() dto: CreateOrderDto) {
@@ -41,7 +41,7 @@ export class OrdersController {
   @Get(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.ORDERS, Action.DEFAULT)
-  @ApiOperation({ summary: 'Get order by ID' })
+  @ApiOperation({ summary: 'Get order by ID', description: 'This route is open for default users.' })
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, description: 'Order found', type: Order })
   async getById(@Param('id') id: string) {

@@ -7,6 +7,7 @@ import {
   Inject,
   UnauthorizedException,
 } from '@nestjs/common';
+import { TokenPayload } from './interfaces/token-payload.interface';
 import { ShahkarService } from 'src/utils/services/shahkar/shahkar.service';
 import { OtpService } from 'src/utils/services/otp/otp.service';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
@@ -15,7 +16,6 @@ import { SignUpDto } from './dto/sign-up.dto';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
-import { TokenPayload } from './interfaces/token-payload.interface';
 import { TokenType } from 'src/utils/services/tokens/tokentype.enum';
 import { IUsersService } from '../users/interfaces/user.service.interface';
 import { IProfileService } from '../users/profile/interfaces/profile.service.interface';
@@ -166,7 +166,7 @@ export class AuthService {
       // generate tokens
       const payload: TokenPayload = {
         userId: user.id.toString(),
-        permissions: user.permissions || [],
+        permissions: user.permissions || [{ resource: Resource.ALL, actions: [Action.DEFAULT] }],
         tokenType: TokenType.access,
       };
 
@@ -212,7 +212,7 @@ export class AuthService {
 
       const accessToken = await this.tokensService.getAccessToken({
         userId: user.id.toString(),
-        permissions: user.permissions || [],
+        permissions: user.permissions || [{ resource: Resource.ALL, actions: [Action.DEFAULT] }],
         tokenType: TokenType.access,
       });
 

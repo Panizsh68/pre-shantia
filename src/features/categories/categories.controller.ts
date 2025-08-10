@@ -104,7 +104,7 @@ export class CategoriesController {
   @Get(':id')
   @UseGuards(AuthenticationGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get category by ID' })
+  @ApiOperation({ summary: 'Get category by ID', description: 'This route is open for default users.' })
   @ApiParam({ name: 'id', type: String, description: 'Category ID' })
   @ApiResponse({ status: 200, description: 'Category found', type: Category })
   @ApiResponse({ status: 404, description: 'Category not found' })

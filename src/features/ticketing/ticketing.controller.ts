@@ -33,7 +33,7 @@ export class TicketingController {
   @Get()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.TICKETING, Action.DEFAULT)
-  @ApiOperation({ summary: 'Get all tickets (with optional filters)' })
+  @ApiOperation({ summary: 'Get all tickets (with optional filters)', description: 'This route is open for default users.' })
   @ApiResponse({ status: 200, description: 'List of tickets returned' })
   async findAll(@Body() options: FindManyOptions): Promise<Ticket[]> {
     return this.ticketingService.findAll(options);
