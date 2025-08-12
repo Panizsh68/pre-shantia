@@ -170,7 +170,20 @@ export class AuthController {
     const permissions =
       Array.isArray(user.permissions) && user.permissions.length > 0
         ? user.permissions
-        : [{ resource: Resource.ALL, actions: [Action.DEFAULT] }];
+        : [
+            { resource: Resource.ORDERS, actions: [Action.CREATE, Action.READ] },
+            { resource: Resource.PRODUCTS, actions: [Action.READ] },
+            { resource: Resource.RATINGS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
+            { resource: Resource.TICKETING, actions: [Action.READ, Action.CREATE] },
+            { resource: Resource.TRANSACTION, actions: [Action.READ] },
+            { resource: Resource.TRANSPORTING, actions: [Action.READ] },
+            { resource: Resource.PROFILE, actions: [Action.READ, Action.CREATE] },
+            { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE] },
+            { resource: Resource.PAYMENT, actions: [Action.CREATE, Action.UPDATE] },
+            { resource: Resource.CARTS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
+            { resource: Resource.CATEGORIES, actions: [Action.READ] },
+            { resource: Resource.COMPANIES, actions: [Action.READ] }
+          ];
     return { userId: user.userId, permissions };
   }
 
