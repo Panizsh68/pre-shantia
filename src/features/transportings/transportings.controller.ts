@@ -30,7 +30,7 @@ export class TransportingsController {
 
   @Get(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.TRANSPORTING, Action.DEFAULT)
+  @Permission(Resource.TRANSPORTING, Action.READ)
   @ApiOperation({ summary: 'Get transporting record by ID', description: 'This route is open for default users.' })
   @ApiParam({ name: 'id', description: 'Transporting ID', example: '507f1f77bcf86cd799439011' })
   @ApiResponse({ status: 200, description: 'Transporting record found' })
@@ -41,7 +41,7 @@ export class TransportingsController {
 
   @Get('order/:orderId')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.TRANSPORTING, Action.DEFAULT)
+  @Permission(Resource.TRANSPORTING, Action.READ)
   @ApiOperation({ summary: 'Get transporting record by order ID', description: 'This route is open for default users.' })
   @ApiParam({ name: 'orderId', description: 'Order ID', example: '507f1f77bcf86cd799439012' })
   @ApiResponse({ status: 200, description: 'Transporting record found' })
@@ -52,7 +52,7 @@ export class TransportingsController {
 
   @Get('company/:companyId')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.TRANSPORTING, Action.DEFAULT)
+  @Permission(Resource.TRANSPORTING, Action.detailed_read)
   @ApiOperation({ summary: 'Get transporting records by company ID' })
   @ApiParam({ name: 'companyId', description: 'Company ID', example: '507f1f77bcf86cd799439013' })
   @ApiResponse({ status: 200, description: 'List of transporting records found' })

@@ -27,6 +27,10 @@ import { Cart } from './entities/cart.entity';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
 import { ICartsService } from './interfaces/carts-service.interface';
 import { UpdateCartDto } from './dto/update-cart.dto';
+import { PermissionsGuard } from '../permissions/guard/permission.guard';
+import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { Resource } from '../permissions/enums/resources.enum';
+import { Action } from '../permissions/enums/actions.enum';
 
 @ApiTags('Carts')
 @ApiBearerAuth()
@@ -35,7 +39,8 @@ export class CartsController {
   constructor(@Inject('ICartsService') private readonly cartsService: ICartsService) { }
 
   @Get('active')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.CARTS, Action.READ)
   @ApiOperation({ summary: 'Get the active cart for current user' })
   @ApiResponse({ status: 200, description: 'User active cart returned', type: Cart })
   @HttpCode(HttpStatus.OK)
@@ -45,6 +50,7 @@ export class CartsController {
 
   @Get('populated')
   @UseGuards(AuthenticationGuard)
+  @Permission(Resource.CARTS, Action.READ)
   @ApiOperation({ summary: 'Get carts with populated related data for current user' })
   @ApiResponse({ status: 200, description: 'Populated carts list returned', type: [Cart] })
   @HttpCode(HttpStatus.OK)
@@ -54,6 +60,7 @@ export class CartsController {
 
   @Get('summary')
   @UseGuards(AuthenticationGuard)
+  @Permission(Resource.CARTS, Action.READ)
   @ApiOperation({ summary: 'Get summary of user carts' })
   @ApiResponse({ status: 200, description: 'Cart summary returned', type: Object })
   @HttpCode(HttpStatus.OK)
@@ -63,6 +70,7 @@ export class CartsController {
 
   @Post()
   @UseGuards(AuthenticationGuard)
+  @Permission(Resource.CARTS, Action.CREATE)
   @ApiOperation({ summary: 'Create a new cart' })
   @ApiBody({ type: CreateCartDto })
   @ApiResponse({ status: 201, description: 'Cart created', type: Cart })
@@ -73,6 +81,7 @@ export class CartsController {
 
   @Post('items')
   @UseGuards(AuthenticationGuard)
+    @Permission(Resource.CARTS, Action.CREATE)
   @ApiOperation({ summary: "Add item to user's cart" })
   @ApiBody({ type: CartItemDto })
   @ApiResponse({ status: 200, description: 'Item added to cart', type: Cart })
@@ -83,6 +92,7 @@ export class CartsController {
 
   @Delete('items/:productId')
   @UseGuards(AuthenticationGuard)
+  @Permission(Resource.CARTS, Action.DELETE)
   @ApiOperation({ summary: "Remove item from user's cart" })
   @ApiParam({ name: 'productId', description: 'ID of the product to remove' })
   @ApiResponse({ status: 200, description: 'Item removed from cart', type: Cart })
@@ -93,6 +103,7 @@ export class CartsController {
 
   @Delete('clear')
   @UseGuards(AuthenticationGuard)
+  @Permission(Resource.CARTS, Action.DELETE)
   @ApiOperation({ summary: "Clear all items from user's cart" })
   @ApiResponse({ status: 200, description: 'Cart cleared', type: Cart })
   @HttpCode(HttpStatus.OK)
@@ -102,6 +113,7 @@ export class CartsController {
 
   @Post('checkout')
   @UseGuards(AuthenticationGuard)
+  @Permission(Resource.CARTS, Action.UPDATE)
   @ApiOperation({ summary: "Checkout the user's cart" })
   @ApiResponse({ status: 200, description: 'Cart checked out successfully', type: Object })
   @HttpCode(HttpStatus.OK)
@@ -111,6 +123,7 @@ export class CartsController {
 
   @Patch()
   @UseGuards(AuthenticationGuard)
+  @Permission(Resource.CARTS, Action.UPDATE)
   @ApiOperation({ summary: "Update the user's cart partially" })
   @ApiBody({ type: UpdateCartDto })
   @ApiResponse({ status: 200, description: 'Cart updated', type: Cart })

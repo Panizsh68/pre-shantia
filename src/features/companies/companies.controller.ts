@@ -99,7 +99,8 @@ export class CompaniesController {
   }
 
   @Get(':id')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.COMPANIES, Action.READ)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get company by ID' })
   @ApiParam({ name: 'id', type: String, description: 'Company ID' })
@@ -111,7 +112,8 @@ export class CompaniesController {
   }
 
   @Get()
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.COMPANIES, Action.READ)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all companies' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -141,7 +143,8 @@ export class CompaniesController {
   }
 
   @Get('exists/name/:name')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.COMPANIES, Action.READ)
   @ApiOperation({ summary: 'Check if a company exists by name' })
   @ApiParam({ name: 'name', type: String, description: 'Company name' })
   @ApiResponse({ status: 200, description: 'Existence result' })
@@ -151,7 +154,8 @@ export class CompaniesController {
   }
 
   @Get('count')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.COMPANIES, Action.READ)
   @ApiOperation({ summary: 'Get total number of companies' })
   @ApiResponse({ status: 200, description: 'Total count returned' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

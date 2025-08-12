@@ -29,7 +29,7 @@ export class OrdersController {
 
   @Post()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.ORDERS, Action.DEFAULT)
+  @Permission(Resource.ORDERS, Action.CREATE)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new order', description: 'This route is open for default users.' })
   @ApiBody({ type: CreateOrderDto })
@@ -40,7 +40,7 @@ export class OrdersController {
 
   @Get(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.ORDERS, Action.DEFAULT)
+  @Permission(Resource.ORDERS, Action.READ)
   @ApiOperation({ summary: 'Get order by ID', description: 'This route is open for default users.' })
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, description: 'Order found', type: Order })
@@ -50,7 +50,7 @@ export class OrdersController {
 
   @Get()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.ORDERS, Action.DEFAULT)
+  @Permission(Resource.ORDERS, Action.READ)
   @ApiOperation({ summary: 'Find orders by userId or companyId' })
   @ApiQuery({ name: 'userId', required: false, type: String })
   @ApiQuery({ name: 'companyId', required: false, type: String })

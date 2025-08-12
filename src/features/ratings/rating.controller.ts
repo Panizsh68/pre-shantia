@@ -34,7 +34,7 @@ export class RatingController {
 
   @Post()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.RATINGS, Action.DEFAULT)
+  @Permission(Resource.RATINGS, Action.CREATE)
   @ApiOperation({ summary: 'Create or update a rating for a product', description: 'This route is open for default users.' })
   @ApiBody({ type: CreateRatingDto })
   @ApiResponse({ status: 201, description: 'Rating created/updated', type: Object })
@@ -49,7 +49,7 @@ export class RatingController {
 
   @Get('product/:productId')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.RATINGS, Action.DEFAULT)
+  @Permission(Resource.RATINGS, Action.READ)
   @ApiOperation({ summary: 'Get all ratings for a product', description: 'This route is open for default users.' })
   @ApiParam({ name: 'productId', type: String })
   @ApiResponse({ status: 200, description: 'Ratings returned', type: [Object] })
@@ -61,7 +61,7 @@ export class RatingController {
 
   @Get('product/:productId/average')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.RATINGS, Action.DEFAULT)
+  @Permission(Resource.RATINGS, Action.READ)
   @ApiOperation({ summary: 'Get average rating for a product', description: 'This route is open for default users.' })
   @ApiParam({ name: 'productId', type: String })
   @ApiResponse({ status: 200, description: 'Average rating returned', schema: { example: { average: 4.5 } } })
@@ -73,7 +73,7 @@ export class RatingController {
 
   @Get('product/:productId/count')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.RATINGS, Action.DEFAULT)
+  @Permission(Resource.RATINGS, Action.READ)
   @ApiOperation({ summary: 'Get ratings count for a product', description: 'This route is open for default users.' })
   @ApiParam({ name: 'productId', type: String })
   @ApiResponse({ status: 200, description: 'Ratings count returned', schema: { example: { count: 12 } } })
@@ -85,7 +85,7 @@ export class RatingController {
 
   @Get('product/:productId/user/:userId')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.RATINGS, Action.DEFAULT)
+  @Permission(Resource.RATINGS, Action.READ)
   @ApiOperation({ summary: 'Get a user\'s rating for a product', description: 'This route is open for default users.' })
   @ApiParam({ name: 'productId', type: String })
   @ApiParam({ name: 'userId', type: String })
@@ -101,7 +101,7 @@ export class RatingController {
 
   @Patch('product/:productId')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.RATINGS, Action.DEFAULT)
+  @Permission(Resource.RATINGS, Action.UPDATE)
   @ApiOperation({ summary: 'Update a user\'s rating for a product', description: 'This route is open for default users.' })
   @ApiParam({ name: 'productId', type: String })
   @ApiBody({ type: CreateRatingDto })
@@ -118,7 +118,7 @@ export class RatingController {
 
   @Delete('product/:productId')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.RATINGS, Action.DEFAULT)
+  @Permission(Resource.RATINGS, Action.DELETE)
   @ApiOperation({ summary: 'Delete a user\'s rating for a product', description: 'This route is open for default users.' })
   @ApiParam({ name: 'productId', type: String })
   @ApiResponse({ status: 204, description: 'Rating deleted' })

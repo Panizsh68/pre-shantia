@@ -72,7 +72,8 @@ export class CategoriesController {
   }
 
   @Get()
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.CATEGORIES, Action.READ)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all categories' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -102,7 +103,8 @@ export class CategoriesController {
   }
 
   @Get(':id')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.CATEGORIES, Action.READ)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get category by ID', description: 'This route is open for default users.' })
   @ApiParam({ name: 'id', type: String, description: 'Category ID' })
@@ -182,7 +184,8 @@ export class CategoriesController {
   }
 
   @Get('parent/:parentId')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.CATEGORIES, Action.READ)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get categories by parent ID' })
   @ApiParam({ name: 'parentId', type: String, description: 'Parent category ID' })
@@ -214,7 +217,8 @@ export class CategoriesController {
   }
 
   @Get('exists/slug/:slug')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.CATEGORIES, Action.READ)
   @ApiOperation({ summary: 'Check if a category exists by slug' })
   @ApiParam({ name: 'slug', type: String, description: 'Category slug' })
   @ApiResponse({ status: 200, description: 'Existence result' })
@@ -224,7 +228,8 @@ export class CategoriesController {
   }
 
   @Get('count')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.CATEGORIES, Action.READ)
   @ApiOperation({ summary: 'Get total number of categories' })
   @ApiResponse({ status: 200, description: 'Total count returned' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

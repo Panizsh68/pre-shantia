@@ -16,7 +16,7 @@ export class PaymentController {
 
   @Post('initiate')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.PAYMENT, Action.DEFAULT)
+  @Permission(Resource.PAYMENT, Action.CREATE)
   @ApiOperation({ summary: 'Initiate a payment via Zarinpal', description: 'This route is open for default users.' })
   @ApiBody({ type: InitiatePaymentDto })
   @ApiResponse({
@@ -39,7 +39,7 @@ export class PaymentController {
 
   @Get('callback')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.PAYMENT, Action.DEFAULT)
+  @Permission(Resource.PAYMENT, Action.UPDATE)
   @ApiOperation({ summary: 'Handle Zarinpal callback after payment', description: 'This route is open for default users.' })
   @ApiQuery({
     name: 'Authority',

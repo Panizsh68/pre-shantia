@@ -32,7 +32,7 @@ export class TicketingController {
 
   @Get()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.TICKETING, Action.DEFAULT)
+  @Permission(Resource.TICKETING, Action.READ)
   @ApiOperation({ summary: 'Get all tickets (with optional filters)', description: 'This route is open for default users.' })
   @ApiResponse({ status: 200, description: 'List of tickets returned' })
   async findAll(@Body() options: FindManyOptions): Promise<Ticket[]> {
@@ -41,7 +41,7 @@ export class TicketingController {
 
   @Get(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.TICKETING, Action.DEFAULT)
+  @Permission(Resource.TICKETING, Action.READ)
   @ApiOperation({ summary: 'Get a ticket by ID' })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 200, description: 'Ticket found' })
@@ -52,7 +52,7 @@ export class TicketingController {
 
   @Get(':id/status')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.TICKETING, Action.DEFAULT)
+  @Permission(Resource.TICKETING, Action.READ)
   @ApiOperation({ summary: 'Get status of a ticket by ID' })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 200, description: 'Ticket status returned' })

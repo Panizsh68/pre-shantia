@@ -42,7 +42,7 @@ export class WalletsController {
 
   @Get()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.WALLETS, Action.DEFAULT)
+  @Permission(Resource.WALLETS, Action.READ)
   @ApiOperation({ summary: 'Get wallet for authenticated user', description: 'This route is open for default users.' })
   @ApiResponse({ status: 200, description: 'Wallet returned', type: Wallet })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -57,7 +57,8 @@ export class WalletsController {
   }
 
   @Post('credit')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.WALLETS, Action.UPDATE)
   @ApiOperation({ summary: 'Credit wallet' })
   @ApiBody({ type: CreditWalletDto })
   @ApiResponse({ status: 200, description: 'Wallet credited', type: Wallet })
@@ -80,7 +81,8 @@ export class WalletsController {
   }
 
   @Post('debit')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.WALLETS, Action.UPDATE)
   @ApiOperation({ summary: 'Debit wallet' })
   @ApiBody({ type: DebitWalletDto })
   @ApiResponse({ status: 200, description: 'Wallet debited', type: Wallet })
@@ -103,7 +105,8 @@ export class WalletsController {
   }
 
   @Post('transfer')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.WALLETS, Action.deposit_intermediary)
   @ApiOperation({ summary: 'Transfer funds between wallets' })
   @ApiBody({
     schema: {

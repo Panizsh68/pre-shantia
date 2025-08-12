@@ -97,7 +97,7 @@ export class AuthService {
     }
   }
 
-async verifyOtp(
+  async verifyOtp(
     verifyOtpDto: VerifyOtpDto,
     context: RequestContext,
   ): Promise<{ accessToken: string; refreshToken: string }> {
@@ -136,7 +136,20 @@ async verifyOtp(
 
         const permissions = isSuperAdmin
           ? [{ resource: Resource.ALL, actions: [Action.MANAGE] }]
-          : [{ resource: Resource.ALL, actions: [Action.DEFAULT] }];
+          : [
+            { resource: Resource.ORDERS, actions: [Action.CREATE, Action.READ] },
+            { resource: Resource.PRODUCTS, actions: [Action.READ] },
+            { resource: Resource.RATINGS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
+            { resource: Resource.TICKETING, actions: [Action.READ, Action.CREATE] },
+            { resource: Resource.TRANSACTION, actions: [Action.READ] },
+            { resource: Resource.TRANSPORTING, actions: [Action.READ] },
+            { resource: Resource.PROFILE, actions: [Action.READ, Action.CREATE] },
+            { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE] },
+            { resource: Resource.PAYMENT, actions: [Action.CREATE, Action.UPDATE] },
+            { resource: Resource.CARTS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
+            { resource: Resource.CATEGORIES, actions: [Action.READ] },
+            { resource: Resource.COMPANIES, actions: [Action.READ] }
+          ];
 
         const session = await this.authRepository.startTransaction();
         try {
@@ -184,10 +197,10 @@ async verifyOtp(
         console.log(`User found for phoneNumber=${verifyOtpDto.phoneNumber}, proceeding to token generation.`);
       }
 
-      // Use safer check for empty permissions array
+      // Always use user.permissions as assigned (no fallback to old default)
       const userPermissions = Array.isArray(user.permissions) && user.permissions.length > 0
         ? user.permissions
-        : [{ resource: Resource.ALL, actions: [Action.DEFAULT] }];
+        : [];
 
       const payload: TokenPayload = {
         userId: user.id.toString(),
@@ -251,7 +264,20 @@ async verifyOtp(
 
       const userPermissions = Array.isArray(user.permissions) && user.permissions.length > 0
         ? user.permissions
-        : [{ resource: Resource.ALL, actions: [Action.DEFAULT] }];
+        : [
+          { resource: Resource.ORDERS, actions: [Action.CREATE, Action.READ] },
+          { resource: Resource.PRODUCTS, actions: [Action.READ] },
+          { resource: Resource.RATINGS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
+          { resource: Resource.TICKETING, actions: [Action.READ, Action.CREATE] },
+          { resource: Resource.TRANSACTION, actions: [Action.READ] },
+          { resource: Resource.TRANSPORTING, actions: [Action.READ] },
+          { resource: Resource.PROFILE, actions: [Action.READ, Action.CREATE] },
+          { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE] },
+          { resource: Resource.PAYMENT, actions: [Action.CREATE, Action.UPDATE] },
+          { resource: Resource.CARTS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
+          { resource: Resource.CATEGORIES, actions: [Action.READ] },
+          { resource: Resource.COMPANIES, actions: [Action.READ] }
+        ];
 
       console.debug(`Generating new access token for user ID=${user.id}`);
       const accessToken = await this.tokensService.getAccessToken({
