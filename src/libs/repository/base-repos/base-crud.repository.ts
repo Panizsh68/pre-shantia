@@ -66,8 +66,9 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
     condition: FilterQuery<T>,
     options: FindManyOptions & { session?: ClientSession } = {},
   ): Promise<T[]> {
-    // Robustly sanitize _id in condition to prevent Cast errors
+    // Robustly sanitize _id and companyId in condition to prevent Cast errors
     const sanitizedCondition = { ...condition };
+    // _id
     if (
       sanitizedCondition._id === '' ||
       sanitizedCondition._id === null ||
@@ -75,6 +76,15 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
       (typeof sanitizedCondition._id === 'string' && !Types.ObjectId.isValid(sanitizedCondition._id))
     ) {
       delete sanitizedCondition._id;
+    }
+    // companyId
+    if (
+      sanitizedCondition.companyId === '' ||
+      sanitizedCondition.companyId === null ||
+      sanitizedCondition.companyId === undefined ||
+      (typeof sanitizedCondition.companyId === 'string' && !Types.ObjectId.isValid(sanitizedCondition.companyId))
+    ) {
+      delete sanitizedCondition.companyId;
     }
     return this.handleOperation(
       () =>
