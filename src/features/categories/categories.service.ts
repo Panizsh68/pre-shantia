@@ -73,7 +73,7 @@ export class CategoriesService implements ICategoryService {
         ...options.conditions,
         parentId: new Types.ObjectId(parentId),
       },
-      populate: options.populate || ['companyId', 'parentId'],
+      populate: options.populate || ['parentId'],
     });
   }
 

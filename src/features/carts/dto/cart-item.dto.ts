@@ -19,13 +19,13 @@ export class CartItemDto {
   @IsMongoId()
   productId: string;
 
-  @ApiProperty({
-    description: 'MongoDB ObjectId of the supplier company',
-    example: '507f1f77bcf86cd799439011',
-  })
-  @IsNotEmpty()
-  @IsMongoId()
-  companyId: string;
+  // @ApiProperty({
+  //   description: 'MongoDB ObjectId of the supplier company',
+  //   example: '507f1f77bcf86cd799439011',
+  // })
+  // @IsNotEmpty()
+  // @IsMongoId()
+  // companyId: string;
 
   @ApiProperty({
     description: 'Quantity of the product in the cart',
@@ -55,22 +55,5 @@ export class CartItemDto {
   @IsObject()
   variant?: { name: string; value: string };
 
-  @ApiPropertyOptional({
-    description: 'Additional notes for the cart item',
-    example: 'Urgent delivery required',
-  })
-  @IsOptional()
-  @IsString()
-  notes?: string;
 
-  @ApiPropertyOptional({
-    description: 'Discount applied to the cart item',
-    example: { type: DiscountType.PERCENTAGE, value: 10 },
-  })
-  @IsOptional()
-  @IsObject()
-  discount?: {
-    type: DiscountType;
-    value: number;
-  };
 }

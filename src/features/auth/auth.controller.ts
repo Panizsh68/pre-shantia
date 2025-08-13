@@ -23,7 +23,7 @@ import { AuthenticationGuard } from './guards/auth.guard';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Public()
   @Post('signup')
@@ -171,19 +171,19 @@ export class AuthController {
       Array.isArray(user.permissions) && user.permissions.length > 0
         ? user.permissions
         : [
-            { resource: Resource.ORDERS, actions: [Action.CREATE, Action.READ] },
-            { resource: Resource.PRODUCTS, actions: [Action.READ] },
-            { resource: Resource.RATINGS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
-            { resource: Resource.TICKETING, actions: [Action.READ, Action.CREATE] },
-            { resource: Resource.TRANSACTION, actions: [Action.READ] },
-            { resource: Resource.TRANSPORTING, actions: [Action.READ] },
-            { resource: Resource.PROFILE, actions: [Action.READ, Action.CREATE] },
-            { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE] },
-            { resource: Resource.PAYMENT, actions: [Action.CREATE, Action.UPDATE] },
-            { resource: Resource.CARTS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
-            { resource: Resource.CATEGORIES, actions: [Action.READ] },
-            { resource: Resource.COMPANIES, actions: [Action.READ] }
-          ];
+          { resource: Resource.ORDERS, actions: [Action.CREATE, Action.READ] },
+          { resource: Resource.PRODUCTS, actions: [Action.READ] },
+          { resource: Resource.RATINGS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
+          { resource: Resource.TICKETING, actions: [Action.READ, Action.CREATE] },
+          { resource: Resource.TRANSACTION, actions: [Action.READ] },
+          { resource: Resource.TRANSPORTING, actions: [Action.READ] },
+          { resource: Resource.PROFILE, actions: [Action.READ, Action.CREATE] },
+          { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE] },
+          { resource: Resource.PAYMENT, actions: [Action.CREATE, Action.UPDATE] },
+          { resource: Resource.CARTS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
+          { resource: Resource.CATEGORIES, actions: [Action.READ] },
+          { resource: Resource.COMPANIES, actions: [Action.READ] }
+        ];
     return { userId: user.userId, permissions };
   }
 

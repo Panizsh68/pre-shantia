@@ -9,12 +9,12 @@ export class OrderFactoryService {
   buildOrdersFromCart(cart: ICart): CreateOrderDto[] {
     const grouped = new Map<string, CartItemDto[]>();
 
-    for (const item of cart.items) {
-      if (!grouped.has(item.companyId)) {
-        grouped.set(item.companyId, []);
-      }
-      grouped.get(item.companyId)!.push(item);
-    }
+    // for (const item of cart.items) {
+    //   if (!grouped.has(item.companyId)) {
+    //     grouped.set(item.companyId, []);
+    //   }
+    //   grouped.get(item.companyId)!.push(item);
+    // }
 
     // حالت فقط یک شرکت در cart → یه سفارش تکی بساز
     if (grouped.size === 1) {

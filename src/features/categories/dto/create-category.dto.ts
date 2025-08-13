@@ -37,14 +37,6 @@ export class CreateCategoryDto {
   @IsOptional()
   parentId?: string;
 
-  @ApiProperty({
-    description: 'MongoDB ObjectId of the supplier company',
-    example: '507f1f77bcf86cd799439011',
-  })
-  @IsString()
-  @IsNotEmpty()
-  companyId: string;
-
   @ApiPropertyOptional({
     description: 'Status of the category',
     enum: CategoryStatus,
