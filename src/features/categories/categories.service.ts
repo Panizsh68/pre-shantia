@@ -17,15 +17,21 @@ export class CategoriesService implements ICategoryService {
   async create(data: Partial<Category>, userId: string, ctx: RequestContext): Promise<ICategory> {
     return this.categoryRepository.createOne({
       ...data,
-      companyId: new Types.ObjectId(userId),
-      createdBy: new Types.ObjectId(userId),
-      updatedBy: new Types.ObjectId(userId),
+      companyId: userId ? new Types.ObjectId(userId) : undefined,
+      createdBy: userId ? new Types.ObjectId(userId) : undefined,
+      updatedBy: userId ? new Types.ObjectId(userId) : undefined,
     });
   }
 
   async findAll(options: FindManyOptions = {}): Promise<Category[]> {
+    // Remove any empty string or invalid _id from conditions
+    const conditions = { ...options.conditions };
+    if (conditions && typeof conditions._id === 'string' && !conditions._id) {
+      delete conditions._id;
+    }
     return this.categoryRepository.findAll({
       ...options,
+      conditions,
       populate: options.populate || ['companyId', 'parentId'],
     });
   }
@@ -39,8 +45,10 @@ export class CategoriesService implements ICategoryService {
   }
 
   async update(id: string, updates: Partial<Category>, userId: string): Promise<ICategory> {
+    const condition: any = { _id: id };
+    if (userId) condition.userId = new Types.ObjectId(userId);
     const updated = await this.categoryRepository.updateOneByCondition(
-      { _id: id, userId: new Types.ObjectId(userId) },
+      condition,
       updates,
     );
     if (!updated) {
@@ -50,8 +58,10 @@ export class CategoriesService implements ICategoryService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
+    const condition: any = { _id: id };
+    if (userId) condition.userId = new Types.ObjectId(userId);
     const deleted = await this.categoryRepository.updateOneByCondition(
-      { _id: id, userId: new Types.ObjectId(userId) },
+      condition,
       { deletedAt: new Date() },
     );
     if (!deleted) {
@@ -60,19 +70,24 @@ export class CategoriesService implements ICategoryService {
   }
 
   async setStatus(id: string, status: CategoryStatus, userId: string): Promise<ICategory> {
+    const condition: any = { _id: id };
+    if (userId) condition.userId = new Types.ObjectId(userId);
     return this.categoryRepository.updateOneByCondition(
-      { _id: id, userId: new Types.ObjectId(userId) },
+      condition,
       { status },
     );
   }
 
   async findByParentId(parentId: string, options: FindManyOptions = {}): Promise<ICategory[]> {
+    const conditions = { ...options.conditions };
+    if (parentId) {
+      conditions.parentId = new Types.ObjectId(parentId);
+    } else {
+      delete conditions.parentId;
+    }
     return this.categoryRepository.findAll({
       ...options,
-      conditions: {
-        ...options.conditions,
-        parentId: new Types.ObjectId(parentId),
-      },
+      conditions,
       populate: options.populate || ['parentId'],
     });
   }
