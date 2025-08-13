@@ -76,7 +76,8 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
   }
 
   async findAll(options: FindManyOptions & { session?: ClientSession } = {}): Promise<T[]> {
-    return this.findManyByCondition({}, options);
+    // Pass options.conditions to respect filters and avoid ObjectId cast errors
+    return this.findManyByCondition(options.conditions ?? {}, options);
   }
 
   async updateById(id: string, data: UpdateQuery<T>, session?: ClientSession): Promise<T> {
