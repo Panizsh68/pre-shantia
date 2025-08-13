@@ -66,9 +66,19 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
     condition: FilterQuery<T>,
     options: FindManyOptions & { session?: ClientSession } = {},
   ): Promise<T[]> {
+    // Robustly sanitize _id in condition to prevent Cast errors
+    const sanitizedCondition = { ...condition };
+    if (
+      sanitizedCondition._id === '' ||
+      sanitizedCondition._id === null ||
+      sanitizedCondition._id === undefined ||
+      (typeof sanitizedCondition._id === 'string' && !Types.ObjectId.isValid(sanitizedCondition._id))
+    ) {
+      delete sanitizedCondition._id;
+    }
     return this.handleOperation(
       () =>
-        this.applyQueryOptions(this.model.find(condition), options)
+        this.applyQueryOptions(this.model.find(sanitizedCondition), options)
           .session(options.session ?? null)
           .exec(),
       'Failed to find documents',
