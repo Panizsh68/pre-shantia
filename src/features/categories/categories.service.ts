@@ -24,9 +24,15 @@ export class CategoriesService implements ICategoryService {
   }
 
   async findAll(options: FindManyOptions = {}): Promise<Category[]> {
-    // Remove any empty string or invalid _id from conditions
-    const conditions = { ...options.conditions };
-    if (conditions && typeof conditions._id === 'string' && !conditions._id) {
+    // Defensive: ensure conditions is always an object
+    let conditions = options.conditions && typeof options.conditions === 'object' ? { ...options.conditions } : {};
+    // Remove any invalid _id
+    if (
+      conditions._id && (
+        typeof conditions._id !== 'string' ||
+        !Types.ObjectId.isValid(conditions._id)
+      )
+    ) {
       delete conditions._id;
     }
     return this.categoryRepository.findAll({
