@@ -49,10 +49,19 @@ CategorySchema.virtual('children', {
   foreignField: 'parentId',
 });
 
-// Add pre-save hook for soft deletion
+// Add pre-save hook for soft deletion and parentId sanitization
 CategorySchema.pre('save', function (next) {
+  // Soft delete logic
   if (this.deletedAt) {
     this.status = CategoryStatus.INACTIVE;
+  }
+  // Defensive: sanitize parentId
+  if (
+    typeof this.parentId === 'string' && this.parentId === ''
+    || this.parentId === null
+    || (typeof this.parentId === 'string' && !Types.ObjectId.isValid(this.parentId))
+  ) {
+    this.parentId = undefined;
   }
   next();
 });

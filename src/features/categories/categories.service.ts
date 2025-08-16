@@ -15,8 +15,17 @@ export class CategoriesService implements ICategoryService {
   ) { }
 
   async create(data: Partial<Category>, userId: string, ctx: RequestContext): Promise<ICategory> {
+    // Sanitize parentId if present and invalid
+    let sanitizedData = { ...data };
+    if (
+      (typeof sanitizedData.parentId === 'string' && sanitizedData.parentId === '') ||
+      sanitizedData.parentId === null ||
+      (typeof sanitizedData.parentId === 'string' && !Types.ObjectId.isValid(sanitizedData.parentId))
+    ) {
+      delete sanitizedData.parentId;
+    }
     return this.categoryRepository.createOne({
-      ...data,
+      ...sanitizedData,
       companyId: userId ? new Types.ObjectId(userId) : undefined,
       createdBy: userId ? new Types.ObjectId(userId) : undefined,
       updatedBy: userId ? new Types.ObjectId(userId) : undefined,
@@ -28,12 +37,19 @@ export class CategoriesService implements ICategoryService {
     let conditions = options.conditions && typeof options.conditions === 'object' ? { ...options.conditions } : {};
     // Remove any invalid _id
     if (
-      conditions._id && (
-        typeof conditions._id !== 'string' ||
-        !Types.ObjectId.isValid(conditions._id)
-      )
+      conditions._id === '' ||
+      conditions._id === null ||
+      (typeof conditions._id === 'string' && !Types.ObjectId.isValid(conditions._id))
     ) {
       delete conditions._id;
+    }
+    // Remove any invalid parentId
+    if (
+      conditions.parentId === '' ||
+      conditions.parentId === null ||
+      (typeof conditions.parentId === 'string' && !Types.ObjectId.isValid(conditions.parentId))
+    ) {
+      delete conditions.parentId;
     }
     return this.categoryRepository.findAll({
       ...options,
@@ -51,7 +67,10 @@ export class CategoriesService implements ICategoryService {
   }
 
   async update(id: string, updates: Partial<Category>, userId: string): Promise<ICategory> {
-    const condition: any = { _id: id };
+    // Defensive: sanitize id
+    let sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? id : undefined;
+    const condition: any = {};
+    if (sanitizedId) condition._id = sanitizedId;
     if (userId) condition.userId = new Types.ObjectId(userId);
     const updated = await this.categoryRepository.updateOneByCondition(
       condition,
@@ -64,7 +83,10 @@ export class CategoriesService implements ICategoryService {
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    const condition: any = { _id: id };
+    // Defensive: sanitize id
+    let sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? id : undefined;
+    const condition: any = {};
+    if (sanitizedId) condition._id = sanitizedId;
     if (userId) condition.userId = new Types.ObjectId(userId);
     const deleted = await this.categoryRepository.updateOneByCondition(
       condition,
@@ -86,7 +108,11 @@ export class CategoriesService implements ICategoryService {
 
   async findByParentId(parentId: string, options: FindManyOptions = {}): Promise<ICategory[]> {
     const conditions = { ...options.conditions };
-    if (parentId) {
+    if (
+      parentId &&
+      typeof parentId === 'string' &&
+      Types.ObjectId.isValid(parentId)
+    ) {
       conditions.parentId = new Types.ObjectId(parentId);
     } else {
       delete conditions.parentId;
