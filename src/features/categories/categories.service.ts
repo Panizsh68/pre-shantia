@@ -15,14 +15,14 @@ export class CategoriesService implements ICategoryService {
   ) { }
 
   async create(data: Partial<Category>, userId: string, ctx: RequestContext): Promise<ICategory> {
-    // Sanitize parentId if present and invalid
+    // Sanitize parentId: اگر رشته خالی یا نامعتبر بود، undefined شود
     let sanitizedData = { ...data };
     if (
-      (typeof sanitizedData.parentId === 'string' && sanitizedData.parentId === '') ||
-      sanitizedData.parentId === null ||
-      (typeof sanitizedData.parentId === 'string' && !Types.ObjectId.isValid(sanitizedData.parentId))
+      (typeof sanitizedData.parentId === 'string' && (sanitizedData.parentId + '').trim() === '')
+      || sanitizedData.parentId === null
+      || (typeof sanitizedData.parentId === 'string' && !Types.ObjectId.isValid(sanitizedData.parentId))
     ) {
-      delete sanitizedData.parentId;
+      sanitizedData.parentId = undefined;
     }
     return this.categoryRepository.createOne({
       ...sanitizedData,
@@ -72,9 +72,18 @@ export class CategoriesService implements ICategoryService {
     const condition: any = {};
     if (sanitizedId) condition._id = sanitizedId;
     if (userId) condition.userId = new Types.ObjectId(userId);
+    // Sanitize parentId in updates
+    let sanitizedUpdates = { ...updates };
+    if (
+      (typeof sanitizedUpdates.parentId === 'string' && (sanitizedUpdates.parentId + '').trim() === '')
+      || sanitizedUpdates.parentId === null
+      || (typeof sanitizedUpdates.parentId === 'string' && !Types.ObjectId.isValid(sanitizedUpdates.parentId))
+    ) {
+      sanitizedUpdates.parentId = undefined;
+    }
     const updated = await this.categoryRepository.updateOneByCondition(
       condition,
-      updates,
+      sanitizedUpdates,
     );
     if (!updated) {
       throw new NotFoundException(`Category with id ${id} not found or access denied`);

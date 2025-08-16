@@ -63,7 +63,12 @@ export class CategoriesController {
     @RequestContext() ctx: IRequestContext,
   ) {
     const categoryData: any = { ...dto, companyId: new Types.ObjectId(user.userId) };
-    if (dto.parentId) categoryData.parentId = new Types.ObjectId(dto.parentId);
+    // اصلاح منطق parentId: اگر رشته خالی یا undefined بود، parentId حذف شود
+    if (typeof dto.parentId === 'string' && dto.parentId.trim() === '') {
+      categoryData.parentId = undefined;
+    } else if (dto.parentId) {
+      categoryData.parentId = new Types.ObjectId(dto.parentId);
+    }
     return this.categoriesService.create(
       categoryData,
       user.userId,
@@ -132,7 +137,12 @@ export class CategoriesController {
     @CurrentUser() user: TokenPayload,
   ) {
     const categoryData: any = { ...dto, companyId: new Types.ObjectId(user.userId) };
-    if (dto.parentId) categoryData.parentId = new Types.ObjectId(dto.parentId);
+    // اصلاح منطق parentId: اگر رشته خالی یا undefined بود، parentId حذف شود
+    if (typeof dto.parentId === 'string' && dto.parentId.trim() === '') {
+      categoryData.parentId = undefined;
+    } else if (dto.parentId) {
+      categoryData.parentId = new Types.ObjectId(dto.parentId);
+    }
     return this.categoriesService.update(
       id,
       categoryData,
