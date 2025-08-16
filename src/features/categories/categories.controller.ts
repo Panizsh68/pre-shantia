@@ -104,6 +104,15 @@ export class CategoriesController {
       }
       options.page = parsedPage;
     }
+    // اگر query شامل _id یا parentId بود و مقدارش رشته خالی یا نامعتبر بود، حذف شود
+    if (typeof options.conditions === 'object') {
+      if (options.conditions._id === '' || options.conditions._id === null || (typeof options.conditions._id === 'string' && !Types.ObjectId.isValid(options.conditions._id))) {
+        delete options.conditions._id;
+      }
+      if (options.conditions.parentId === '' || options.conditions.parentId === null || (typeof options.conditions.parentId === 'string' && !Types.ObjectId.isValid(options.conditions.parentId))) {
+        delete options.conditions.parentId;
+      }
+    }
     return this.categoriesService.findAll(options);
   }
 
