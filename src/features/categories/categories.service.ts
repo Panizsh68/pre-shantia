@@ -1,12 +1,13 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ICategoryRepository } from './repositories/categories.repository';
-import { Category } from './entities/category.entity';
+
 import { CategoryStatus } from './enums/category-status.enum';
 import { Types } from 'mongoose';
 import { ICategoryService } from './interfaces/category.service.interface';
 import { ICategory } from './interfaces/category.interface';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { RequestContext } from 'src/common/types/request-context.interface';
+import { Document } from 'mongoose';
 
 @Injectable()
 export class CategoriesService implements ICategoryService {
@@ -14,7 +15,7 @@ export class CategoriesService implements ICategoryService {
     @Inject('CategoryRepository') private readonly categoryRepository: ICategoryRepository,
   ) { }
 
-  async create(data: Partial<Category>, userId: string, ctx: RequestContext): Promise<ICategory> {
+  async create(data: Partial<ICategory>, userId: string, ctx: RequestContext): Promise<ICategory> {
     // Sanitize parentId: اگر رشته خالی یا نامعتبر بود، undefined شود
     let sanitizedData = { ...data };
     if (
@@ -32,7 +33,7 @@ export class CategoriesService implements ICategoryService {
     });
   }
 
-  async findAll(options: FindManyOptions = {}): Promise<Category[]> {
+  async findAll(options: FindManyOptions = {}): Promise<ICategory[]> {
     // Defensive: ensure conditions is always an object
     let conditions = options.conditions && typeof options.conditions === 'object' ? { ...options.conditions } : {};
     // Remove any invalid _id
@@ -66,7 +67,7 @@ export class CategoriesService implements ICategoryService {
     return category;
   }
 
-  async update(id: string, updates: Partial<Category>, userId: string): Promise<ICategory> {
+  async update(id: string, updates: Partial<ICategory>, userId: string): Promise<ICategory> {
     // Defensive: sanitize id
     let sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? id : undefined;
     const condition: any = {};
@@ -107,7 +108,12 @@ export class CategoriesService implements ICategoryService {
   }
 
   async setStatus(id: string, status: CategoryStatus, userId: string): Promise<ICategory> {
-    const condition: any = { _id: id };
+    // Defensive: sanitize id
+    let sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? new Types.ObjectId(id) : undefined;
+    if (!sanitizedId) {
+      throw new BadRequestException('Invalid category ID');
+    }
+    const condition: any = { _id: sanitizedId };
     if (userId) condition.userId = new Types.ObjectId(userId);
     return this.categoryRepository.updateOneByCondition(
       condition,

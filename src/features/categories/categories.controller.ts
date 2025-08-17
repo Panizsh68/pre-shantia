@@ -27,6 +27,7 @@ import { TokenPayload } from '../auth/interfaces/token-payload.interface';
 import { Category } from './entities/category.entity';
 import { CategoryStatus } from './enums/category-status.enum';
 import { ICategoryService } from './interfaces/category.service.interface';
+import { ICategory } from './interfaces/category.interface';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
@@ -57,23 +58,18 @@ export class CategoriesController {
   @ApiResponse({ status: 201, description: 'Category created successfully', type: Category })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  create(
+  async create(
     @Body() dto: CreateCategoryDto,
     @CurrentUser() user: TokenPayload,
     @RequestContext() ctx: IRequestContext,
-  ) {
+  ): Promise<ICategory> {
     const categoryData: any = { ...dto, companyId: new Types.ObjectId(user.userId) };
-    // اصلاح منطق parentId: اگر رشته خالی یا undefined بود، parentId حذف شود
     if (typeof dto.parentId === 'string' && dto.parentId.trim() === '') {
       categoryData.parentId = undefined;
     } else if (dto.parentId) {
       categoryData.parentId = new Types.ObjectId(dto.parentId);
     }
-    return this.categoriesService.create(
-      categoryData,
-      user.userId,
-      ctx,
-    );
+    return this.categoriesService.create(categoryData, user.userId, ctx);
   }
 
   @Get()
@@ -85,35 +81,57 @@ export class CategoriesController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiResponse({ status: 200, description: 'List of categories', type: [Category] })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  findAll(
+  async findAll(
     @Query('limit') limit?: string,
     @Query('page') page?: string,
-  ) {
+    @Query('_id') _id?: string,
+    @Query('parentId') parentId?: string,
+  ): Promise<ICategory[]> {
+    console.log('findAll - raw query:', { limit, page, _id, parentId });
     const options: FindManyOptions = {};
+    options.conditions = {};
+
+    console.log('findAll - before limit/page:', { options });
     if (limit) {
       const parsedLimit = parseInt(limit, 10);
       if (isNaN(parsedLimit) || parsedLimit < 1) {
+        console.log('findAll - invalid limit:', limit);
         throw new BadRequestException('Limit must be a positive integer');
       }
       options.perPage = parsedLimit;
     }
+
     if (page) {
       const parsedPage = parseInt(page, 10);
       if (isNaN(parsedPage) || parsedPage < 1) {
+        console.log('findAll - invalid page:', page);
         throw new BadRequestException('Page must be a positive integer');
       }
       options.page = parsedPage;
     }
-    // اگر query شامل _id یا parentId بود و مقدارش رشته خالی یا نامعتبر بود، حذف شود
-    if (typeof options.conditions === 'object') {
-      if (options.conditions._id === '' || options.conditions._id === null || (typeof options.conditions._id === 'string' && !Types.ObjectId.isValid(options.conditions._id))) {
-        delete options.conditions._id;
-      }
-      if (options.conditions.parentId === '' || options.conditions.parentId === null || (typeof options.conditions.parentId === 'string' && !Types.ObjectId.isValid(options.conditions.parentId))) {
-        delete options.conditions.parentId;
-      }
+
+    console.log('findAll - before _id/parentId:', { options });
+    if (_id && Types.ObjectId.isValid(_id)) {
+      options.conditions._id = _id;
+    } else if (_id) {
+      console.log('findAll - invalid _id:', _id);
     }
-    return this.categoriesService.findAll(options);
+
+    if (parentId && Types.ObjectId.isValid(parentId)) {
+      options.conditions.parentId = parentId;
+    } else if (parentId) {
+      console.log('findAll - invalid parentId:', parentId);
+    }
+
+    console.log('findAll - final options:', { options });
+    try {
+      const result = await this.categoriesService.findAll(options);
+      console.log('findAll - result:', result);
+      return result;
+    } catch (err) {
+      console.log('findAll - error:', err);
+      throw err;
+    }
   }
 
   @Get(':id')
@@ -125,7 +143,7 @@ export class CategoriesController {
   @ApiResponse({ status: 200, description: 'Category found', type: Category })
   @ApiResponse({ status: 404, description: 'Category not found' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string): Promise<ICategory> {
     return this.categoriesService.findOne(id);
   }
 
@@ -140,23 +158,18 @@ export class CategoriesController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  update(
+  async update(
     @Param('id') id: string,
     @Body() dto: UpdateCategoryDto,
     @CurrentUser() user: TokenPayload,
-  ) {
+  ): Promise<ICategory> {
     const categoryData: any = { ...dto, companyId: new Types.ObjectId(user.userId) };
-    // اصلاح منطق parentId: اگر رشته خالی یا undefined بود، parentId حذف شود
     if (typeof dto.parentId === 'string' && dto.parentId.trim() === '') {
       categoryData.parentId = undefined;
     } else if (dto.parentId) {
       categoryData.parentId = new Types.ObjectId(dto.parentId);
     }
-    return this.categoriesService.update(
-      id,
-      categoryData,
-      user.userId,
-    );
+    return this.categoriesService.update(id, categoryData, user.userId);
   }
 
   @Delete(':id')
@@ -171,7 +184,7 @@ export class CategoriesController {
   async remove(
     @Param('id') id: string,
     @CurrentUser() user: TokenPayload,
-  ) {
+  ): Promise<void> {
     await this.categoriesService.remove(id, user.userId);
   }
 
@@ -194,11 +207,11 @@ export class CategoriesController {
     },
   })
   @ApiResponse({ status: 200, description: 'Category status updated' })
-  setStatus(
+  async setStatus(
     @CurrentUser() user: TokenPayload,
     @Param('id') id: string,
     @Body('status') status: CategoryStatus,
-  ) {
+  ): Promise<ICategory> {
     return this.categoriesService.setStatus(id, status, user.userId);
   }
 
@@ -212,11 +225,11 @@ export class CategoriesController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiResponse({ status: 200, description: 'List of child categories', type: [Category] })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  findByParentId(
+  async findByParentId(
     @Param('parentId') parentId: string,
     @Query('limit') limit?: string,
     @Query('page') page?: string,
-  ) {
+  ): Promise<ICategory[]> {
     const options: FindManyOptions = {};
     if (limit) {
       const parsedLimit = parseInt(limit, 10);
@@ -242,7 +255,7 @@ export class CategoriesController {
   @ApiParam({ name: 'slug', type: String, description: 'Category slug' })
   @ApiResponse({ status: 200, description: 'Existence result' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async existsBySlug(@Param('slug') slug: string) {
+  async existsBySlug(@Param('slug') slug: string): Promise<{ exists: boolean }> {
     return { exists: await this.categoriesService.existsBySlug(slug) };
   }
 
@@ -252,7 +265,7 @@ export class CategoriesController {
   @ApiOperation({ summary: 'Get total number of categories' })
   @ApiResponse({ status: 200, description: 'Total count returned' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async count() {
+  async count(): Promise<{ count: number }> {
     return { count: await this.categoriesService.count() };
   }
 }

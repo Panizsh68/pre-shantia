@@ -6,14 +6,15 @@ import { Category, CategorySchema } from './entities/category.entity';
 import { Model } from 'mongoose';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 import { CategoryRepository, ICategoryRepository } from './repositories/categories.repository';
+import { ICategory } from './interfaces/category.interface';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Category.name, schema: CategorySchema }])],
+  imports: [MongooseModule.forFeature([{ name: Category.name, schema: CategorySchema }] as const)],
   controllers: [CategoriesController],
   providers: [
     {
       provide: 'CategoryRepository',
-      useFactory: (categoryModel: Model<Category>): ICategoryRepository => {
+      useFactory: (categoryModel: Model<ICategory>): ICategoryRepository => {
         return new CategoryRepository(categoryModel);
       },
       inject: [getModelToken(Category.name)],
@@ -25,4 +26,4 @@ import { CategoryRepository, ICategoryRepository } from './repositories/categori
   ],
   exports: ['ICategoryService'],
 })
-export class CategoriesModule {}
+export class CategoriesModule { }
