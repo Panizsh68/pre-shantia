@@ -1,12 +1,14 @@
+import { Types } from 'mongoose';
+
 export interface ICompany {
   name: string;
   address?: string;
   phone?: string;
   email: string;
   registrationNumber: string;
-  isActive?: boolean;
+  isActive: boolean;
   createdAt?: Date;
   updatedAt?: Date;
-  createdBy?: string;
-  updatedBy?: string;
+  createdBy: Types.ObjectId;
+  updatedBy: Types.ObjectId;
 }
