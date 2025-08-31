@@ -79,7 +79,10 @@ export class CategoriesController {
   @ApiOperation({ summary: 'Get all categories' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: '_id', required: false, type: String, description: 'Category ID to filter by' })
+  @ApiQuery({ name: 'parentId', required: false, type: String, description: 'Parent category ID to filter by' })
   @ApiResponse({ status: 200, description: 'List of categories', type: [Category] })
+  @ApiResponse({ status: 400, description: 'Bad Request - Invalid ID format' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(
     @Query('limit') limit?: string,
@@ -110,17 +113,29 @@ export class CategoriesController {
       options.page = parsedPage;
     }
 
-    console.log('findAll - before _id/parentId:', { options });
-    if (_id && Types.ObjectId.isValid(_id)) {
-      options.conditions._id = _id;
-    } else if (_id) {
-      console.log('findAll - invalid _id:', _id);
+    // اضافه کردن فیلترها اگر مقداری ارسال شده باشد
+    if (_id) {
+      // اگر _id خالی نباشد
+      if (_id.trim() !== '') {
+        if (Types.ObjectId.isValid(_id)) {
+          options.conditions._id = new Types.ObjectId(_id);
+        } else {
+          console.log('findAll - invalid _id format:', _id);
+          throw new BadRequestException('ID format is not valid');
+        }
+      }
     }
 
-    if (parentId && Types.ObjectId.isValid(parentId)) {
-      options.conditions.parentId = parentId;
-    } else if (parentId) {
-      console.log('findAll - invalid parentId:', parentId);
+    if (parentId) {
+      // اگر parentId خالی نباشد
+      if (parentId.trim() !== '') {
+        if (Types.ObjectId.isValid(parentId)) {
+          options.conditions.parentId = new Types.ObjectId(parentId);
+        } else {
+          console.log('findAll - invalid parentId format:', parentId);
+          throw new BadRequestException('Parent ID format is not valid');
+        }
+      }
     }
 
     console.log('findAll - final options:', { options });
