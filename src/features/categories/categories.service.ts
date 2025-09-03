@@ -69,9 +69,21 @@ export class CategoriesService implements ICategoryService {
   async update(id: string, updates: Partial<ICategory>, userId: string): Promise<ICategory> {
     // Defensive: sanitize id
     let sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? id : undefined;
-    const condition: any = {};
-    if (sanitizedId) condition._id = sanitizedId;
-    if (userId) condition.userId = new Types.ObjectId(userId);
+    if (!sanitizedId) {
+      throw new BadRequestException('Invalid category ID');
+    }
+
+    // اول دسته‌بندی را پیدا می‌کنیم
+    const category = await this.categoryRepository.findById(sanitizedId);
+    if (!category) {
+      throw new NotFoundException(`Category with id ${id} not found`);
+    }
+
+    // بررسی دسترسی بر اساس companyId
+    if (category.companyId?.toString() !== userId) {
+      throw new NotFoundException('Category not found or access denied');
+    }
+
     // Sanitize parentId in updates
     let sanitizedUpdates = { ...updates };
     if (
@@ -81,42 +93,71 @@ export class CategoriesService implements ICategoryService {
     ) {
       sanitizedUpdates.parentId = undefined;
     }
-    const updated = await this.categoryRepository.updateOneByCondition(
-      condition,
+
+    // اضافه کردن updatedBy
+    sanitizedUpdates.updatedBy = new Types.ObjectId(userId);
+
+    return this.categoryRepository.updateOneByCondition(
+      { _id: new Types.ObjectId(sanitizedId) },
       sanitizedUpdates,
     );
-    if (!updated) {
-      throw new NotFoundException(`Category with id ${id} not found or access denied`);
-    }
-    return updated;
   }
 
   async remove(id: string, userId: string): Promise<void> {
     // Defensive: sanitize id
     let sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? id : undefined;
-    const condition: any = {};
-    if (sanitizedId) condition._id = sanitizedId;
-    if (userId) condition.userId = new Types.ObjectId(userId);
+    if (!sanitizedId) {
+      throw new BadRequestException('Invalid category ID');
+    }
+
+    // اول دسته‌بندی را پیدا می‌کنیم
+    const category = await this.categoryRepository.findById(sanitizedId);
+    if (!category) {
+      throw new NotFoundException(`Category with id ${id} not found`);
+    }
+
+    // بررسی دسترسی بر اساس companyId
+    if (category.companyId?.toString() !== userId) {
+      throw new NotFoundException('Category not found or access denied');
+    }
+
     const deleted = await this.categoryRepository.updateOneByCondition(
-      condition,
-      { deletedAt: new Date() },
+      { _id: new Types.ObjectId(sanitizedId) },
+      { 
+        deletedAt: new Date(),
+        updatedBy: new Types.ObjectId(userId)
+      },
     );
+
     if (!deleted) {
-      throw new NotFoundException(`Category with id ${id} not found or access denied`);
+      throw new NotFoundException(`Category with id ${id} not found`);
     }
   }
 
   async setStatus(id: string, status: CategoryStatus, userId: string): Promise<ICategory> {
     // Defensive: sanitize id
-    let sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? new Types.ObjectId(id) : undefined;
+    let sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? id : undefined;
     if (!sanitizedId) {
       throw new BadRequestException('Invalid category ID');
     }
-    const condition: any = { _id: sanitizedId };
-    if (userId) condition.userId = new Types.ObjectId(userId);
+
+    // اول دسته‌بندی را پیدا می‌کنیم
+    const category = await this.categoryRepository.findById(sanitizedId);
+    if (!category) {
+      throw new NotFoundException(`Category with id ${id} not found`);
+    }
+
+    // بررسی دسترسی بر اساس companyId
+    if (category.companyId?.toString() !== userId) {
+      throw new NotFoundException('Category not found or access denied');
+    }
+
     return this.categoryRepository.updateOneByCondition(
-      condition,
-      { status },
+      { _id: new Types.ObjectId(sanitizedId) },
+      { 
+        status,
+        updatedBy: new Types.ObjectId(userId)
+      },
     );
   }
 
