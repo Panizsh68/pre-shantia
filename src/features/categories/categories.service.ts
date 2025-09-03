@@ -45,11 +45,12 @@ export class CategoriesService implements ICategoryService {
       delete conditions.parentId;
     }
 
-    // فقط شرط‌های معتبر باقی می‌مانند
+    // جلوگیری از populate های غیرضروری
     const sanitizedOptions: FindManyOptions = {
       ...options,
       conditions,
-      populate: options.populate || ['companyId', 'parentId'],
+      // فقط در صورتی که شرط‌های جستجو وجود داشته باشند populate انجام شود
+      populate: Object.keys(conditions).length > 0 ? ['companyId', 'parentId'] : undefined
     };
 
     console.log('findAll service - sanitized options:', sanitizedOptions);

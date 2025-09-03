@@ -162,7 +162,25 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
     }
 
     if (options.populate) {
-      query.populate(options.populate as PopulateOptions | (string | PopulateOptions)[]);
+      // تبدیل populate به آرایه
+      const populateFields = Array.isArray(options.populate)
+        ? options.populate
+        : [options.populate];
+
+      // فیلتر کردن فیلدهای populate شده و اطمینان از معتبر بودن ObjectId ها
+      const validPopulateFields = populateFields.filter(field => {
+        const fieldName = typeof field === 'string' ? field : field.path;
+        const doc = query.getQuery();
+        // اگر فیلد مورد نظر در query وجود داشت و مقدار معتبری داشت
+        return !doc[fieldName] ||
+          (doc[fieldName] &&
+            (doc[fieldName] instanceof Types.ObjectId ||
+              Types.ObjectId.isValid(doc[fieldName])));
+      });
+
+      if (validPopulateFields.length > 0) {
+        query.populate(validPopulateFields as PopulateOptions | (string | PopulateOptions)[]);
+      }
     }
 
     if (options.page !== undefined || options.perPage !== undefined) {
