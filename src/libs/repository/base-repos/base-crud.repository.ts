@@ -66,35 +66,31 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
     condition: FilterQuery<T>,
     options: FindManyOptions & { session?: ClientSession } = {},
   ): Promise<T[]> {
-    // Robustly sanitize _id, companyId, and parentId in condition to prevent Cast errors
-    const sanitizedCondition = { ...condition };
-    // _id
-    if (
-      sanitizedCondition._id === '' ||
-      sanitizedCondition._id === null ||
-      sanitizedCondition._id === undefined ||
-      (typeof sanitizedCondition._id === 'string' && !Types.ObjectId.isValid(sanitizedCondition._id))
-    ) {
-      delete sanitizedCondition._id;
+    // ساخت یک کپی از شرایط جستجو با تایپ صحیح
+    const sanitizedCondition = {} as FilterQuery<T>;
+
+    // فقط فیلدهای معتبر را اضافه می‌کنیم
+    if (condition && typeof condition === 'object') {
+      Object.keys(condition).forEach((key) => {
+        const value = condition[key];
+        // فقط مقادیر معنی‌دار را اضافه می‌کنیم
+        if (value !== undefined && value !== null && value !== '') {
+          if (typeof value === 'string' &&
+            ['_id', 'parentId', 'companyId'].includes(key) &&
+            Types.ObjectId.isValid(value)) {
+            // تبدیل به ObjectId
+            (sanitizedCondition as any)[key] = new Types.ObjectId(value);
+          } else {
+            // استفاده مستقیم از مقدار
+            (sanitizedCondition as any)[key] = value;
+          }
+        }
+      });
     }
-    // companyId
-    if (
-      sanitizedCondition.companyId === '' ||
-      sanitizedCondition.companyId === null ||
-      sanitizedCondition.companyId === undefined ||
-      (typeof sanitizedCondition.companyId === 'string' && !Types.ObjectId.isValid(sanitizedCondition.companyId))
-    ) {
-      delete sanitizedCondition.companyId;
-    }
-    // parentId
-    if (
-      sanitizedCondition.parentId === '' ||
-      sanitizedCondition.parentId === null ||
-      sanitizedCondition.parentId === undefined ||
-      (typeof sanitizedCondition.parentId === 'string' && !Types.ObjectId.isValid(sanitizedCondition.parentId))
-    ) {
-      delete sanitizedCondition.parentId;
-    }
+
+    console.log('findManyByCondition - original condition:', condition);
+    console.log('findManyByCondition - sanitized condition:', sanitizedCondition);
+
     return this.handleOperation(
       () =>
         this.applyQueryOptions(this.model.find(sanitizedCondition), options)

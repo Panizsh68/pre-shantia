@@ -7,7 +7,6 @@ import { ICategoryService } from './interfaces/category.service.interface';
 import { ICategory } from './interfaces/category.interface';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { RequestContext } from 'src/common/types/request-context.interface';
-import { Document } from 'mongoose';
 
 @Injectable()
 export class CategoriesService implements ICategoryService {
@@ -34,29 +33,28 @@ export class CategoriesService implements ICategoryService {
   }
 
   async findAll(options: FindManyOptions = {}): Promise<ICategory[]> {
-    // Defensive: ensure conditions is always an object
-    let conditions = options.conditions && typeof options.conditions === 'object' ? { ...options.conditions } : {};
-    // Remove any invalid _id
-    if (
-      conditions._id === '' ||
-      conditions._id === null ||
-      (typeof conditions._id === 'string' && !Types.ObjectId.isValid(conditions._id))
-    ) {
+    // تضمین اینکه conditions یک آبجکت باشد
+    const conditions = options.conditions && typeof options.conditions === 'object' ? { ...options.conditions } : {};
+
+    // حذف شرط‌های نامعتبر
+    if (conditions._id === undefined || conditions._id === null || conditions._id === '') {
       delete conditions._id;
     }
-    // Remove any invalid parentId
-    if (
-      conditions.parentId === '' ||
-      conditions.parentId === null ||
-      (typeof conditions.parentId === 'string' && !Types.ObjectId.isValid(conditions.parentId))
-    ) {
+
+    if (conditions.parentId === undefined || conditions.parentId === null || conditions.parentId === '') {
       delete conditions.parentId;
     }
-    return this.categoryRepository.findAll({
+
+    // فقط شرط‌های معتبر باقی می‌مانند
+    const sanitizedOptions: FindManyOptions = {
       ...options,
       conditions,
       populate: options.populate || ['companyId', 'parentId'],
-    });
+    };
+
+    console.log('findAll service - sanitized options:', sanitizedOptions);
+
+    return this.categoryRepository.findAll(sanitizedOptions);
   }
 
   async findOne(id: string): Promise<ICategory> {
