@@ -12,6 +12,7 @@ import {
   Inject,
   UseGuards,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -94,60 +95,52 @@ export class CategoriesController {
     const options: FindManyOptions = {};
     options.conditions = {};
 
-    console.log('findAll - before limit/page:', { options });
-    if (limit) {
-      const parsedLimit = parseInt(limit, 10);
-      if (isNaN(parsedLimit) || parsedLimit < 1) {
-        console.log('findAll - invalid limit:', limit);
-        throw new BadRequestException('Limit must be a positive integer');
-      }
-      options.perPage = parsedLimit;
-    }
-
-    if (page) {
-      const parsedPage = parseInt(page, 10);
-      if (isNaN(parsedPage) || parsedPage < 1) {
-        console.log('findAll - invalid page:', page);
-        throw new BadRequestException('Page must be a positive integer');
-      }
-      options.page = parsedPage;
-    }
-
-    // اضافه کردن فیلترها اگر مقداری ارسال شده باشد
-    if (_id) {
-      // اگر _id خالی نباشد
-      if (_id.trim() !== '') {
-        if (Types.ObjectId.isValid(_id)) {
-          options.conditions._id = new Types.ObjectId(_id);
-        } else {
-          console.log('findAll - invalid _id format:', _id);
-          throw new BadRequestException('ID format is not valid');
-        }
-      }
-    }
-
-    if (parentId) {
-      // اگر parentId خالی نباشد
-      if (parentId.trim() !== '') {
-        if (Types.ObjectId.isValid(parentId)) {
-          options.conditions.parentId = new Types.ObjectId(parentId);
-        } else {
-          console.log('findAll - invalid parentId format:', parentId);
-          throw new BadRequestException('Parent ID format is not valid');
-        }
-      }
-    }
-
-    console.log('findAll - final options:', { options });
     try {
-      const result = await this.categoriesService.findAll(options);
-      console.log('findAll - result:', result);
-      return result;
-    } catch (err) {
-      console.log('findAll - error:', err);
-      throw err;
+      // Validate and parse pagination params
+      if (limit) {
+        const parsedLimit = parseInt(limit, 10);
+        if (isNaN(parsedLimit) || parsedLimit < 1) {
+          throw new BadRequestException('Limit must be a positive integer');
+        }
+        options.perPage = parsedLimit;
+      }
+
+      if (page) {
+        const parsedPage = parseInt(page, 10);
+        if (isNaN(parsedPage) || parsedPage < 1) {
+          throw new BadRequestException('Page must be a positive integer');
+        }
+        options.page = parsedPage;
+      }
+
+      // Validate and add ID filters
+      if (_id?.trim()) {
+        if (!Types.ObjectId.isValid(_id)) {
+          throw new BadRequestException('Invalid ID format');
+        }
+        options.conditions._id = new Types.ObjectId(_id);
+      }
+
+      if (parentId?.trim()) {
+        if (!Types.ObjectId.isValid(parentId)) {
+          throw new BadRequestException('Invalid parent ID format');
+        }
+        options.conditions.parentId = new Types.ObjectId(parentId);
+      }
+
+      console.log('findAll - final options:', options);
+      return await this.categoriesService.findAll(options);
+
+    } catch (error) {
+      console.error('findAll - error:', error);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to fetch categories: ${error.message}`);
     }
   }
+
+  @Get(':id')
 
   @Get(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
@@ -178,13 +171,36 @@ export class CategoriesController {
     @Body() dto: UpdateCategoryDto,
     @CurrentUser() user: TokenPayload,
   ): Promise<ICategory> {
-    const categoryData: any = { ...dto, companyId: new Types.ObjectId(user.userId) };
-    if (typeof dto.parentId === 'string' && dto.parentId.trim() === '') {
-      categoryData.parentId = undefined;
-    } else if (dto.parentId) {
-      categoryData.parentId = new Types.ObjectId(dto.parentId);
+    console.log('update - request:', { id, dto, userId: user.userId });
+
+    try {
+      // Validate ID first
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid category ID format');
+      }
+
+      // Sanitize parentId if present
+      const categoryData: any = { ...dto };
+      if (typeof dto.parentId === 'string') {
+        if (dto.parentId.trim() === '') {
+          categoryData.parentId = undefined;
+        } else if (!Types.ObjectId.isValid(dto.parentId)) {
+          throw new BadRequestException('Invalid parent ID format');
+        } else {
+          categoryData.parentId = new Types.ObjectId(dto.parentId);
+        }
+      }
+
+      const result = await this.categoriesService.update(id, categoryData, user.userId);
+      console.log('update - success:', { id: result._id });
+      return result;
+    } catch (error) {
+      console.error('update - error:', error);
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to update category: ${error.message}`);
     }
-    return this.categoriesService.update(id, categoryData, user.userId);
   }
 
   @Delete(':id')
@@ -194,13 +210,31 @@ export class CategoriesController {
   @ApiOperation({ summary: 'Delete category by ID' })
   @ApiParam({ name: 'id', type: String, description: 'Category ID' })
   @ApiResponse({ status: 204, description: 'Category deleted' })
+  @ApiResponse({ status: 400, description: 'Bad Request - Invalid ID format' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Category not found' })
   async remove(
     @Param('id') id: string,
     @CurrentUser() user: TokenPayload,
   ): Promise<void> {
-    await this.categoriesService.remove(id, user.userId);
+    console.log('remove - request:', { id, userId: user.userId });
+
+    try {
+      // Validate ID first
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid category ID format');
+      }
+
+      await this.categoriesService.remove(id, user.userId);
+      console.log('remove - success:', { id });
+    } catch (error) {
+      console.error('remove - error:', error);
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to delete category: ${error.message}`);
+    }
   }
 
   @Patch(':id/status')
@@ -222,12 +256,36 @@ export class CategoriesController {
     },
   })
   @ApiResponse({ status: 200, description: 'Category status updated' })
+  @ApiResponse({ status: 400, description: 'Bad Request - Invalid ID or status' })
+  @ApiResponse({ status: 404, description: 'Category not found' })
   async setStatus(
     @CurrentUser() user: TokenPayload,
     @Param('id') id: string,
     @Body('status') status: CategoryStatus,
   ): Promise<ICategory> {
-    return this.categoriesService.setStatus(id, status, user.userId);
+    console.log('setStatus - request:', { id, status, userId: user.userId });
+
+    try {
+      // Validate ID first
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid category ID format');
+      }
+
+      // Validate status
+      if (!Object.values(CategoryStatus).includes(status)) {
+        throw new BadRequestException('Invalid status value');
+      }
+
+      const result = await this.categoriesService.setStatus(id, status, user.userId);
+      console.log('setStatus - success:', { id: result._id, status: result.status });
+      return result;
+    } catch (error) {
+      console.error('setStatus - error:', error);
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(`Failed to update category status: ${error.message}`);
+    }
   }
 
   @Get('parent/:parentId')

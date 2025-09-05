@@ -123,7 +123,7 @@ export class CategoriesService implements ICategoryService {
 
     const deleted = await this.categoryRepository.updateOneByCondition(
       { _id: new Types.ObjectId(sanitizedId) },
-      { 
+      {
         deletedAt: new Date(),
         updatedBy: new Types.ObjectId(userId)
       },
@@ -154,7 +154,7 @@ export class CategoriesService implements ICategoryService {
 
     return this.categoryRepository.updateOneByCondition(
       { _id: new Types.ObjectId(sanitizedId) },
-      { 
+      {
         status,
         updatedBy: new Types.ObjectId(userId)
       },
