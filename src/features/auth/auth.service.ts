@@ -30,6 +30,8 @@ import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
 import { IPermission } from '../permissions/interfaces/permissions.interface';
 
+import { VerifyOtpResponse } from './interfaces/auth-response.interface';
+
 interface RefreshSessionInfo {
   ip: string;
   userAgent: string;
@@ -100,7 +102,7 @@ export class AuthService {
   async verifyOtp(
     verifyOtpDto: VerifyOtpDto,
     context: RequestContext,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  ): Promise<VerifyOtpResponse> {
     console.log(`Starting OTP verification for phoneNumber=${verifyOtpDto.phoneNumber}`);
     try {
       const validOtp = await this.otpService.verifyOtp(
@@ -135,7 +137,19 @@ export class AuthService {
           signUpData.phoneNumber === this.configService.get<string>('SUPERADMIN_PHONE');
 
         const permissions = isSuperAdmin
-          ? [{ resource: Resource.ALL, actions: [Action.MANAGE] }]
+          ? [
+            { resource: Resource.ALL, actions: [Action.MANAGE] },
+            // پرمیشن‌های ویژه برای کیف پول ادمین به عنوان شرکت واسطه
+            {
+              resource: Resource.WALLETS, actions: [
+                Action.READ,
+                Action.UPDATE,
+                Action.deposit_intermediary,
+                Action.deposit_company,
+                Action.deposit_user
+              ]
+            }
+          ]
           : [
             { resource: Resource.ORDERS, actions: [Action.CREATE, Action.READ] },
             { resource: Resource.PRODUCTS, actions: [Action.READ] },
@@ -144,7 +158,7 @@ export class AuthService {
             { resource: Resource.TRANSACTION, actions: [Action.READ] },
             { resource: Resource.TRANSPORTING, actions: [Action.READ] },
             { resource: Resource.PROFILE, actions: [Action.READ, Action.CREATE] },
-            { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE] },
+            { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE, Action.deposit_intermediary] },
             { resource: Resource.PAYMENT, actions: [Action.CREATE, Action.UPDATE] },
             { resource: Resource.CARTS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
             { resource: Resource.CATEGORIES, actions: [Action.READ] },
@@ -222,7 +236,29 @@ export class AuthService {
       );
       console.log(`Refresh token session info cached for user ID=${user.id}`);
 
-      return { accessToken, refreshToken };
+      // Get user profile
+      const profile = await this.profileService.getByUserId(user.id.toString());
+
+      // اگر پروفایل وجود نداشت، با اطلاعات اولیه بسازیم
+      if (!profile && signUpData) {
+        await this.profileService.create({
+          phoneNumber: signUpData.phoneNumber,
+          nationalId: signUpData.nationalId
+        });
+      }
+
+      return {
+        accessToken,
+        refreshToken,
+        profile: {
+          phoneNumber: profile?.phoneNumber || user.phoneNumber,
+          nationalId: profile?.nationalId || signUpData?.nationalId || user.nationalId || '',
+          firstName: profile?.firstName,
+          lastName: profile?.lastName,
+          address: profile?.address,
+          walletId: profile?.walletId?.toString()
+        }
+      };
     } catch (error) {
       if (error instanceof HttpException) {
         console.warn(`HttpException in verifyOtp: ${error.message}`);
@@ -272,7 +308,7 @@ export class AuthService {
           { resource: Resource.TRANSACTION, actions: [Action.READ] },
           { resource: Resource.TRANSPORTING, actions: [Action.READ] },
           { resource: Resource.PROFILE, actions: [Action.READ, Action.CREATE] },
-          { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE] },
+          { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE, Action.deposit_user] },
           { resource: Resource.PAYMENT, actions: [Action.CREATE, Action.UPDATE] },
           { resource: Resource.CARTS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
           { resource: Resource.CATEGORIES, actions: [Action.READ] },

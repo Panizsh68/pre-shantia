@@ -1,5 +1,7 @@
-import { Controller, Post, Body, HttpStatus, HttpCode, Get, Res, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, HttpCode, Get, Res, UseGuards, Inject } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { AuthProfileDto } from './dto/auth-profile.dto';
+import { IProfileService } from '../users/profile/interfaces/profile.service.interface';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
 import { SignUpDto } from './dto/sign-up.dto';
@@ -23,7 +25,10 @@ import { AuthenticationGuard } from './guards/auth.guard';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(
+    private readonly authService: AuthService,
+    @Inject('IProfileService') private readonly profileService: IProfileService,
+  ) { }
 
   @Public()
   @Post('signup')
@@ -77,6 +82,7 @@ export class AuthController {
       phoneNumber: verifyOtpDto.phoneNumber,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
+      profile: tokens.profile
     };
   }
 
@@ -161,12 +167,23 @@ export class AuthController {
             },
           },
         },
+        profile: {
+          type: 'object',
+          properties: {
+            phoneNumber: { type: 'string', example: '09123456789' },
+            nationalId: { type: 'string', example: '0123456789' },
+            firstName: { type: 'string', example: 'John' },
+            lastName: { type: 'string', example: 'Doe' },
+            address: { type: 'string', example: '123 Main St' },
+            walletId: { type: 'string', example: '507f1f77bcf86cd799439011' }
+          }
+        }
       },
     },
   })
   async getProfile(
     @CurrentUser() user: TokenPayload,
-  ): Promise<{ userId: string; permissions: IPermission[] }> {
+  ): Promise<{ userId: string; permissions: IPermission[]; profile?: AuthProfileDto }> {
     const permissions =
       Array.isArray(user.permissions) && user.permissions.length > 0
         ? user.permissions
@@ -184,7 +201,20 @@ export class AuthController {
           { resource: Resource.CATEGORIES, actions: [Action.READ] },
           { resource: Resource.COMPANIES, actions: [Action.READ] }
         ];
-    return { userId: user.userId, permissions };
+
+    const profile = await this.profileService.getByUserId(user.userId);
+    return {
+      userId: user.userId,
+      permissions,
+      profile: profile ? {
+        phoneNumber: profile.phoneNumber,
+        nationalId: profile.nationalId,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        address: profile.address,
+        walletId: profile.walletId
+      } : undefined
+    };
   }
 
   @Post('admin-signup')

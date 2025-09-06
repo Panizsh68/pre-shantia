@@ -107,7 +107,7 @@ export class WalletsController {
   @Post('transfer')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.WALLETS, Action.deposit_intermediary)
-  @ApiOperation({ summary: 'Transfer funds between wallets' })
+  @ApiOperation({ summary: 'Transfer funds between wallets - User can only transfer to intermediary companies' })
   @ApiBody({
     schema: {
       example: {
@@ -133,6 +133,11 @@ export class WalletsController {
     }
     if (body.amount <= 0) {
       throw new BadRequestException('Amount must be positive');
+    }
+    // اگر کاربر عادی هست، فقط می‌تواند به کاربران عادی دیگر انتقال دهد
+    // کاربر عادی فقط می‌تواند به شرکت واسطه انتقال دهد
+    if (from.ownerType === WalletOwnerType.USER && to.ownerType !== WalletOwnerType.INTERMEDIARY) {
+      throw new BadRequestException('Users can only transfer to intermediary companies');
     }
     await this.walletsService.transfer(from, to, body.amount);
     return { success: true };
