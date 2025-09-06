@@ -6,7 +6,7 @@ import { GetWalletDto } from '../dto/get-wallet.dto';
 import { Wallet } from '../entities/wallet.entity';
 
 export interface IWalletService {
-  createWallet(data: { ownerId: string; ownerType: string; balance?: number; currency?: string }): Promise<Wallet>;
+  createWallet(data: { ownerId: string; ownerType: string; balance?: number; currency?: string }, session?: ClientSession): Promise<Wallet>;
   creditWallet(creditWalletDto: CreditWalletDto, session?: ClientSession);
   debitWallet(debitWalletDto: DebitWalletDto, session?: ClientSession);
   transfer(

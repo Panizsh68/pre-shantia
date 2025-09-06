@@ -10,13 +10,13 @@ import { Wallet } from './entities/wallet.entity';
 
 @Injectable()
 export class WalletsService implements IWalletService {
-  async createWallet(data: { ownerId: string; ownerType: string; balance?: number; currency?: string }): Promise<Wallet> {
+  async createWallet(data: { ownerId: string; ownerType: string; balance?: number; currency?: string }, session?: ClientSession): Promise<Wallet> {
     return await this.walletRepository.createOne({
       ownerId: data.ownerId,
       ownerType: data.ownerType,
       balance: data.balance ?? 0,
       currency: data.currency ?? 'IRR',
-    });
+    }, session);
   }
   constructor(@Inject('WalletRepository') private readonly walletRepository: IWalletRepository) { }
 

@@ -176,26 +176,26 @@ export class AuthService {
           user = await this.usersService.create(userCreateInput, session);
           console.log(`User created successfully with ID=${user.id}`);
 
-          const { WalletOwnerType } = await import('../wallets/enums/wallet-ownertype.enum');
-          const { determineOwnerTypeFromPermissions } = await import('../../utils/wallet-owner.util');
           // تعیین نوع کیف پول بر اساس پرمیشن‌های کاربر
+          const { determineOwnerTypeFromPermissions } = await import('../../utils/wallet-owner.util');
+          const { WalletOwnerType } = await import('../wallets/enums/wallet-ownertype.enum');
           const ownerType = determineOwnerTypeFromPermissions(permissions);
+
+          // ایجاد کیف پول در همان تراکنش
           const wallet = await this.walletsService.createWallet({
             ownerId: user.id.toString(),
-            ownerType,
+            ownerType: ownerType,
             balance: 0,
-            currency: 'IRR',
-          });
-          console.log(`Wallet created for user ID=${user.id}, wallet ID=${wallet.id}`);
-
-          // ایجاد پروفایل برای کاربر جدید
-          const profile = await this.profileService.create({
-            phoneNumber: signUpData.phoneNumber,
-            nationalId: signUpData.nationalId
+            currency: 'IRR'
           }, session);
 
-          // آپدیت پروفایل با wallet ID
-          await this.profileService.update(profile.id, { walletId: wallet.id });
+          // ایجاد پروفایل با walletId از همان ابتدا
+          const profile = await this.profileService.create({
+            phoneNumber: signUpData.phoneNumber,
+            nationalId: signUpData.nationalId,
+            walletId: wallet.id
+          }, session);
+
           console.log(`Profile created with ID=${profile.id} for user ID=${user.id} and linked to wallet ID=${wallet.id}`);
 
           await this.authRepository.commitTransaction(session);
