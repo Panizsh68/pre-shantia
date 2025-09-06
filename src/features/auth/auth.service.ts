@@ -177,21 +177,26 @@ export class AuthService {
           console.log(`User created successfully with ID=${user.id}`);
 
           const { WalletOwnerType } = await import('../wallets/enums/wallet-ownertype.enum');
+          const { determineOwnerTypeFromPermissions } = await import('../../utils/wallet-owner.util');
+          // تعیین نوع کیف پول بر اساس پرمیشن‌های کاربر
+          const ownerType = determineOwnerTypeFromPermissions(permissions);
           const wallet = await this.walletsService.createWallet({
             ownerId: user.id.toString(),
-            ownerType: WalletOwnerType.USER,
+            ownerType,
             balance: 0,
             currency: 'IRR',
           });
           console.log(`Wallet created for user ID=${user.id}, wallet ID=${wallet.id}`);
 
-          const profile = await this.profileService.getByUserId(user.id.toString());
-          if (profile) {
-            await this.profileService.update(profile.id, { walletId: wallet.id });
-            console.log(`Wallet ID linked to profile ID=${profile.id} for user ID=${user.id}`);
-          } else {
-            console.warn(`Profile not found for user ID=${user.id}, skipping wallet link`);
-          }
+          // ایجاد پروفایل برای کاربر جدید
+          const profile = await this.profileService.create({
+            phoneNumber: signUpData.phoneNumber,
+            nationalId: signUpData.nationalId
+          }, session);
+
+          // آپدیت پروفایل با wallet ID
+          await this.profileService.update(profile.id, { walletId: wallet.id });
+          console.log(`Profile created with ID=${profile.id} for user ID=${user.id} and linked to wallet ID=${wallet.id}`);
 
           await this.authRepository.commitTransaction(session);
           console.log(`Transaction committed for user creation, clearing signup cache.`);
@@ -238,14 +243,6 @@ export class AuthService {
 
       // Get user profile
       const profile = await this.profileService.getByUserId(user.id.toString());
-
-      // اگر پروفایل وجود نداشت، با اطلاعات اولیه بسازیم
-      if (!profile && signUpData) {
-        await this.profileService.create({
-          phoneNumber: signUpData.phoneNumber,
-          nationalId: signUpData.nationalId
-        });
-      }
 
       return {
         accessToken,

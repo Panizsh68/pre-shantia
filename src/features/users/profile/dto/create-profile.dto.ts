@@ -4,12 +4,9 @@ import {
   IsString,
   IsPhoneNumber,
   IsArray,
-  ValidateNested,
   IsOptional,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { CreateUserDto } from '../../dto/create-user.dto';
-import { Cart } from 'src/features/carts/entities/cart.entity';
 
 export class CreateProfileDto extends CreateUserDto {
   @ApiProperty({
@@ -91,4 +88,14 @@ export class CreateProfileDto extends CreateUserDto {
   @IsString()
   @IsOptional()
   cart?: string;
+
+  @ApiProperty({
+    description: "ObjectId of user's wallet",
+    type: String,
+    example: "60f6c0c3d3b5e20017a0a3c2",
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  walletId?: string;
 }
