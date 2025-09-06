@@ -121,14 +121,8 @@ export class CategoriesService implements ICategoryService {
       throw new NotFoundException('Category not found or access denied');
     }
 
-    const deleted = await this.categoryRepository.updateOneByCondition(
-      { _id: new Types.ObjectId(sanitizedId) },
-      {
-        deletedAt: new Date(),
-        updatedBy: new Types.ObjectId(userId)
-      },
-    );
-
+    // حذف واقعی دسته‌بندی
+    const deleted = await this.categoryRepository.deleteById(sanitizedId);
     if (!deleted) {
       throw new NotFoundException(`Category with id ${id} not found`);
     }
