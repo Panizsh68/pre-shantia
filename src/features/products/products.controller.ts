@@ -63,7 +63,7 @@ export class ProductsController {
     @Query('limit') limit?: string,
     @Query('sort') sort?: string,
   ) {
-    const params: any = {};
+    const params: Record<string, unknown> = {};
     if (query) params.query = query;
     if (maxPrice !== undefined) {
       const parsedMaxPrice = parseFloat(maxPrice);

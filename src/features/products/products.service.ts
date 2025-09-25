@@ -1,6 +1,8 @@
 
 import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Types, ClientSession, PipelineStage } from 'mongoose';
+import { toPlain, toPlainArray } from 'src/libs/repository/utils/doc-mapper';
+import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { IProductService } from './interfaces/product.service.interface';
@@ -43,7 +45,7 @@ export class ProductsService implements IProductService {
     session?: ClientSession,
   ): Promise<IProduct> {
     const { companyId, categories, ...rest } = dto;
-    const data: Partial<any> = {
+    const data: Partial<Product> = {
       ...rest,
       companyId: this.toObjectId(companyId),
       categories: this.toObjectIdArray(categories),
@@ -51,7 +53,7 @@ export class ProductsService implements IProductService {
       updatedBy: this.toObjectId(userId),
     };
     const productDoc = await this.repo.createOne(data, session);
-    return productDoc.toObject() as unknown as IProduct;
+    return toPlain<IProduct>(productDoc);
   }
 
   async findAll(options: FindManyOptions = {}, session?: ClientSession): Promise<IProduct[]> {
@@ -62,13 +64,13 @@ export class ProductsService implements IProductService {
       session,
     };
     const products = await this.repo.findAll(queryOptions);
-    return products.map(doc => doc.toObject() as unknown as IProduct);
+    return toPlainArray<IProduct>(products);
   }
 
   async findOne(id: string, session?: ClientSession): Promise<IProduct> {
     const productDoc = await this.repo.findById(id, { session });
     if (!productDoc || productDoc.status !== ProductStatus.ACTIVE) throw new NotFoundException(`Product with id ${id} not found or inactive`);
-    return productDoc.toObject() as unknown as IProduct;
+    return toPlain<IProduct>(productDoc);
   }
 
   async update(
@@ -82,14 +84,14 @@ export class ProductsService implements IProductService {
     if (existing.createdBy.toString() !== userId)
       throw new ForbiddenException('You do not have permission to update this product');
     const { companyId, categories, ...rest } = dto;
-    const data: Partial<any> = {
+    const data: Partial<Product> = {
       ...rest,
       companyId: this.toObjectId(companyId!),
       categories: this.toObjectIdArray(categories),
       updatedBy: this.toObjectId(userId),
     };
     const updatedDoc = await this.repo.updateById(id, data, session);
-    return updatedDoc.toObject() as unknown as IProduct;
+    return toPlain<IProduct>(updatedDoc);
   }
 
   async remove(id: string, userId: string, session?: ClientSession): Promise<void> {
@@ -119,7 +121,7 @@ export class ProductsService implements IProductService {
   ): Promise<IProduct> {
     const txn = session || (await this.repo.startTransaction());
     try {
-      const result = await this.create(dto, userId, {} as any, txn);
+      const result = await this.create(dto, userId, {} as RequestContext, txn);
       if (!session) await this.repo.commitTransaction(txn);
       return result;
     } catch (err) {

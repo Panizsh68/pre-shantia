@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ClientSession, PipelineStage } from 'mongoose';
 import { Product } from '../entities/product.entity';
+import { TopProduct } from '../interfaces/top-product.interface';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 import {
   IBaseCrudRepository,
@@ -10,7 +11,7 @@ import {
 } from 'src/libs/repository/interfaces/base-repo.interfaces';
 
 export interface IProductRepository extends IBaseCrudRepository<Product>, IBaseAggregateRepository<Product>, IBaseTransactionRepository<Product> {
-  getTopProductsByRating(limit?: number, session?: ClientSession): Promise<any[]>;
+  getTopProductsByRating(limit?: number, session?: ClientSession): Promise<TopProduct[]>;
   advancedSearchAggregate(
     params: {
       query?: string;
@@ -40,7 +41,7 @@ export interface IProductRepository extends IBaseCrudRepository<Product>, IBaseA
 
 @Injectable()
 export class ProductRepository extends BaseCrudRepository<Product> implements IProductRepository {
-  async getTopProductsByRating(limit: number = 5, session?: ClientSession): Promise<any[]> {
+  async getTopProductsByRating(limit: number = 5, session?: ClientSession): Promise<TopProduct[]> {
     const pipeline: PipelineStage[] = [
       { $match: { status: 'active' } },
       {
@@ -67,7 +68,7 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
         },
       },
     ];
-    return this.aggregate<any>(pipeline, session);
+    return this.aggregate<TopProduct>(pipeline, session);
   }
   async advancedSearchAggregate(
     params: {
@@ -141,7 +142,7 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
     sort?: { field: string; order: 'asc' | 'desc' }[]
   ): Promise<Product[]> {
     const { maxPrice, companyName } = params;
-    const match: any = {};
+    const match: Record<string, unknown> = {};
     if (typeof maxPrice === 'number') {
       match.basePrice = { $lte: maxPrice };
     }
