@@ -64,12 +64,10 @@ export class CategoriesController {
     @CurrentUser() user: TokenPayload,
     @RequestContext() ctx: IRequestContext,
   ): Promise<ICategory> {
-    const categoryData: any = { ...dto, companyId: new Types.ObjectId(user.userId) };
-    if (typeof dto.parentId === 'string' && dto.parentId.trim() === '') {
-      categoryData.parentId = undefined;
-    } else if (dto.parentId) {
-      categoryData.parentId = new Types.ObjectId(dto.parentId);
-    }
+    const preparedParentId = typeof dto.parentId === 'string' && dto.parentId.trim() !== ''
+      ? new Types.ObjectId(dto.parentId)
+      : undefined;
+    const categoryData: Partial<ICategory> = { ...dto, companyId: new Types.ObjectId(user.userId), parentId: preparedParentId };
     return this.categoriesService.create(categoryData, user.userId, ctx);
   }
 
@@ -180,7 +178,10 @@ export class CategoriesController {
       }
 
       // Sanitize parentId if present
-      const categoryData: any = { ...dto };
+      const preparedParentIdUpdate = typeof dto.parentId === 'string' && dto.parentId.trim() !== ''
+        ? new Types.ObjectId(dto.parentId)
+        : undefined;
+      const categoryData: Partial<ICategory> = { ...dto, parentId: preparedParentIdUpdate };
       if (typeof dto.parentId === 'string') {
         if (dto.parentId.trim() === '') {
           categoryData.parentId = undefined;
