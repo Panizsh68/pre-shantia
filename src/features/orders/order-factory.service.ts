@@ -9,47 +9,22 @@ export class OrderFactoryService {
   buildOrdersFromCart(cart: ICart): CreateOrderDto[] {
     const grouped = new Map<string, CartItemDto[]>();
 
-    // for (const item of cart.items) {
-    //   if (!grouped.has(item.companyId)) {
-    //     grouped.set(item.companyId, []);
-    //   }
-    //   grouped.get(item.companyId)!.push(item);
-    // }
-
-    // حالت فقط یک شرکت در cart → یه سفارش تکی بساز
-    if (grouped.size === 1) {
-      const [companyId, items] = Array.from(grouped.entries())[0];
-      const totalPrice = items.reduce((sum, item) => sum + item.priceAtAdd * item.quantity, 0);
-
-      return [
-        {
-          userId: cart.userId,
-          items: items.map(i => ({
-            productId: i.productId,
-            quantity: i.quantity,
-          })),
-          totalPrice,
-          companyId,
-          status: OrdersStatus.PENDING,
-          shippingAddress: '',
-          paymentMethod: '',
-          transportId: undefined,
-        },
-      ];
+    for (const item of cart.items) {
+      if (!item.companyId) {
+        throw new Error('Cart item missing companyId — cannot build multi-vendor orders');
+      }
+      if (!grouped.has(item.companyId)) {
+        grouped.set(item.companyId, []);
+      }
+      grouped.get(item.companyId)!.push(item);
     }
 
-    // حالت چند شرکت → چند سفارش بساز
     const orders: CreateOrderDto[] = [];
-
     for (const [companyId, items] of grouped.entries()) {
       const totalPrice = items.reduce((sum, item) => sum + item.priceAtAdd * item.quantity, 0);
-
       orders.push({
         userId: cart.userId,
-        items: items.map(i => ({
-          productId: i.productId,
-          quantity: i.quantity,
-        })),
+        items: items.map(i => ({ productId: i.productId, companyId: i.companyId, quantity: i.quantity, priceAtAdd: i.priceAtAdd, variant: i.variant })),
         totalPrice,
         companyId,
         status: OrdersStatus.PENDING,

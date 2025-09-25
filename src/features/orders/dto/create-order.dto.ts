@@ -7,6 +7,7 @@ import {
   IsString,
   Min,
   ValidateNested,
+  IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -22,6 +23,14 @@ class OrderItemDto {
   productId: string;
 
   @ApiProperty({
+    description: 'MongoDB ObjectId of the supplier company',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @IsNotEmpty()
+  @IsString()
+  companyId: string;
+
+  @ApiProperty({
     description: 'Quantity of the product',
     example: 2,
     minimum: 1,
@@ -30,6 +39,24 @@ class OrderItemDto {
   @IsNumber()
   @Min(1)
   quantity: number;
+
+  @ApiProperty({
+    description: 'Price of the product at the time of ordering (in IRR)',
+    example: 2000000,
+    minimum: 0,
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  @Min(0)
+  priceAtAdd: number;
+
+  @ApiPropertyOptional({
+    description: 'Selected variant of the product (e.g., size, packaging)',
+    example: { name: 'Packaging', value: '50 kg' },
+  })
+  @IsOptional()
+  @IsObject()
+  variant?: { name: string; value: string };
 }
 
 export class CreateOrderDto {

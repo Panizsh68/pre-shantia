@@ -20,7 +20,7 @@ export class OrdersService implements IOrdersService {
     @Inject('IWalletsService') private readonly walletsService: IWalletService,
     @Inject('OrderRepository') private readonly orderRepository: IOrderRepository,
     private readonly orderFactory: OrderFactoryService,
-  ) {}
+  ) { }
 
   async create(dto: CreateOrderDto, session?: ClientSession): Promise<IOrder[]> {
     const cart = await this.cartsService.getUserActiveCart(dto.userId);
@@ -65,7 +65,7 @@ export class OrdersService implements IOrdersService {
         orders.push(createdOrder);
       }
 
-      await this.cartsService.checkout(dto.userId);
+      await this.cartsService.checkout(dto.userId, orderSession);
       if (!session) await this.orderRepository.commitTransaction(orderSession);
 
       return orders;

@@ -1,14 +1,16 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { OrdersStatus } from '../enums/orders.status.enum';
 import { Document } from 'mongoose';
+import OrderItemSchema from './order-item.entity';
+import { IOrderItem } from '../interfaces/order-item.interface';
 
 @Schema({ timestamps: true })
 export class Order extends Document {
   @Prop({ required: true })
   userId: string;
 
-  @Prop({ required: true, type: [{ productId: String, quantity: Number }] })
-  items: { productId: string; quantity: number }[];
+  @Prop({ type: [OrderItemSchema], required: true, default: [] })
+  items: IOrderItem[];
 
   @Prop({ required: true })
   totalPrice: number;
@@ -33,3 +35,4 @@ export class Order extends Document {
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
+
