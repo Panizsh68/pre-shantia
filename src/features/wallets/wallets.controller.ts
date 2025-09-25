@@ -121,13 +121,13 @@ export class WalletsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @HttpCode(HttpStatus.OK)
   async transfer(
-    @Body() body: { to: { ownerId: string; ownerType: string }, amount: number },
+    @Body() body: { to: { ownerId: string; ownerType: WalletOwnerType }, amount: number },
     @CurrentUser() user: TokenPayload,
   ): Promise<{ success: boolean }> {
     const ownerType = determineOwnerTypeFromPermissions(user.permissions);
     const ownerId = user.userId;
     const from = { ownerId, ownerType };
-    const to = { ownerId: body.to.ownerId, ownerType: body.to.ownerType as any };
+    const to = { ownerId: body.to.ownerId, ownerType: body.to.ownerType };
     if (from.ownerId === to.ownerId && from.ownerType === to.ownerType) {
       throw new BadRequestException('Self-transfer is not allowed');
     }

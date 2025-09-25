@@ -7,6 +7,10 @@ import { WalletOwnerType } from './enums/wallet-ownertype.enum';
 import { GetWalletDto } from './dto/get-wallet.dto';
 import { ClientSession } from 'mongoose';
 import { Wallet } from './entities/wallet.entity';
+import { v4 as uuidv4 } from 'uuid';
+import { TransactionStatus } from '../transaction/enums/transaction.status.enum';
+import { CreateTransactionDto } from '../transaction/dtos/create-transaction.dto';
+import { ITransactionService } from '../transaction/interfaces/transaction.service.interface';
 
 @Injectable()
 export class WalletsService implements IWalletService {
@@ -18,7 +22,10 @@ export class WalletsService implements IWalletService {
       currency: data.currency ?? 'IRR',
     }, session);
   }
-  constructor(@Inject('WalletRepository') private readonly walletRepository: IWalletRepository) { }
+  constructor(
+    @Inject('WalletRepository') private readonly walletRepository: IWalletRepository,
+    @Inject('ITransactionsService') private readonly transactionService: ITransactionService,
+  ) { }
 
   async creditWallet(creditWalletDto: CreditWalletDto, session?: ClientSession): Promise<Wallet> {
     const transactionSession = session || (await this.walletRepository.startTransaction());
@@ -26,7 +33,7 @@ export class WalletsService implements IWalletService {
       const wallet = await this.walletRepository.findByIdAndType(
         creditWalletDto.ownerId,
         creditWalletDto.ownerType,
-        session,
+        transactionSession,
       );
       if (!wallet) {
         throw new NotFoundException(`Wallet not found for owner ${creditWalletDto.ownerId}`);
@@ -36,8 +43,26 @@ export class WalletsService implements IWalletService {
       const updatedWallet = await this.walletRepository.updateById(
         wallet.id,
         { balance: wallet.balance },
-        session,
+        transactionSession,
       );
+
+      // create transaction record for credit
+      const txDto: CreateTransactionDto = {
+        authority: uuidv4(),
+        amount: creditWalletDto.amount,
+        description: `Credit to wallet ${wallet.id}`,
+        mobile: undefined,
+        email: undefined,
+        userId: creditWalletDto.ownerId,
+        status: TransactionStatus.COMPLETED,
+        createdAt: new Date(),
+        toWalletId: wallet.id,
+        resultingBalance: updatedWallet.balance,
+        counterpartyOwnerId: undefined,
+        counterpartyOwnerType: undefined,
+        metadata: { reason: 'credit' },
+      };
+      await this.transactionService.create(txDto, transactionSession);
       if (!session) {
         await this.walletRepository.commitTransaction(transactionSession);
       }
@@ -56,7 +81,7 @@ export class WalletsService implements IWalletService {
       const wallet = await this.walletRepository.findByIdAndType(
         debitWalletDto.ownerId,
         debitWalletDto.ownerType,
-        session,
+        transactionSession,
       );
       if (!wallet) {
         throw new NotFoundException(`Wallet not found for owner ${debitWalletDto.ownerId}`);
@@ -69,8 +94,24 @@ export class WalletsService implements IWalletService {
       const updatedWallet = await this.walletRepository.updateById(
         wallet.id,
         { balance: wallet.balance },
-        session,
+        transactionSession,
       );
+
+      // create transaction record for debit
+      const txDto: CreateTransactionDto = {
+        authority: uuidv4(),
+        amount: debitWalletDto.amount,
+        description: `Debit from wallet ${wallet.id}`,
+        mobile: undefined,
+        email: undefined,
+        userId: debitWalletDto.ownerId,
+        status: TransactionStatus.COMPLETED,
+        createdAt: new Date(),
+        fromWalletId: wallet.id,
+        resultingBalance: updatedWallet.balance,
+        metadata: { reason: 'debit' },
+      };
+      await this.transactionService.create(txDto, transactionSession);
       if (!session) {
         await this.walletRepository.commitTransaction(transactionSession);
       }
@@ -94,12 +135,12 @@ export class WalletsService implements IWalletService {
       const fromWallet = await this.walletRepository.findByIdAndType(
         from.ownerId,
         from.ownerType,
-        session,
+        transactionSession,
       );
       const toWallet = await this.walletRepository.findByIdAndType(
         to.ownerId,
         to.ownerType,
-        session,
+        transactionSession,
       );
 
       if (!fromWallet || !toWallet) {
@@ -115,9 +156,29 @@ export class WalletsService implements IWalletService {
       await this.walletRepository.updateById(
         fromWallet.id,
         { balance: fromWallet.balance },
-        session,
+        transactionSession,
       );
-      await this.walletRepository.updateById(toWallet.id, { balance: toWallet.balance }, session);
+      await this.walletRepository.updateById(toWallet.id, { balance: toWallet.balance }, transactionSession);
+
+      // create transaction record for transfer (one record representing this transfer)
+      const txDto: CreateTransactionDto = {
+        authority: uuidv4(),
+        amount,
+        description: `Transfer from ${from.ownerId} to ${to.ownerId}`,
+        mobile: undefined,
+        email: undefined,
+        userId: from.ownerId,
+        status: TransactionStatus.COMPLETED,
+        createdAt: new Date(),
+        fromWalletId: fromWallet.id,
+        toWalletId: toWallet.id,
+        resultingBalance: fromWallet.balance,
+        resultingBalanceTo: toWallet.balance,
+        counterpartyOwnerId: to.ownerId,
+        counterpartyOwnerType: to.ownerType,
+        metadata: { reason: 'transfer' },
+      };
+      await this.transactionService.create(txDto, transactionSession);
 
       if (!session) {
         await this.walletRepository.commitTransaction(transactionSession);
