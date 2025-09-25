@@ -1,182 +1,210 @@
-# Auth Feature — Flow & Dependencies
+# Auth feature — Technical Reference
 
-## Purpose (internal / dev-facing)
-This document is a **compact, precise, and developer-friendly reference** for the Auth feature.  
-It explains what each route does, what data flows through it, which services/DB/cache it touches, the **token lifecycle**, and known bugs with recommended fixes.  
-Audience: internal team. Focus: clear, actionable, implementation-focused.
+This document is a technical reference for the `auth` feature. It describes routes, DTOs, service logic, cache usage, tokens, data models, transactions, external dependencies and known issues detected in the code. No opinions or unrelated suggestions are included — only facts, flows and detected problems.
 
 ---
 
-## Files Reviewed
-- `src/features/auth/auth.controller.ts`  
-- `src/features/auth/auth.service.ts`  
-- `src/features/auth/auth.module.ts`  
-- `src/features/auth/repositories/auth.repository.ts`  
-- `src/features/auth/guards/auth.guard.ts`  
-- `src/features/auth/schemas/refresh-token.schema.ts`  
-- `src/features/auth/dto/sign-up.dto.ts`  
-- `src/features/auth/dto/sign-in.dto.ts`  
-- `src/features/auth/dto/verify-otp.dto.ts`  
-- `src/features/auth/dto/sign-up.response.dto.ts`  
-- `src/features/auth/dto/signn-in.response.dto.ts`  
-- `src/features/auth/interfaces/auth-response.interface.ts`  
-- `src/features/auth/interfaces/token-payload.interface.ts`  
-- `src/utils/services/tokens/tokens.service.ts`  
-- `src/utils/services/tokens/tokentype.enum.ts`  
-- `src/utils/services/tokens/Itokens.interface.ts`  
-- `src/utils/services/otp/otp.service.ts`  
-- `src/infrastructure/caching/caching.service.ts`  
-- `src/utils/services/shahkar/shahkar.service.ts` (module imported; implementation examined in module)  
-- `src/features/users/users.service.ts`  
-- `src/features/users/profile/profile.service.ts`  
-- `src/features/wallets/wallets.service.ts`  
-- `src/utils/wallet-owner.util.ts`  
-- `src/features/wallets/enums/wallet-ownertype.enum.ts`  
-- `src/features/permissions/decoratorss/permissions.decorators.ts`  
-- `src/features/permissions/guard/permission.guard.ts`  
-- `src/features/permissions/enums/resources.enum.ts`  
-- `src/features/permissions/enums/actions.enum.ts`  
-- `src/features/permissions/interfaces/permissions.interface.ts`  
-- `src/common/decorators/current-user.decorator.ts`  
-- `src/common/decorators/request-context.decorator.ts`  
-- `src/common/types/request-context.interface.ts`  
-- `src/features/users/dto/create-user.dto.ts`  
+## Routes (controller)
+All routes are under the `/auth` controller.
+
+1. POST /auth/signup
+   - Public route.
+   - Input: `CreateUserDto` (phoneNumber, nationalId) — validation via `class-validator` (`IsPhoneNumber('IR')`, `IsIdentityCard('IR')`).
+   - Service: `AuthService.signUp(createUserDto)`
+     - Checks user existence via `usersService.findUserByPhoneNumber(phoneNumber)` → 409 if exists.
+     - Verifies nationalId & phoneNumber with `ShahkarService.verifyMelicodeWithPhonenumber` → 400 if mismatch.
+     - Stores `{ phoneNumber, nationalId }` in cache under key `signup:${phoneNumber}` with TTL `app.OTP_TTL` (config).
+     - Calls `OtpService.sendOtpToPhone(phoneNumber)` which stores OTP in cache under key equal to `phoneNumber` (TTL same as OTP_TTL) and logs/mock-sends SMS.
+   - Response: 201 `{ phoneNumber }`.
+
+2. POST /auth/signin
+   - Public route.
+   - Input: `SignInDto` (phoneNumber).
+   - Service: `AuthService.signIn(signInDto)`
+     - Finds user by phone number → 404 if not found.
+     - Calls `OtpService.sendOtpToPhone(phoneNumber)` (OTP stored in cache).
+   - Response: 200 `{ phoneNumber }`.
+
+3. POST /auth/verify-otp
+   - Public route.
+   - Input: `VerifyOtpDto` { phoneNumber, otp } and `RequestContext` (provided by a decorator that extracts `ip` and `userAgent` from the request). Response passed-through via Express `res` to set header and cookie.
+   - Service: `AuthService.verifyOtp(verifyOtpDto, context)`
+     - Validates OTP via `OtpService.verifyOtp(phoneNumber, otp)` (compares cached OTP under key `phoneNumber`).
+     - Reads sign-up temp data from cache at `signup:${phoneNumber}`.
+     - Looks up user via `usersService.findUserByPhoneNumber(phoneNumber)`.
+
+     Two flows:
+     a) New user (user not found):
+       - If no `signup:${phoneNumber}` in cache → 400 `User not found and no sign-up data`.
+       - Determine `permissions` (super-admin detection via config `SUPERADMIN_MELICODE` and `SUPERADMIN_PHONE`).
+       - Start DB transaction via `authRepository.startTransaction()` (BaseTransactionRepository).
+       - Create user: `usersService.create(userCreateInput, session)`.
+       - Determine wallet owner type with `determineOwnerTypeFromPermissions(permissions)`.
+       - Create wallet: `walletsService.createWallet({ ownerId: user.id, ownerType }, session)`.
+       - Create profile with `walletId`: `profileService.create({ phoneNumber, nationalId, walletId }, session)`.
+       - Commit transaction and delete `signup:${phoneNumber}` cache entry.
+     b) Existing user:
+       - Skip create flow.
+
+     - Generate tokens:
+       - Build `TokenPayload` (userId, permissions, tokenType).
+       - `TokensService.getAccessToken(payload)` → signed JWT (HS256, 1h) with encrypted payload fields.
+       - `TokensService.getRefreshToken(payload)` → signed JWT (HS512, 48h) with encrypted payload fields.
+     - Store refresh session info in cache key `refresh-info:${refreshToken}` with value `{ ip, userAgent, userId }` and TTL `JWT_REFRESH_EXPIRES`.
+     - Read profile via `profileService.getByUserId(user.id)` and return `{ accessToken?, refreshToken?, profile? }`.
+   - Controller behavior: sets `Authorization` header with `Bearer <accessToken>` and sets `refreshToken` cookie (httpOnly, secure, sameSite=strict, maxAge 48h) if provided.
+
+4. POST /auth/refresh
+   - Public route.
+   - Input: either `{ refreshToken }` in request body or cookie `refreshToken`.
+   - Controller extracts refresh token from body or cookie and throws `BadRequestException('Refresh token not provided')` if missing.
+   - Service: `AuthService.refreshAccessTokenByRefreshToken(refreshToken, context)`
+     - `TokensService.validateRefreshToken(refreshToken, context)`:
+       - Verifies JWT with `JWT_REFRESH_SECRET` (HS512), decrypts payload.
+       - Reads `refresh-info:${refreshToken}` from cache and compares `ip` and `userAgent` with `context`.
+       - Throws `UnauthorizedException` if mismatch or not found.
+     - Loads user by `payload.userId` via `usersService.findOne`.
+     - Generates new access token via `TokensService.getAccessToken`.
+     - Returns `{ accessToken }` and controller sets `Authorization` header.
+
+5. POST /auth/signout
+   - Protected (AuthenticationGuard validates access token and puts payload into `request.user`).
+   - Controller clears cookie `refreshToken` (if `res` provided) and calls `AuthService.signOut(user.userId, refreshToken?)`.
+   - Service `AuthService.signOut`:
+     - If refreshToken provided → deletes `refresh-info:${refreshToken}` from cache.
+     - Deletes `permissions:${userId}` cache.
+     - (Removed: previously deleted profile via `profileService.deleteByUserId(userId)` — this code was removed to avoid data loss.)
+     - Returns `{ message: 'Signed out successfully' }`.
+
+6. GET /auth/me
+   - Protected.
+   - Returns `{ userId, permissions, profile? }` where `profile` is retrieved via `profileService.getByUserId(user.userId)` and `permissions` are taken from token payload or fallback to a hard-coded default list in controller.
+
+7. POST /auth/admin-signup
+   - Protected and guarded by `PermissionsGuard` with `Permission(Resource.USERS, Action.MANAGE)`.
+   - Input: `SignUpDto` (extends `CreateUserDto`, optional `permissions`).
+   - Service: `AuthService.adminSignUp(signUpDto)`
+     - Creates user directly (`usersService.create(signUpDto)`).
+     - Generates access and refresh tokens for the created user and saves `refresh-info:${refreshToken}` in cache with `{ ip: '', userAgent: '', userId }`.
+     - Returns `{ phoneNumber, accessToken, refreshToken }`.
 
 ---
 
-## High-Level Overview
-Auth is **OTP-based** for both sign-up and sign-in.  
+## DTOs and types
+- `CreateUserDto` (src/features/users/dto/create-user.dto.ts)
+  - phoneNumber: string (validated `IsPhoneNumber('IR')`)
+  - nationalId: string (validated `IsIdentityCard('IR')`, regex `^\d{10}$`)
 
-### Main Routes
-- **`POST /auth/signup`** — start sign-up, save temp data in cache, send OTP  
-- **`POST /auth/signin`** — request OTP for existing user  
-- **`POST /auth/verify-otp`** — verify OTP; if new user → create user + wallet + profile (in DB transaction); always issue tokens  
-- **`POST /auth/refresh`** — exchange refresh token for new access token (checks session context in cache)  
-- **`POST /auth/signout`** — clear refresh session and permissions cache (⚠️ current code deletes profile — bug)  
-- **`GET /auth/me`** — return current profile + permissions from token or cache  
-- **`POST /auth/admin-signup`** — admin creates user without OTP and tokens are issued  
+- `SignInDto` (src/features/auth/dto/sign-in.dto.ts)
+  - phoneNumber: string
+
+- `VerifyOtpDto` (src/features/auth/dto/verify-otp.dto.ts)
+  - phoneNumber: string
+  - otp: string (4 digits)
+
+- `SignUpDto` (src/features/auth/dto/sign-up.dto.ts) extends `CreateUserDto` and adds optional `permissions?: PermissionDto[]`.
+
+- `VerifyOtpResponse` / `SignUpResponseDto` (src/features/auth/dto/sign-up.response.dto.ts)
+  - phoneNumber: string
+  - accessToken?: string
+  - refreshToken?: string
+  - profile?: { phoneNumber, nationalId, firstName?, lastName?, address?, walletId? }
+
+- `TokenPayload` (src/features/auth/interfaces/token-payload.interface.ts)
+  - userId: string
+  - tokenType: TokenType (access | refresh)
+  - permissions: IPermission[]
+  - ip?: string
+  - userAgent?: string
+  - iat?, exp?
 
 ---
 
-## DTOs / Shapes (Quick Reference)
-```ts
-// CreateUserDto
-{ phoneNumber: string; nationalId: string; }
+## Cache keys (Redis) and TTLs
+- `signup:${phoneNumber}` — stores `{ phoneNumber, nationalId }`. TTL: `app.OTP_TTL` (config, default ~300s).
+- `${phoneNumber}` — stores current OTP as a plain string. TTL: `app.OTP_TTL`.
+- `refresh-info:${refreshToken}` — stores `{ ip, userAgent, userId }`. TTL: `JWT_REFRESH_EXPIRES` (config, default 48*3600s).
+- `permissions:${userId}` — cached permissions for user; cleared on sign-out.
 
-// SignInDto
-{ phoneNumber: string }
+---
 
-// VerifyOtpDto
-{ phoneNumber: string; otp: string } // 4-digit OTP
+## Tokens and cryptography
+- Access token
+  - Generated by `TokensService.getAccessToken(payload)`.
+  - Payload fields are encrypted using AES-256-GCM with `ENCRYPTION_KEY` (hex, 32 bytes). Encrypted key/value pairs are placed into the JWT payload as strings.
+  - Signed using `JWT_ACCESS_SECRET` with HS256 algorithm. Expiry: 1 hour.
 
-// SignUpDto extends CreateUserDto
-{ phoneNumber, nationalId, permissions?: PermissionDto[] }
+- Refresh token
+  - Generated by `TokensService.getRefreshToken(payload)`.
+  - Signed using `JWT_REFRESH_SECRET` with HS512 algorithm. Expiry: 48 hours.
+  - After generation the server stores `refresh-info:${refreshToken}` in Redis with `ip` and `userAgent` to bind the refresh token to the client context.
 
-// SignUpResponseDto
-{ phoneNumber, accessToken?, refreshToken?, profile? }
+- Validation
+  - `validateAccessToken(token)` verifies signature using `JWT_ACCESS_SECRET`, decrypts payload and returns `TokenPayload`.
+  - `validateRefreshToken(token, context)` verifies signature using `JWT_REFRESH_SECRET`, decrypts payload, then validates `refresh-info:${token}` matches provided `context.ip` and `context.userAgent`. If mismatch → `UnauthorizedException`.
 
-// TokenPayload
-{
-  userId: string;
-  permissions: IPermission[];
-  tokenType: 'access' | 'refresh';
-  userAgent?: string;
-  ip?: string;
-  iat?: number;
-  exp?: number;
-}
-Cache Keys & Behaviors
-signup:${phoneNumber} → { phoneNumber, nationalId } (TTL = OTP_TTL)
+---
 
-${phoneNumber} → OTP string (TTL = OTP_TTL)
+## Data models (Mongoose schemas)
+- User (src/features/users/entities/user.entity.ts)
+  - phoneNumber: string (required)
+  - nationalId: string (required)
+  - permissions: IPermission[] (default: [])
+  - Timestamps active (createdAt/updatedAt)
 
-refresh-info:${refreshToken} → { ip, userAgent, userId } (TTL = JWT_REFRESH_EXPIRES)
+- Profile (src/features/users/profile/entities/profile.entity.ts)
+  - firstName?: string
+  - lastName?: string
+  - email?: string
+  - phoneNumber: string (required)
+  - address?: string
+  - nationalId: string (required)
+  - walletId?: string (ref 'Wallet')
+  - orders, transactions, favorites, cart references
 
-permissions:${userId} → cached permissions (cleared on signOut)
+- Wallet (src/features/wallets/entities/wallet.entity.ts)
+  - ownerId: string (required)
+  - ownerType: WalletOwnerType (enum: 'user' | 'company' | 'intermediary')
+  - balance: number (min 0, default 0)
+  - currency: string (3-letter uppercase, e.g. 'IRR')
 
-Tokens — Generation & Validation
-Access token
+- RefreshToken (src/features/auth/schemas/refresh-token.schema.ts)
+  - token: string
+  - userId: string
+  - createdAt: Date (document TTL expires: '7d')
 
-Created via TokensService.getAccessToken(payload)
+---
 
-Payload encrypted with AES-256-GCM
+## Repository transaction helper
+- `BaseTransactionRepository` provides `startTransaction()`, `commitTransaction(session)` and `abortTransaction(session)`.
+- Implementations of transaction flows in `AuthService.verifyOtp` use the repository to ensure user, wallet and profile creation are atomic.
+- Errors in start/commit/abort are mapped to `BadRequestException` by the repository helper.
 
-Signed with JWT_ACCESS_SECRET (HS256), expiry = 1h
+---
 
-Refresh token
+## External dependencies used by auth
+- `ShahkarService` (src/utils/services/shahkar/shahkar.service.ts)
+  - Verifies nationalId vs phoneNumber. Current implementation is mocked (returns true) and logs `shahkar passed`.
+  - Real integration would call an external HTTP API. Config keys: `SHAHKAR_BASE_URL`, `SHAHKAR_API_KEY`.
 
-Similar creation, signed with JWT_REFRESH_SECRET (HS512), expiry = 48h
+- `OtpService` — generates 4-digit OTP, stores in Redis under key `${phoneNumber}`, TTL `app.OTP_TTL`.
 
-Session info stored in cache (refresh-info:${token})
+- `CachingService` — Redis client (ioredis) wrapper; used as the main store for OTPs and refresh session info.
 
-Validation
+- `TokensService` — JWT sign/verify plus AES encryption of payloads. Requires `ENCRYPTION_KEY`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`.
 
-validateAccessToken() — verify + decrypt
+- `WalletsService`, `UsersService`, `ProfileService` — internal feature services used to create/read user, wallet and profile documents.
 
-validateRefreshToken() — verify + decrypt + match cache context (ip, userAgent)
+---
 
-Route-by-Route Details
-Each route includes request shape, guards, checks, actions, and response.
-(See main text for full step-by-step breakdown, including signup, signin, verify-otp, refresh, signout, me, admin-signup.)
+## Known issues detected (summary)
+1. signOut previously deleted the user's profile (`profileService.deleteByUserId`) which would remove persistent user data on sign-out. This was removed. Sign-out should only revoke session data.
+2. `adminSignUp` stores `refresh-info:${refreshToken}` with empty `ip` and `userAgent` (`{ ip: '', userAgent: '' }`). That will cause `validateRefreshToken` to fail on context matching during refresh. Either store caller context or treat admin-created refresh tokens specially.
+3. `verifyOtp` may create profile twice because `UsersService.create(createUserDto, session)` internally calls `profileService.create(createUserDto, session)` and `AuthService.verifyOtp` also calls `profileService.create(...)` after wallet creation — this can lead to duplicate profile records or constraint errors. Ensure profile creation happens exactly once in the transaction.
+4. Access tokens are not blacklisted on sign-out; a short expiry is used (1h) but immediate revocation isn't supported. If forced logout is required, add a token blacklist or change token validation logic.
+5. `refresh` controller previously threw a plain `Error('Refresh token not provided')` which did not map to a proper HTTP status; it was changed to `BadRequestException`. Verify this change is acceptable for client behavior.
+6. `ShahkarService` is currently mocked to always return true. Real integration is required before production use.
 
-External Dependencies & Modules
-ShahkarService — validates national ID ↔ phone number
+---
 
-OtpService — OTP generation & SMS sending
-
-TokensService — JWT + AES encrypt/decrypt
-
-CachingService — Redis abstraction
-
-UsersService / ProfileService — user/profile creation & queries
-
-WalletsService — wallet creation logic
-
-Permissions system — decorators, enums, guards
-
-AuthRepository — DB transactions
-
-Known Issues & Fixes (Prioritized)
-❌ Bug: signOut deletes profile
-→ Remove or move to a dedicated "delete account" endpoint.
-
-❌ Refresh token missing throws plain Error
-→ Replace with BadRequestException or UnauthorizedException.
-
-❌ Admin signup saves empty ip/userAgent in cache
-→ Fix by storing request context.
-
-❌ Double profile creation risk
-→ Centralize logic / add createProfile? flag.
-
-❌ No refresh token rotation
-→ Implement rotation to reduce replay attack risk.
-
-⚠️ Cookie secure: true in dev
-→ Make environment-dependent.
-
-Testing Coverage (Needed)
-Integration tests for:
-
-signup → verify-otp → /auth/me
-
-signin → verify-otp → refresh → signout
-
-Transactional wallet/profile creation race conditions
-
-Refresh token validation with mismatched context
-
-Suggested PR Checklist
- Remove profile deletion in signOut
-
- Improve refresh error handling
-
- Store real ip/userAgent in admin signup cache
-
- Prevent double profile creation
-
- Implement refresh token rotation
-
- Make cookie secure flag configurable
-
- Add OTP + refresh integration tests
+End of file.

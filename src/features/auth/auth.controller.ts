@@ -108,8 +108,8 @@ export class AuthController {
     @RequestContext() context: ContextType,
     @Res({ passthrough: true }) res: Response,
   ): Promise<SignUpResponseDto> {
-  const refreshToken = body.refreshToken || (res.req.cookies && res.req.cookies.refreshToken);
-  if (!refreshToken) throw new BadRequestException('Refresh token not provided');
+    const refreshToken = body.refreshToken || (res.req.cookies && res.req.cookies.refreshToken);
+    if (!refreshToken) throw new BadRequestException('Refresh token not provided');
     const result = await this.authService.refreshAccessTokenByRefreshToken(refreshToken, context);
     if (result.accessToken) {
       res.setHeader('Authorization', 'Bearer ' + result.accessToken);
