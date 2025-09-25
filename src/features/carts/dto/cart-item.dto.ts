@@ -19,6 +19,14 @@ export class CartItemDto {
   @IsMongoId()
   productId: string;
 
+  @ApiProperty({
+    description: 'MongoDB ObjectId of the supplier company',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @IsNotEmpty()
+  @IsMongoId()
+  companyId: string;
+
   // @ApiProperty({
   //   description: 'MongoDB ObjectId of the supplier company',
   //   example: '507f1f77bcf86cd799439011',

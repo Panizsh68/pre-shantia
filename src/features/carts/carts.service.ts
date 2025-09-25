@@ -1,6 +1,8 @@
 // carts.service.ts
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Types, ClientSession } from 'mongoose';
 import { CartStatus } from './enums/cart-status.enum';
+import { IProductService } from '../products/interfaces/product.service.interface';
 import { ICartRepository } from './repositories/carts.repository';
 import { ICartsService } from './interfaces/carts-service.interface';
 import { CartItemDto } from './dto/cart-item.dto';
@@ -12,7 +14,10 @@ import { CartSummary } from './interfaces/cart-summary.interface';
 
 @Injectable()
 export class CartsService implements ICartsService {
-  constructor(@Inject('CartRepository') private readonly cartRepository: ICartRepository) {}
+  constructor(
+    @Inject('CartRepository') private readonly cartRepository: ICartRepository,
+    @Inject('IProductsService') private readonly productsService: IProductService,
+  ) { }
 
   async getUserActiveCart(userId: string): Promise<ICart> {
     return this.cartRepository.findActiveCartByUserId(userId);
@@ -64,6 +69,19 @@ export class CartsService implements ICartsService {
     if (!cart) {
       throw new NotFoundException('Active cart not found');
     }
+    // validate companyId presence and format
+    if (!item.companyId) {
+      throw new NotFoundException('companyId is required for cart items');
+    }
+    if (!Types.ObjectId.isValid(item.companyId)) {
+      throw new BadRequestException(`Invalid companyId format: ${item.companyId}`);
+    }
+    // verify the product exists and belongs to the companyId
+    const product = await this.productsService.findOne(item.productId);
+    if (!product) throw new NotFoundException(`Product with id ${item.productId} not found`);
+    if (product.companyId?.toString() !== item.companyId) {
+      throw new BadRequestException('Product does not belong to the provided companyId');
+    }
     cart.items.push(item);
     return this.cartRepository.saveOne(cart);
   }
@@ -86,13 +104,13 @@ export class CartsService implements ICartsService {
     return this.cartRepository.saveOne(cart);
   }
 
-  async checkout(userId: string): Promise<{ success: boolean; cartId: string }> {
-    const cart = await this.cartRepository.findActiveCartByUserId(userId);
+  async checkout(userId: string, session?: ClientSession): Promise<{ success: boolean; cartId: string }> {
+    const cart = await this.cartRepository.findActiveCartByUserId(userId, session);
     if (!cart) {
       throw new NotFoundException('Active cart not found');
     }
     cart.status = CartStatus.CHECKED_OUT;
-    await this.cartRepository.saveOne(cart);
+    await this.cartRepository.saveOne(cart, session);
     return { success: true, cartId: cart.id };
   }
 

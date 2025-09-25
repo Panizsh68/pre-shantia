@@ -2,6 +2,7 @@
 import { Module } from '@nestjs/common';
 import { CartsService } from './carts.service';
 import { CartsController } from './carts.controller';
+import { ProductsModule } from '../products/products.module';
 import { Cart, CartSchema } from './entities/cart.entity';
 import { getModelToken } from '@nestjs/mongoose';
 import {
@@ -12,7 +13,7 @@ import { CartRepository, ICartRepository } from './repositories/carts.repository
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
 
 @Module({
-  imports: [GenericRepositoryModule.forFeature<Cart>(Cart.name, Cart, CartSchema)],
+  imports: [GenericRepositoryModule.forFeature<Cart>(Cart.name, Cart, CartSchema), ProductsModule],
   controllers: [CartsController],
   providers: [
     {
@@ -28,4 +29,4 @@ import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.
   ],
   exports: ['ICartsService'],
 })
-export class CartsModule {}
+export class CartsModule { }

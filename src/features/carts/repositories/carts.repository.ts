@@ -17,9 +17,9 @@ import { ClientSession } from 'mongoose';
 
 export interface ICartRepository
   extends IBaseCrudRepository<Cart>,
-    IBasePopulateRepository<Cart>,
-    IBaseAggregateRepository<Cart> {
-  findActiveCartByUserId(userId: string): Promise<Cart>;
+  IBasePopulateRepository<Cart>,
+  IBaseAggregateRepository<Cart> {
+  findActiveCartByUserId(userId: string, session?: ClientSession): Promise<Cart>;
 }
 
 @Injectable()
@@ -32,7 +32,7 @@ export class CartRepository extends BaseCrudRepository<Cart> implements ICartRep
     super(cartModel);
   }
 
-  async findActiveCartByUserId(userId: string): Promise<Cart> {
+  async findActiveCartByUserId(userId: string, session?: ClientSession): Promise<Cart> {
     const condition: FilterQuery<Cart> = { userId, status: CartStatus.ACTIVE };
     const options: FindOptions = {
       populate: [
@@ -41,6 +41,8 @@ export class CartRepository extends BaseCrudRepository<Cart> implements ICartRep
       ],
       select: 'items totalPrice status userId',
     };
+    // attach session if provided
+    if (session) options.session = session;
     const cart = await this.findOneByCondition(condition, options);
     if (!cart) {
       throw new NotFoundException(`Active cart for user ${userId} not found`);

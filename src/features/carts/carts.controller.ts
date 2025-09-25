@@ -26,6 +26,8 @@ import { CartItemDto } from './dto/cart-item.dto';
 import { Cart } from './entities/cart.entity';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
 import { ICartsService } from './interfaces/carts-service.interface';
+import { IProductService } from '../products/interfaces/product.service.interface';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { UpdateCartDto } from './dto/update-cart.dto';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Permission } from '../permissions/decoratorss/permissions.decorators';
@@ -36,7 +38,10 @@ import { Action } from '../permissions/enums/actions.enum';
 @ApiBearerAuth()
 @Controller('carts')
 export class CartsController {
-  constructor(@Inject('ICartsService') private readonly cartsService: ICartsService) { }
+  constructor(
+    @Inject('ICartsService') private readonly cartsService: ICartsService,
+    @Inject('IProductsService') private readonly productsService: IProductService,
+  ) { }
 
   @Get('active')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
@@ -81,12 +86,22 @@ export class CartsController {
 
   @Post('items')
   @UseGuards(AuthenticationGuard)
-    @Permission(Resource.CARTS, Action.CREATE)
+  @Permission(Resource.CARTS, Action.CREATE)
   @ApiOperation({ summary: "Add item to user's cart" })
   @ApiBody({ type: CartItemDto })
   @ApiResponse({ status: 200, description: 'Item added to cart', type: Cart })
+  @ApiResponse({ status: 400, description: 'Bad request - invalid companyId or product-company mismatch' })
+  @ApiResponse({ status: 404, description: 'Product or active cart not found' })
   @HttpCode(HttpStatus.OK)
-  addItem(@CurrentUser() user: TokenPayload, @Body() item: CartItemDto) {
+  async addItem(@CurrentUser() user: TokenPayload, @Body() item: CartItemDto) {
+    // explicit ownership check: ensure product exists and belongs to provided companyId
+    if (!item.companyId) throw new BadRequestException('companyId is required');
+    const product = await this.productsService.findOne(item.productId);
+    if (!product) throw new NotFoundException(`Product with id ${item.productId} not found`);
+    // product.companyId may be an ObjectId; compare as strings
+    if (product.companyId?.toString() !== item.companyId) {
+      throw new BadRequestException('Product does not belong to the provided companyId');
+    }
     return this.cartsService.addItemToCart(user.userId, item);
   }
 
