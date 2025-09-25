@@ -9,7 +9,7 @@ import { ITransactionService } from './interfaces/transaction.service.interface'
 export class TransactionService implements ITransactionService {
   constructor(
     @Inject('TransactionRepository') private readonly transactionRepository: ITransactionRepository,
-  ) {}
+  ) { }
 
   async create(
     createTransactionDto: CreateTransactionDto,
@@ -30,11 +30,15 @@ export class TransactionService implements ITransactionService {
     return transaction;
   }
 
-  async update(authority: string, updateData: Partial<CreateTransactionDto>): Promise<Transaction> {
+  async update(
+    authority: string,
+    updateData: Partial<CreateTransactionDto>,
+    session?: ClientSession,
+  ): Promise<Transaction> {
     const transaction = await this.transactionRepository.updateOneByCondition(
       { authority },
       { $set: updateData },
-      { new: true },
+      { new: true, session },
     );
     if (!transaction) {
       throw new NotFoundException('Transaction not found');

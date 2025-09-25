@@ -8,5 +8,13 @@ export class CreateTransactionDto {
   email?: string;
   userId: string;
   status: TransactionStatus;
-  createdAt: Date;
+  createdAt?: Date;
+  fromWalletId?: string;
+  toWalletId?: string;
+  counterpartyOwnerId?: string;
+  counterpartyOwnerType?: string;
+  resultingBalance?: number;
+  resultingBalanceTo?: number;
+  metadata?: Record<string, unknown>;
+  correlationId?: string;
 }

@@ -71,7 +71,7 @@ export class PaymentService {
       if (status !== 'OK') {
         // پرداخت ناموفق: سفارش failed شود
         await this.ordersService.update({
-          id: transaction.orderId,
+          id: transaction.orderId!,
           status: OrdersStatus.FAILED,
         }, session);
         throw new BadRequestException('Payment failed');
@@ -85,7 +85,7 @@ export class PaymentService {
       if (verificationResult.status !== '100') {
         // پرداخت تایید نشد: سفارش failed شود
         await this.ordersService.update({
-          id: transaction.orderId,
+          id: transaction.orderId!,
           status: OrdersStatus.FAILED,
         }, session);
         throw new BadRequestException('Verification failed');
@@ -120,7 +120,7 @@ export class PaymentService {
         session,
       );
 
-      await this.ordersService.markAsPaid(transaction.orderId, session);
+      await this.ordersService.markAsPaid(transaction.orderId!, session);
 
       await this.transactionService.commitSession(session);
       return updatedTransaction;

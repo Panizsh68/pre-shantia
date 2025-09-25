@@ -20,8 +20,10 @@ export class Transaction extends Document {
   @Prop()
   email?: string;
 
-  @Prop({ required: true, type: String, ref: 'Order' })
-  orderId: string;
+  // orderId is optional now so the transaction entity can be reused for
+  // wallet-related transactions which are not tied to an Order.
+  @Prop({ type: String, ref: 'Order', required: false })
+  orderId?: string;
 
   @Prop({ type: String, required: true })
   userId: string;
@@ -49,6 +51,35 @@ export class Transaction extends Document {
 
   @Prop()
   refundedAt?: Date;
+
+  // wallet-related optional fields for richer auditing
+  @Prop({ type: String })
+  fromWalletId?: string;
+
+  @Prop({ type: String })
+  toWalletId?: string;
+
+  @Prop({ type: String })
+  counterpartyOwnerId?: string;
+
+  @Prop({ type: String })
+  counterpartyOwnerType?: string;
+
+  @Prop({ type: Number })
+  resultingBalance?: number;
+
+  @Prop({ type: Number })
+  resultingBalanceTo?: number;
+
+  @Prop({ type: Object })
+  metadata?: Record<string, unknown>;
+
+  @Prop()
+  correlationId?: string;
 }
 
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);
+
+// Indexes for fast lookup
+TransactionSchema.index({ authority: 1 });
+TransactionSchema.index({ userId: 1 });
