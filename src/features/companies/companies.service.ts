@@ -8,6 +8,7 @@ import { UpdateCompanyDto } from './dto/update-company.dto';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { RequestContext } from 'src/common/types/request-context.interface';
 import { Types } from 'mongoose';
+import { toPlain, toPlainArray } from 'src/libs/repository/utils/doc-mapper';
 
 @Injectable()
 export class CompaniesService implements ICompanyService {
@@ -20,13 +21,13 @@ export class CompaniesService implements ICompanyService {
     userId: string,
     ctx: RequestContext,
   ): Promise<ICompany> {
-    const data: Partial<any> = {
+    const data: Partial<Company> = {
       ...createCompanyDto,
       createdBy: new Types.ObjectId(userId),
       updatedBy: new Types.ObjectId(userId),
     };
     const companyDoc = await this.companyRepository.createOne(data);
-    return companyDoc.toObject() as unknown as ICompany;
+    return toPlain<ICompany>(companyDoc);
   }
 
   async update(
@@ -38,12 +39,12 @@ export class CompaniesService implements ICompanyService {
     if (!existing) throw new NotFoundException(`Company with id ${id} not found`);
     if (existing.createdBy.toString() !== userId)
       throw new ForbiddenException('You do not have permission to update this company');
-    const data: Partial<any> = {
+    const data: Partial<Company> = {
       ...updateCompanyDto,
       updatedBy: new Types.ObjectId(userId),
     };
     const updatedDoc = await this.companyRepository.updateById(id, data);
-    return updatedDoc.toObject() as unknown as ICompany;
+    return toPlain<ICompany>(updatedDoc);
   }
 
   async remove(id: string, userId: string): Promise<void> {
@@ -57,7 +58,7 @@ export class CompaniesService implements ICompanyService {
   async findOne(id: string): Promise<ICompany> {
     const companyDoc = await this.companyRepository.findById(id);
     if (!companyDoc) throw new NotFoundException(`Company with id ${id} not found`);
-    return companyDoc.toObject() as unknown as ICompany;
+    return toPlain<ICompany>(companyDoc);
   }
 
   async findAll(options: FindManyOptions = {}): Promise<ICompany[]> {
@@ -66,7 +67,7 @@ export class CompaniesService implements ICompanyService {
       populate: options.populate || ['createdBy', 'updatedBy'],
     };
     const companies = await this.companyRepository.findAll(queryOptions);
-    return companies.map(doc => doc.toObject() as unknown as ICompany);
+    return toPlainArray<ICompany>(companies);
   }
 
   async existsByName(name: string): Promise<boolean> {
