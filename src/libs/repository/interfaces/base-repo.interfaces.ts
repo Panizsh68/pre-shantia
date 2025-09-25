@@ -35,7 +35,7 @@ export interface IBaseCrudRepository<T extends Document> {
 }
 
 export interface IBasePopulateRepository<T extends Document> {
-  populate(data: T[], fields: string | string[] | PopulateOptions[]): Promise<T[]>;
+  populate(data: T[], fields: string | string[] | PopulateOptions[], session?: ClientSession): Promise<T[]>;
 }
 
 export interface IBaseAggregateRepository<_T extends Document> {

@@ -75,7 +75,7 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
     condition: FilterQuery<T>,
     options: FindManyOptions & { session?: ClientSession } = {},
   ): Promise<T[]> {
-    const sanitizedCondition = {} as FilterQuery<T>;
+    const sanitizedCondition: Record<string, unknown> = {};
 
     // Sanitize the condition object
     if (condition && typeof condition === 'object') {
@@ -86,9 +86,9 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
           if (typeof value === 'string' &&
             ['_id', 'parentId', 'companyId'].includes(key) &&
             Types.ObjectId.isValid(value)) {
-            (sanitizedCondition as any)[key] = new Types.ObjectId(value);
+            sanitizedCondition[key] = new Types.ObjectId(value);
           } else {
-            (sanitizedCondition as any)[key] = value;
+            sanitizedCondition[key] = value;
           }
         }
       });
@@ -100,7 +100,7 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
 
     return this.handleOperation(
       () =>
-        this.applyQueryOptions(this.model.find(sanitizedCondition), options)
+        this.applyQueryOptions(this.model.find(sanitizedCondition as FilterQuery<T>), options)
           .session(options.session ?? null)
           .exec(),
       'Failed to find documents',

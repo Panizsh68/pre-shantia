@@ -1,7 +1,7 @@
 // src/libs/repository/repository-helper.module.ts
 import { Module, DynamicModule, Provider } from '@nestjs/common';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
-import { Document, Model } from 'mongoose';
+import { Document, Model, Schema, SchemaDefinition } from 'mongoose';
 import {
   IBaseCrudRepository,
   IBasePopulateRepository,
@@ -22,7 +22,7 @@ import {
 } from './constants/tokens.constants';
 
 export class RepositoryHelperModule {
-  static register<T extends Document>(entityName: string, schema: any): DynamicModule {
+  static register<T extends Document>(entityName: string, schema: Schema | SchemaDefinition | Function): DynamicModule {
     const providers: Provider[] = [
       {
         provide: BASE_CRUD_REPOSITORY,
@@ -54,6 +54,6 @@ export class RepositoryHelperModule {
       imports: [MongooseModule.forFeature([{ name: entityName, schema }])],
       providers,
       exports: providers,
-    };
+    } as DynamicModule;
   }
 }

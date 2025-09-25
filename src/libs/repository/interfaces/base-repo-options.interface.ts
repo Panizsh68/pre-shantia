@@ -1,4 +1,4 @@
-import { ClientSession } from 'mongoose';
+import { ClientSession, FilterQuery } from 'mongoose';
 
 export enum SortOrder {
   ASC = 'asc',
@@ -13,12 +13,13 @@ export interface SortOption {
 export interface PopulateOptions {
   path: string;
   select?: string | string[];
+  session?: ClientSession;
 }
 
 export interface FindOptions {
   select?: string | string[];
   populate?: string | string[] | PopulateOptions[];
-  conditions?: Record<string, any>;
+  conditions?: FilterQuery<unknown>;
   session?: ClientSession;
 }
 
@@ -30,4 +31,5 @@ export interface FindManyOptions extends FindOptions {
 
 export interface UpdateOptions {
   new?: boolean;
+  session?: ClientSession;
 }
