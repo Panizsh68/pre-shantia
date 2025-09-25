@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { Inject } from '@nestjs/common';
+import { toPlain, toPlainArray } from 'src/libs/repository/utils/doc-mapper';
 import { IRatingRepository } from './repositories/rating.repository';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { IRatingService } from './interfaces/rating.service.interface';
@@ -20,12 +21,12 @@ export class RatingService implements IRatingService {
       dto.rating,
       dto.comment
     );
-    return ratingDoc.toObject() as IRating;
+    return toPlain<IRating>(ratingDoc);
   }
 
   async getProductRatings(productId: string): Promise<IRating[]> {
     const ratings = await this.repo.findByProduct(productId);
-    return ratings.map(r => r.toObject() as IRating);
+    return toPlainArray<IRating>(ratings);
   }
 
   async getProductAverageRating(productId: string): Promise<number> {
@@ -34,12 +35,12 @@ export class RatingService implements IRatingService {
 
   async getUserProductRating(userId: string, productId: string): Promise<IRating | null> {
     const rating = await this.repo.findByUserAndProduct(userId, productId);
-    return rating ? (rating.toObject() as IRating) : null;
+    return rating ? toPlain<IRating>(rating) : null;
   }
 
   async updateProductRating(userId: string, dto: CreateRatingDto): Promise<IRating | null> {
     const rating = await this.repo.updateRating(userId, dto.productId, dto.rating, dto.comment);
-    return rating ? (rating.toObject() as IRating) : null;
+    return rating ? toPlain<IRating>(rating) : null;
   }
 
   async deleteProductRating(userId: string, productId: string): Promise<void> {
