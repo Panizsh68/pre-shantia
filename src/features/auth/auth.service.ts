@@ -55,7 +55,8 @@ export class AuthService {
   async signUp(createUserDto: CreateUserDto): Promise<SignUpResponseDto> {
     try {
       const exists = await this.usersService.findUserByPhoneNumber(createUserDto.phoneNumber);
-      if (exists) throw new ConflictException('User already exists');
+      // NOTE: previously this deleted the user's profile on sign-out.
+      // Removing profile deletion — signOut should only revoke sessions/permissions, not delete user data.
 
       const valid = await this.shahkarService.verifyMelicodeWithPhonenumber(
         createUserDto.nationalId,

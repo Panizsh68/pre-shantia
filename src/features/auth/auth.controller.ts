@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpStatus, HttpCode, Get, Res, UseGuards, Inject } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, HttpCode, Get, Res, UseGuards, Inject, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthProfileDto } from './dto/auth-profile.dto';
 import { IProfileService } from '../users/profile/interfaces/profile.service.interface';
@@ -108,8 +108,8 @@ export class AuthController {
     @RequestContext() context: ContextType,
     @Res({ passthrough: true }) res: Response,
   ): Promise<SignUpResponseDto> {
-    const refreshToken = body.refreshToken || (res.req.cookies && res.req.cookies.refreshToken);
-    if (!refreshToken) throw new Error('Refresh token not provided');
+  const refreshToken = body.refreshToken || (res.req.cookies && res.req.cookies.refreshToken);
+  if (!refreshToken) throw new BadRequestException('Refresh token not provided');
     const result = await this.authService.refreshAccessTokenByRefreshToken(refreshToken, context);
     if (result.accessToken) {
       res.setHeader('Authorization', 'Bearer ' + result.accessToken);
