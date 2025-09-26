@@ -4,6 +4,9 @@ import { Cart, CartSchema } from 'src/features/carts/entities/cart.entity';
 
 @Schema()
 export class Profile extends Document {
+  @Prop({ type: String, ref: 'User', required: true, unique: true })
+  userId: string;
+
   @Prop({ type: String, required: true, default: 'نام' })
   firstName?: string;
 

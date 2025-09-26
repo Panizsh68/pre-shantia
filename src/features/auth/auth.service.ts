@@ -21,6 +21,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { TokenType } from 'src/utils/services/tokens/tokentype.enum';
 import { IUsersService } from '../users/interfaces/user.service.interface';
 import { IProfileService } from '../users/profile/interfaces/profile.service.interface';
+import { CreateProfileDto } from '../users/profile/dto/create-profile.dto';
 import { IWalletService } from '../wallets/interfaces/wallet.service.interface';
 import { SignUpResponseDto } from './dto/sign-up.response.dto';
 import { SignInResponseDto } from './dto/signn-in.response.dto';
@@ -190,11 +191,13 @@ export class AuthService {
           }, session);
 
 
-          const profile = await this.profileService.create({
+          const profileDto: CreateProfileDto = {
             phoneNumber: signUpData.phoneNumber,
             nationalId: signUpData.nationalId,
-            walletId: wallet.id
-          }, session);
+            walletId: wallet.id,
+            userId: user.id.toString(),
+          };
+          const profile = await this.profileService.create(profileDto, session);
 
           console.log(`Profile created with ID=${profile.id} for user ID=${user.id} and linked to wallet ID=${wallet.id}`);
 

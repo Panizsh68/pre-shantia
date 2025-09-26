@@ -12,16 +12,26 @@ export class ProfileService {
   ) { }
 
   async create(createProfileDto: CreateProfileDto, session?: ClientSession): Promise<Profile> {
-    const profile: CreateProfileDto = {
+    // userId is required on the DTO (strongly typed) to guarantee link to User
+    const profileData: Partial<CreateProfileDto> = {
+      userId: createProfileDto.userId,
       phoneNumber: createProfileDto.phoneNumber,
       nationalId: createProfileDto.nationalId,
+      walletId: createProfileDto.walletId,
+      firstName: createProfileDto.firstName,
+      lastName: createProfileDto.lastName,
+      address: createProfileDto.address,
+      cart: createProfileDto.cart,
+      orders: createProfileDto.orders,
+      transactions: createProfileDto.transactions,
+      favorites: createProfileDto.favorites,
     };
-    const creation = await this.profileRepository.createOne(profile, session);
+    const creation = await this.profileRepository.createOne(profileData as any, session);
     return creation;
   }
 
   async getByUserId(userId: string): Promise<Profile | null> {
-    return this.profileRepository.findById(userId);
+    return this.profileRepository.findOneByCondition({ userId } as any);
   }
 
   async update(id: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {

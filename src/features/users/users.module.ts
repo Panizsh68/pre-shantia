@@ -41,4 +41,4 @@ import { IUserRepository, UserRepository } from './repositories/user.repository'
   ],
   exports: ['IUsersService'],
 })
-export class UsersModule {}
+export class UsersModule { }

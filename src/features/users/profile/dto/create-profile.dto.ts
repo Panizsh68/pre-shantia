@@ -10,6 +10,14 @@ import { CreateUserDto } from '../../dto/create-user.dto';
 
 export class CreateProfileDto extends CreateUserDto {
   @ApiProperty({
+    description: "User's ID (ObjectId string). This links profile to the user.",
+    example: '507f1f77bcf86cd799439011',
+  })
+  @IsNotEmpty()
+  @IsString()
+  userId: string;
+
+  @ApiProperty({
     description: 'First name of the user',
     example: 'Ali',
     default: '',

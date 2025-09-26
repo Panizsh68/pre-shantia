@@ -183,7 +183,7 @@ export class AuthController {
   })
   async getProfile(
     @CurrentUser() user: TokenPayload,
-  ): Promise<{ userId: string; permissions: IPermission[]; profile?: AuthProfileDto }> {
+  ): Promise<{ userId: string; permissions: IPermission[]; profile: AuthProfileDto }> {
     const permissions =
       Array.isArray(user.permissions) && user.permissions.length > 0
         ? user.permissions
@@ -203,17 +203,18 @@ export class AuthController {
         ];
 
     const profile = await this.profileService.getByUserId(user.userId);
+    const resultProfile: AuthProfileDto = {
+      phoneNumber: profile?.phoneNumber || (user as any).phoneNumber || '',
+      nationalId: profile?.nationalId || '',
+      firstName: profile?.firstName,
+      lastName: profile?.lastName,
+      address: profile?.address,
+      walletId: profile?.walletId?.toString(),
+    };
     return {
       userId: user.userId,
       permissions,
-      profile: profile ? {
-        phoneNumber: profile.phoneNumber,
-        nationalId: profile.nationalId,
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        address: profile.address,
-        walletId: profile.walletId
-      } : undefined
+      profile: resultProfile,
     };
   }
 

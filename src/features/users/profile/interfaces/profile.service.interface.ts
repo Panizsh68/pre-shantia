@@ -4,11 +4,11 @@ import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { Profile } from '../entities/profile.entity';
 
 export interface IProfileService {
-  create(createProfileDto: CreateProfileDto, session?: ClientSession);
+  create(createProfileDto: CreateProfileDto, session?: ClientSession): Promise<Profile>;
 
-  getByUserId(userId: string): Promise<Profile | null>
+  getByUserId(userId: string): Promise<Profile | null>;
 
-  update(id: string, updateProfileDto: UpdateProfileDto);
+  update(id: string, updateProfileDto: UpdateProfileDto): Promise<Profile>;
 
-  deleteByUserId(userId: string): Promise<void>;
+  deleteByUserId(userId: string): Promise<boolean>;
 }

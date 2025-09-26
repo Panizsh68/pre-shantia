@@ -5,6 +5,7 @@ import { IUserRepository } from './repositories/user.repository';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { UpdateProfileDto } from './profile/dto/update-profile.dto';
 import { IProfileService } from './profile/interfaces/profile.service.interface';
+import { CreateProfileDto } from './profile/dto/create-profile.dto';
 import { ClientSession } from 'mongoose';
 
 @Injectable()
@@ -22,8 +23,12 @@ export class UsersService {
   async create(createUserDto: CreateUserDto, session?: ClientSession, options?: { createProfile?: boolean }): Promise<User> {
     const user = await this.usersRepository.createOne({ ...createUserDto }, session);
     if (options?.createProfile !== false) {
-      // default behavior: create profile
-      await this.profileService.create(createUserDto, session);
+      // default behavior: create profile; pass strong-typed DTO
+      const profileDto: CreateProfileDto = {
+        ...createUserDto,
+        userId: user.id.toString(),
+      };
+      await this.profileService.create(profileDto, session);
     }
     return user;
   }
