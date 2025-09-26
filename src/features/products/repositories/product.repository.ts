@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ClientSession, PipelineStage } from 'mongoose';
+import { Model, ClientSession, PipelineStage, Types } from 'mongoose';
 import { Product } from '../entities/product.entity';
 import { TopProduct } from '../interfaces/top-product.interface';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
@@ -12,6 +12,7 @@ import {
 
 export interface IProductRepository extends IBaseCrudRepository<Product>, IBaseAggregateRepository<Product>, IBaseTransactionRepository<Product> {
   getTopProductsByRating(limit?: number, session?: ClientSession): Promise<TopProduct[]>;
+  findByCompanyId(companyId: string | Types.ObjectId, options?: { page?: number; limit?: number; sort?: { field: string; order: 'asc' | 'desc' }[] }, session?: ClientSession): Promise<Product[]>;
   advancedSearchAggregate(
     params: {
       query?: string;
@@ -194,6 +195,27 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
     private readonly transactionRepository: IBaseTransactionRepository<Product>,
   ) {
     super(productModel);
+  }
+
+  async findByCompanyId(companyId: string | Types.ObjectId, options: { page?: number; limit?: number; sort?: { field: string; order: 'asc' | 'desc' }[] } = {}, session?: ClientSession): Promise<Product[]> {
+    const condition: Record<string, unknown> = {};
+    if (typeof companyId === 'string') {
+      condition.companyId = Types.ObjectId.isValid(companyId) ? new Types.ObjectId(companyId) : companyId;
+    } else {
+      condition.companyId = companyId;
+    }
+    condition['status'] = 'active';
+
+    const page = options.page ?? 1;
+    const limit = options.limit ?? 10;
+
+    const findOptions = {
+      page,
+      perPage: limit,
+      sort: options.sort?.map(s => ({ field: s.field, order: s.order === 'asc' ? 1 : -1 })) as any,
+    } as any;
+
+    return this.findManyByCondition(condition as any, findOptions as any);
   }
 
   async aggregate<R>(pipeline: PipelineStage[], session?: ClientSession): Promise<R[]> {

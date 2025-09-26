@@ -46,4 +46,5 @@ export interface IProductService {
   existsByName(name: string, session?: ClientSession): Promise<boolean>;
   count(session?: ClientSession): Promise<number>;
   searchProducts(query: string, options?: FindManyOptions): Promise<IProduct[]>;
+  findByCompanyId(companyId: string, options?: FindManyOptions, session?: ClientSession): Promise<IProduct[]>;
 }

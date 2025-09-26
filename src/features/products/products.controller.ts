@@ -224,6 +224,39 @@ export class ProductsController {
     return this.productsService.findAll(options);
   }
 
+  @Get('company/:companyId')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PRODUCTS, Action.READ)
+  @ApiOperation({ summary: 'Get products by company ID' })
+  @ApiParam({ name: 'companyId', type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'sort', required: false, type: String, example: 'basePrice:desc' })
+  async findByCompanyId(
+    @Param('companyId') companyId: string,
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+    @Query('sort') sort?: string,
+  ) {
+    const options: FindManyOptions = {};
+    if (limit) {
+      const parsedLimit = parseInt(limit, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1) throw new BadRequestException('Limit must be a positive integer');
+      options.perPage = parsedLimit;
+    }
+    if (page) {
+      const parsedPage = parseInt(page, 10);
+      if (isNaN(parsedPage) || parsedPage < 1) throw new BadRequestException('Page must be a positive integer');
+      options.page = parsedPage;
+    }
+    if (sort) {
+      const [field, order] = sort.split(':');
+      if (!field || !order || !['asc', 'desc'].includes(order.toLowerCase())) throw new BadRequestException('Sort must be in format field:asc|desc');
+      options.sort = [{ field, order: order.toLowerCase() === 'asc' ? SortOrder.ASC : SortOrder.DESC }];
+    }
+    return this.productsService.findByCompanyId(companyId, options);
+  }
+
   @Get(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.PRODUCTS, Action.READ)

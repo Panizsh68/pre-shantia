@@ -73,6 +73,19 @@ export class ProductsService implements IProductService {
     return toPlain<IProduct>(productDoc);
   }
 
+  async findByCompanyId(companyId: string, options: FindManyOptions = {}, session?: ClientSession): Promise<IProduct[]> {
+    // sanitize and build conditions
+    const conditions = { ...(options.conditions || {}), companyId: this.toObjectId(companyId), status: ProductStatus.ACTIVE };
+    const queryOptions: FindManyOptions = {
+      ...options,
+      conditions,
+      populate: options.populate || ['companyId', 'categories'],
+      session,
+    };
+    const products = await this.repo.findManyByCondition(conditions as any, queryOptions as any);
+    return toPlainArray<IProduct>(products);
+  }
+
   async update(
     id: string,
     dto: UpdateProductDto,

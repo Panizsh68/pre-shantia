@@ -14,7 +14,7 @@ export class Product extends Document {
   @Prop({ type: Number, min: 0, max: 100, default: 0 })
   discount: number;
 
-  @Prop({ type: Types.ObjectId, ref: 'Company', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'Company', required: true, index: true })
   companyId: Types.ObjectId;
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Category' }], default: [] })
