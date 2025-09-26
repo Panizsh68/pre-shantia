@@ -12,16 +12,19 @@ export class UsersService {
   constructor(
     @Inject('UserRepository') private readonly usersRepository: IUserRepository,
     @Inject('IProfileService') private readonly profileService: IProfileService,
-  ) {}
+  ) { }
 
   async findUserByPhoneNumber(phoneNumber: string): Promise<User | null> {
     const user = await this.usersRepository.findByPhoneNumber(phoneNumber);
     return user;
   }
 
-  async create(createUserDto: CreateUserDto, session?: ClientSession): Promise<User> {
+  async create(createUserDto: CreateUserDto, session?: ClientSession, options?: { createProfile?: boolean }): Promise<User> {
     const user = await this.usersRepository.createOne({ ...createUserDto }, session);
-    await this.profileService.create(createUserDto, session);
+    if (options?.createProfile !== false) {
+      // default behavior: create profile
+      await this.profileService.create(createUserDto, session);
+    }
     return user;
   }
 

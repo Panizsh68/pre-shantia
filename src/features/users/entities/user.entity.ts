@@ -6,6 +6,7 @@ import { IPermission } from 'src/features/permissions/interfaces/permissions.int
 @Schema({ timestamps: true })
 export class User extends Document {
   @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   phoneNumber: string;
 
   @Prop({ required: true })

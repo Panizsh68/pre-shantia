@@ -197,14 +197,6 @@ All routes are under the `/auth` controller.
 
 ---
 
-## Known issues detected (summary)
-1. signOut previously deleted the user's profile (`profileService.deleteByUserId`) which would remove persistent user data on sign-out. This was removed. Sign-out should only revoke session data.
-2. `adminSignUp` stores `refresh-info:${refreshToken}` with empty `ip` and `userAgent` (`{ ip: '', userAgent: '' }`). That will cause `validateRefreshToken` to fail on context matching during refresh. Either store caller context or treat admin-created refresh tokens specially.
-3. `verifyOtp` may create profile twice because `UsersService.create(createUserDto, session)` internally calls `profileService.create(createUserDto, session)` and `AuthService.verifyOtp` also calls `profileService.create(...)` after wallet creation — this can lead to duplicate profile records or constraint errors. Ensure profile creation happens exactly once in the transaction.
-4. Access tokens are not blacklisted on sign-out; a short expiry is used (1h) but immediate revocation isn't supported. If forced logout is required, add a token blacklist or change token validation logic.
-5. `refresh` controller previously threw a plain `Error('Refresh token not provided')` which did not map to a proper HTTP status; it was changed to `BadRequestException`. Verify this change is acceptable for client behavior.
-6. `ShahkarService` is currently mocked to always return true. Real integration is required before production use.
-
 ---
 
 End of file.

@@ -7,6 +7,7 @@ import {
   Inject,
   UnauthorizedException,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { TokenPayload } from './interfaces/token-payload.interface';
 import { ShahkarService } from 'src/utils/services/shahkar/shahkar.service';
@@ -55,14 +56,15 @@ export class AuthService {
   async signUp(createUserDto: CreateUserDto): Promise<SignUpResponseDto> {
     try {
       const exists = await this.usersService.findUserByPhoneNumber(createUserDto.phoneNumber);
-      // NOTE: previously this deleted the user's profile on sign-out.
-      // Removing profile deletion — signOut should only revoke sessions/permissions, not delete user data.
+      if (exists) {
+        throw new ConflictException('User already exists')
+      }
 
       const valid = await this.shahkarService.verifyMelicodeWithPhonenumber(
         createUserDto.nationalId,
         createUserDto.phoneNumber,
       );
-      if (!valid) throw new HttpException('Phone and National ID mismatch', HttpStatus.BAD_REQUEST);
+      if (!valid) throw new BadRequestException('Phone and National ID mismatch');
 
       const ttl = this.configService.get<number>('app.OTP_TTL') ?? 300;
       await this.cacheService.set(
@@ -89,7 +91,9 @@ export class AuthService {
     try {
       const user = await this.usersService.findUserByPhoneNumber(signInDto.phoneNumber);
       if (!user) throw new NotFoundException('User not found');
+
       await this.otpService.sendOtpToPhone(signInDto.phoneNumber);
+
       return { phoneNumber: signInDto.phoneNumber };
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -100,10 +104,7 @@ export class AuthService {
     }
   }
 
-  async verifyOtp(
-    verifyOtpDto: VerifyOtpDto,
-    context: RequestContext,
-  ): Promise<VerifyOtpResponse> {
+  async verifyOtp(verifyOtpDto: VerifyOtpDto, context: RequestContext): Promise<VerifyOtpResponse> {
     console.log(`Starting OTP verification for phoneNumber=${verifyOtpDto.phoneNumber}`);
     try {
       const validOtp = await this.otpService.verifyOtp(
@@ -140,14 +141,11 @@ export class AuthService {
         const permissions = isSuperAdmin
           ? [
             { resource: Resource.ALL, actions: [Action.MANAGE] },
-            // پرمیشن‌های ویژه برای کیف پول ادمین به عنوان شرکت واسطه
             {
               resource: Resource.WALLETS, actions: [
                 Action.READ,
                 Action.UPDATE,
                 Action.deposit_intermediary,
-                Action.deposit_company,
-                Action.deposit_user
               ]
             }
           ]
@@ -159,7 +157,7 @@ export class AuthService {
             { resource: Resource.TRANSACTION, actions: [Action.READ] },
             { resource: Resource.TRANSPORTING, actions: [Action.READ] },
             { resource: Resource.PROFILE, actions: [Action.READ, Action.CREATE] },
-            { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE, Action.deposit_intermediary] },
+            { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE, Action.deposit_user] },
             { resource: Resource.PAYMENT, actions: [Action.CREATE, Action.UPDATE] },
             { resource: Resource.CARTS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
             { resource: Resource.CATEGORIES, actions: [Action.READ] },
@@ -174,15 +172,16 @@ export class AuthService {
             permissions,
           };
           console.log(`Creating new user with phoneNumber=${signUpData.phoneNumber}`);
-          user = await this.usersService.create(userCreateInput, session);
+          // create user but skip automatic profile creation — we'll create profile after wallet
+          user = await this.usersService.create(userCreateInput, session, { createProfile: false });
           console.log(`User created successfully with ID=${user.id}`);
 
-          // تعیین نوع کیف پول بر اساس پرمیشن‌های کاربر
+
           const { determineOwnerTypeFromPermissions } = await import('../../utils/wallet-owner.util');
           const { WalletOwnerType } = await import('../wallets/enums/wallet-ownertype.enum');
           const ownerType = determineOwnerTypeFromPermissions(permissions);
 
-          // ایجاد کیف پول در همان تراکنش
+
           const wallet = await this.walletsService.createWallet({
             ownerId: user.id.toString(),
             ownerType: ownerType,
@@ -190,7 +189,7 @@ export class AuthService {
             currency: 'IRR'
           }, session);
 
-          // ایجاد پروفایل با walletId از همان ابتدا
+
           const profile = await this.profileService.create({
             phoneNumber: signUpData.phoneNumber,
             nationalId: signUpData.nationalId,
@@ -237,8 +236,7 @@ export class AuthService {
 
       await this.cacheService.set(
         `refresh-info:${refreshToken}`,
-        { ip: context.ip, userAgent: context.userAgent, userId: user.id.toString() },
-        this.configService.get<number>('JWT_REFRESH_EXPIRES') || 48 * 3600,
+        { ip: context.ip, userAgent: context.userAgent, userId: user.id.toString() }, 48 * 3600,
       );
       console.log(`Refresh token session info cached for user ID=${user.id}`);
 
@@ -270,10 +268,7 @@ export class AuthService {
     }
   }
 
-  async refreshAccessTokenByRefreshToken(
-    refreshToken: string,
-    context: RequestContext,
-  ): Promise<{ accessToken: string }> {
+  async refreshAccessTokenByRefreshToken(refreshToken: string, context: RequestContext): Promise<{ accessToken: string }> {
     console.log(`Refreshing access token with refreshToken=${refreshToken.slice(0, 6)}...`);
     try {
       const payload = await this.tokensService.validateRefreshToken(refreshToken, context);
@@ -334,15 +329,13 @@ export class AuthService {
     }
   }
 
-  // ۵. خروج از سیستم (ری‌ووک refresh token)
+
   async signOut(userId: string, refreshToken?: string): Promise<{ message: string }> {
     try {
       if (refreshToken) {
         await this.cacheService.delete(`refresh-info:${refreshToken}`);
       }
       await this.cacheService.delete(`permissions:${userId}`);
-      // فقط پروفایل کاربر حذف شود، نه خود یوزر
-      await this.profileService.deleteByUserId(userId);
       return { message: 'Signed out successfully' };
     } catch (error) {
       throw new HttpException(
@@ -352,16 +345,15 @@ export class AuthService {
     }
   }
 
-  // ۶. ثبت‌نام ادمین با پرمیشن مستقیم (بدون OTP)
-  async adminSignUp(signUpDto: SignUpDto): Promise<SignUpResponseDto> {
+
+  async adminSignUp(signUpDto: SignUpDto, context?: RequestContext): Promise<SignUpResponseDto> {
     try {
       const exists = await this.usersService.findUserByPhoneNumber(signUpDto.phoneNumber);
       if (exists) throw new ConflictException('User already exists');
 
-      // اطمینان از پرمیشن‌ها فقط توسط ادمین تنظیم شده
+
       const user = await this.usersService.create(signUpDto);
 
-      // generate tokens for created user
       const payload: TokenPayload = {
         userId: user.id.toString(),
         permissions: user.permissions || [],
@@ -372,10 +364,10 @@ export class AuthService {
       const refreshToken = await this.tokensService.getRefreshToken(refreshPayload);
 
       // store refreshToken session for future validation
+      // store caller context if available; admin-created tokens should include session info
       await this.cacheService.set(
         `refresh-info:${refreshToken}`,
-        { ip: '', userAgent: '', userId: user.id.toString() },
-        this.configService.get<number>('JWT_REFRESH_EXPIRES') || 48 * 3600,
+        { ip: context?.ip || '', userAgent: context?.userAgent || '', userId: user.id.toString() }, 48 * 3600,
       );
 
       return { phoneNumber: user.phoneNumber, accessToken, refreshToken };
@@ -388,7 +380,6 @@ export class AuthService {
     }
   }
 
-  // پروفایل و پرمیشن های کاربر فعلی
   async getProfile(user: TokenPayload): Promise<{ userId: string; permissions: IPermission[] }> {
     try {
       return { userId: user.userId, permissions: user.permissions };

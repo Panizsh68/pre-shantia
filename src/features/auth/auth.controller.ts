@@ -228,9 +228,10 @@ export class AuthController {
   })
   async adminSignUp(
     @Body() signUpDto: SignUpDto,
+    @RequestContext() context: ContextType,
     @Res({ passthrough: true }) res: Response,
   ): Promise<SignUpResponseDto> {
-    const result = await this.authService.adminSignUp(signUpDto);
+    const result = await this.authService.adminSignUp(signUpDto, context);
     if (result.accessToken) {
       res.setHeader('Authorization', 'Bearer ' + result.accessToken);
     }

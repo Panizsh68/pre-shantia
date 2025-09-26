@@ -7,7 +7,7 @@ import { ClientSession } from 'mongoose';
 export interface IUsersService {
   findUserByPhoneNumber(phoneNumber: string): Promise<User | null>;
 
-  create(createUserDto: CreateUserDto, session?: ClientSession): Promise<User>;
+  create(createUserDto: CreateUserDto, session?: ClientSession, options?: { createProfile?: boolean }): Promise<User>;
 
   findOne(id: string): Promise<User>;
 
