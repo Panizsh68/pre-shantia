@@ -26,6 +26,9 @@ export class Company extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   updatedBy: Types.ObjectId;
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
+  admins?: Types.ObjectId[];
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);
