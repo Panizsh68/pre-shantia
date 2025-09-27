@@ -1,13 +1,11 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSION_KEY, PermissionMeta } from '../decoratorss/permissions.decorators';
-import { IPermission } from '../interfaces/permissions.interface';
-import { Action } from '../enums/actions.enum';
-import { Resource } from '../enums/resources.enum';
+import { PermissionsService } from '../permissions.service';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) { }
+  constructor(private readonly reflector: Reflector, private readonly permissionsService: PermissionsService) { }
 
   canActivate(context: ExecutionContext): boolean {
     const permissionMeta =
@@ -19,17 +17,9 @@ export class PermissionsGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    const hasPermission = user?.permissions?.some((perm: IPermission) => {
-      const isAllManage = perm.resource === Resource.ALL && perm.actions.includes(Action.MANAGE);
-      const isMatching =
-        perm.resource === permissionMeta.resource && perm.actions.includes(permissionMeta.action);
-      return isMatching || isAllManage;
-    });
+    // allow guard to consider an optional companyId in the request body/query/params
+    const companyId = request.body?.companyId || request.params?.companyId || request.query?.companyId || undefined;
 
-    if (!hasPermission) {
-      throw new ForbiddenException('Access denied: missing required permission');
-    }
-
-    return true;
+    return this.permissionsService.hasPermission(user?.permissions, permissionMeta.resource, permissionMeta.action, companyId);
   }
 }

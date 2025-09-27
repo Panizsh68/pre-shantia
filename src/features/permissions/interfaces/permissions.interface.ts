@@ -5,4 +5,7 @@ export interface IPermission {
   resource: Resource;
 
   actions: Action[];
+
+  // optional scope for permission - for example limit permission to a specific company
+  companyId?: string;
 }

@@ -12,3 +12,4 @@ export interface PermissionMeta {
 
 export const Permission = (resource: Resource, action: Action) =>
   SetMetadata(PERMISSION_KEY, { resource, action });
+
