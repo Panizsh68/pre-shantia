@@ -1,4 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
+import { ProfileModule } from 'src/features/users/profile/profile.module';
+import { CompaniesModule } from 'src/features/companies/companies.module';
+import { PermissionsModule } from 'src/features/permissions/permissions.module';
 import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 import { AuthenticationGuard } from 'src/features/auth/guards/auth.guard';
@@ -16,7 +19,13 @@ import {
 } from 'src/libs/repository/constants/tokens.constants';
 
 @Module({
-  imports: [GenericRepositoryModule.forFeature<Product>(Product.name, Product, ProductSchema)],
+  imports: [
+    GenericRepositoryModule.forFeature<Product>(Product.name, Product, ProductSchema),
+    // need profile and companies to resolve companyId from user's profile
+    forwardRef(() => ProfileModule),
+    forwardRef(() => CompaniesModule),
+    forwardRef(() => PermissionsModule),
+  ],
   controllers: [ProductsController],
   providers: [
     {
@@ -37,4 +46,4 @@ import {
   ],
   exports: ['IProductsService', 'ProductRepository'],
 })
-export class ProductsModule {}
+export class ProductsModule { }

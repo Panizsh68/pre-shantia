@@ -5,6 +5,7 @@ import { IProduct } from './product.interface';
 import { ClientSession } from 'mongoose';
 import { TopProduct } from './top-product.interface';
 import { RequestContext } from 'src/common/types/request-context.interface';
+import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
 
 export interface IProductService {
   advancedSearchAggregate(params: {
@@ -23,7 +24,7 @@ export interface IProductService {
   create(
     createProductDto: CreateProductDto,
     userId: string,
-    ctx: RequestContext,
+    tokenPayload?: TokenPayload,
     session?: ClientSession,
   ): Promise<IProduct>;
   findAll(options: FindManyOptions, session?: ClientSession): Promise<IProduct[]>;

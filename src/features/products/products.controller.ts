@@ -191,7 +191,8 @@ export class ProductsController {
     @CurrentUser() user: TokenPayload,
     @RequestContext() ctx: IRequestContext,
   ) {
-    return this.productsService.create(dto, user.userId, ctx);
+    // Pass full user payload to allow permission checks inside service
+    return this.productsService.create(dto, user.userId, user as TokenPayload);
   }
 
   @Get()

@@ -1,5 +1,5 @@
 
-import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { Types, ClientSession, PipelineStage } from 'mongoose';
 import { toPlain, toPlainArray } from 'src/libs/repository/utils/doc-mapper';
 import { Product } from './entities/product.entity';
@@ -13,6 +13,13 @@ import { TopProduct } from './interfaces/top-product.interface';
 import { RequestContext } from 'src/common/types/request-context.interface';
 import { ProductStatus } from './enums/product-status.enum';
 import { AdvancedSearchParams } from './types/advanced-search-params.type';
+import { IProfileService } from '../users/profile/interfaces/profile.service.interface';
+import { ICompanyService } from '../companies/interfaces/company.service.interface';
+import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
+import { Resource } from 'src/features/permissions/enums/resources.enum';
+import { Action } from 'src/features/permissions/enums/actions.enum';
+import { PermissionsService } from 'src/features/permissions/permissions.service';
+import { toObjectId, toObjectIdArray } from 'src/utils/objectid.util';
 
 @Injectable()
 export class ProductsService implements IProductService {
@@ -28,29 +35,37 @@ export class ProductsService implements IProductService {
   constructor(
     @Inject('ProductRepository')
     private readonly repo: IProductRepository,
+    @Inject('IProfileService') private readonly profileService: IProfileService,
+    @Inject('ICompanyService') private readonly companyService: ICompanyService,
+    private readonly permissionsService: PermissionsService,
   ) { }
 
-  private toObjectId(id: string): Types.ObjectId {
-    return new Types.ObjectId(id);
-  }
-
-  private toObjectIdArray(ids?: string[]): Types.ObjectId[] {
-    return ids?.map(this.toObjectId) || [];
-  }
 
   async create(
     dto: CreateProductDto,
     userId: string,
-    ctx: RequestContext,
+    tokenPayload?: TokenPayload,
     session?: ClientSession,
   ): Promise<IProduct> {
-    const { companyId, categories, ...rest } = dto;
+    // Resolve user's profile and companyId
+    const profile = await this.profileService.getByUserId(userId);
+    if (!profile) throw new BadRequestException('User profile not found');
+    if (!profile.companyId) throw new BadRequestException('User does not belong to any company');
+
+    const companyIdStr = profile.companyId.toString();
+
+    // Permission check: user must have CREATE on PRODUCTS for their company
+    this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.CREATE, companyIdStr);
+    // Ensure company exists
+    await this.companyService.findOne(companyIdStr);
+
+    const { companyId: _, categories, ...rest } = dto;
     const data: Partial<Product> = {
       ...rest,
-      companyId: this.toObjectId(companyId),
-      categories: this.toObjectIdArray(categories),
-      createdBy: this.toObjectId(userId),
-      updatedBy: this.toObjectId(userId),
+      companyId: toObjectId(companyIdStr),
+      categories: categories ? (categories.map((c) => toObjectId(c))) : [],
+      createdBy: toObjectId(userId),
+      updatedBy: toObjectId(userId),
     };
     const productDoc = await this.repo.createOne(data, session);
     return toPlain<IProduct>(productDoc);
@@ -75,7 +90,7 @@ export class ProductsService implements IProductService {
 
   async findByCompanyId(companyId: string, options: FindManyOptions = {}, session?: ClientSession): Promise<IProduct[]> {
     // sanitize and build conditions
-    const conditions = { ...(options.conditions || {}), companyId: this.toObjectId(companyId), status: ProductStatus.ACTIVE };
+    const conditions = { ...(options.conditions || {}), companyId: toObjectId(companyId), status: ProductStatus.ACTIVE };
     const queryOptions: FindManyOptions = {
       ...options,
       conditions,
@@ -99,9 +114,9 @@ export class ProductsService implements IProductService {
     const { companyId, categories, ...rest } = dto;
     const data: Partial<Product> = {
       ...rest,
-      companyId: this.toObjectId(companyId!),
-      categories: this.toObjectIdArray(categories),
-      updatedBy: this.toObjectId(userId),
+      companyId: companyId ? toObjectId(companyId) : existing.companyId,
+      categories: categories ? toObjectIdArray(categories) : [],
+      updatedBy: toObjectId(userId),
     };
     const updatedDoc = await this.repo.updateById(id, data, session);
     return toPlain<IProduct>(updatedDoc);
@@ -116,11 +131,11 @@ export class ProductsService implements IProductService {
   }
 
   async existsByCompany(companyId: string, session?: ClientSession): Promise<boolean> {
-    return this.repo.existsByCondition({ companyId: this.toObjectId(companyId) }, session);
+    return this.repo.existsByCondition({ companyId: toObjectId(companyId) }, session);
   }
 
   async countByCategory(categoryId: string, session?: ClientSession): Promise<number> {
-    return this.repo.countByCondition({ categories: this.toObjectId(categoryId) }, session);
+    return this.repo.countByCondition({ categories: toObjectId(categoryId) }, session);
   }
 
   async getTopProductsByRating(limit = 5, session?: ClientSession): Promise<TopProduct[]> {
@@ -134,7 +149,7 @@ export class ProductsService implements IProductService {
   ): Promise<IProduct> {
     const txn = session || (await this.repo.startTransaction());
     try {
-      const result = await this.create(dto, userId, {} as RequestContext, txn);
+      const result = await this.create(dto, userId, undefined, txn);
       if (!session) await this.repo.commitTransaction(txn);
       return result;
     } catch (err) {

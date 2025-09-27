@@ -113,8 +113,10 @@ export class CreateProductDto {
     example: '507f1f77bcf86cd799439011',
   })
   @IsString()
-  @IsNotEmpty()
-  companyId: string;
+  // companyId will be resolved from the user's profile on the server side
+  @IsOptional()
+  @IsString()
+  companyId?: string;
 
   @ApiPropertyOptional({
     description: 'List of category IDs',
