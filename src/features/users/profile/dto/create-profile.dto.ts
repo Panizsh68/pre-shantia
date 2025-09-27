@@ -1,109 +1,62 @@
-import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsNotEmpty,
-  IsString,
-  IsPhoneNumber,
-  IsArray,
-  IsOptional,
-} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, IsPhoneNumber, IsArray, IsOptional } from 'class-validator';
 import { CreateUserDto } from '../../dto/create-user.dto';
 
 export class CreateProfileDto extends CreateUserDto {
-  @ApiProperty({
-    description: "User's ID (ObjectId string). This links profile to the user.",
-    example: '507f1f77bcf86cd799439011',
-  })
+  @ApiProperty({ description: "User's ID (ObjectId string). This links profile to the user.", example: '507f1f77bcf86cd799439011' })
   @IsNotEmpty()
   @IsString()
   userId: string;
 
-  @ApiProperty({
-    description: 'First name of the user',
-    example: 'Ali',
-    default: '',
-  })
+  @ApiProperty({ description: 'First name of the user', example: 'Ali', default: '' })
   @IsString()
-  firstName?: string = '';
+  firstName?: string;
 
-  @ApiProperty({
-    description: 'Last name of the user',
-    example: 'Hosseini',
-    default: '',
-  })
+  @ApiProperty({ description: 'Last name of the user', example: 'Hosseini', default: '' })
   @IsString()
-  lastName?: string = '';
+  lastName?: string;
 
-  @ApiProperty({
-    description: 'Iranian phone number of the user',
-    example: '+989123456789',
-  })
+  @ApiProperty({ description: 'Iranian phone number of the user', example: '+989123456789' })
   @IsNotEmpty()
   @IsPhoneNumber('IR')
   phoneNumber: string;
 
-  @ApiProperty({
-    description: 'Address of the user',
-    example: 'Tehran, Valiasr St., No. 123',
-  })
+  @ApiProperty({ description: 'Address of the user', example: 'Tehran, Valiasr St., No. 123' })
   @IsString()
   address?: string = '';
 
-  @ApiProperty({
-    description: 'National ID of the user',
-    example: '1234567890',
-  })
+  @ApiProperty({ description: 'National ID of the user', example: '1234567890' })
   @IsNotEmpty()
   @IsString()
   nationalId: string;
 
-
-  @ApiProperty({
-    description: 'List of order IDs associated with the user',
-    example: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
-    type: [String],
-    default: [],
-  })
+  @ApiProperty({ description: 'List of order IDs associated with the user', example: [], type: [String], default: [] })
   @IsArray()
   @IsString({ each: true })
-  orders?: string[] = [];
+  orders?: string[];
 
-  @ApiProperty({
-    description: 'List of transaction IDs associated with the user',
-    example: ['507f1f77bcf86cd799439013', '507f1f77bcf86cd799439014'],
-    type: [String],
-    default: [],
-  })
+  @ApiProperty({ description: 'List of transaction IDs associated with the user', example: [], type: [String], default: [] })
   @IsArray()
   @IsString({ each: true })
-  transactions?: string[] = [];
+  transactions?: string[];
 
-  @ApiProperty({
-    description: 'List of favorite product IDs',
-    example: ['507f1f77bcf86cd799439015', '507f1f77bcf86cd799439016'],
-    type: [String],
-    default: [],
-  })
+  @ApiProperty({ description: 'List of favorite product IDs', example: [], type: [String], default: [] })
   @IsArray()
   @IsString({ each: true })
-  favorites?: string[] = [];
+  favorites?: string[];
 
-  @ApiProperty({
-    description: 'ObjectId of user’s shopping cart',
-    type: String,
-    example: '60f6c0c3d3b5e20017a0a3c2',
-    required: false,
-  })
+  @ApiProperty({ description: 'ObjectId of user’s shopping cart', type: String, example: '60f6c0c3d3b5e20017a0a3c2', required: false })
   @IsString()
   @IsOptional()
   cart?: string;
 
-  @ApiProperty({
-    description: "ObjectId of user's wallet",
-    type: String,
-    example: "60f6c0c3d3b5e20017a0a3c2",
-    required: false,
-  })
+  @ApiProperty({ description: "ObjectId of user's wallet", type: String, example: '60f6c0c3d3b5e20017a0a3c2', required: false })
   @IsString()
   @IsOptional()
   walletId?: string;
+
+  @ApiPropertyOptional({ description: 'Company id the user belongs to (optional)', type: String, example: '507f1f77bcf86cd799439011', required: false })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
 }

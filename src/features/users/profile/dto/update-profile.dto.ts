@@ -12,4 +12,12 @@ export class UpdateProfileDto extends PartialType(CreateProfileDto) {
   @IsOptional()
   @IsString()
   walletId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Company id the user belongs to (optional)',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  companyId?: string;
 }

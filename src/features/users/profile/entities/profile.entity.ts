@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { Cart, CartSchema } from 'src/features/carts/entities/cart.entity';
 
 @Schema()
@@ -27,6 +27,9 @@ export class Profile extends Document {
 
   @Prop({ type: String, ref: 'Wallet' })
   walletId?: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'Company', index: true })
+  companyId?: Types.ObjectId;
 
   @Prop({ type: [{ type: String, ref: 'Order' }], default: [] })
   orders: string[];

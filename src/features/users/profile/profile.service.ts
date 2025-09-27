@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Profile } from './entities/profile.entity';
@@ -13,7 +14,7 @@ export class ProfileService {
 
   async create(createProfileDto: CreateProfileDto, session?: ClientSession): Promise<Profile> {
     // userId is required on the DTO (strongly typed) to guarantee link to User
-    const profileData: Partial<CreateProfileDto> = {
+    const profileData: Partial<Profile> = {
       userId: createProfileDto.userId,
       phoneNumber: createProfileDto.phoneNumber,
       nationalId: createProfileDto.nationalId,
@@ -25,6 +26,7 @@ export class ProfileService {
       orders: createProfileDto.orders,
       transactions: createProfileDto.transactions,
       favorites: createProfileDto.favorites,
+      companyId: createProfileDto.companyId ? new Types.ObjectId(createProfileDto.companyId) : undefined,
     };
     const creation = await this.profileRepository.createOne(profileData as any, session);
     return creation;
@@ -35,7 +37,7 @@ export class ProfileService {
   }
 
   async update(id: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {
-    const updatedProfile: Partial<CreateProfileDto & UpdateProfileDto> = {
+    const updatedProfile: Partial<Profile> = {
       phoneNumber: updateProfileDto.phoneNumber,
       nationalId: updateProfileDto.nationalId,
       firstName: updateProfileDto.firstName,
@@ -43,6 +45,7 @@ export class ProfileService {
       address: updateProfileDto.address,
       cart: updateProfileDto.cart,
       walletId: updateProfileDto.walletId,
+      companyId: updateProfileDto.companyId ? new Types.ObjectId(updateProfileDto.companyId) : undefined,
     };
     const updatedProfileResult = await this.profileRepository.updateById(id, updatedProfile);
     return updatedProfileResult;
