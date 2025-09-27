@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CategoriesController } from './categories.controller';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
@@ -7,9 +7,10 @@ import { Model } from 'mongoose';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 import { CategoryRepository, ICategoryRepository } from './repositories/categories.repository';
 import { ICategory } from './interfaces/category.interface';
+import { PermissionsModule } from 'src/features/permissions/permissions.module';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Category.name, schema: CategorySchema }] as const)],
+  imports: [MongooseModule.forFeature([{ name: Category.name, schema: CategorySchema }] as const), forwardRef(() => PermissionsModule)],
   controllers: [CategoriesController],
   providers: [
     {

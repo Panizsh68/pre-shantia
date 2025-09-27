@@ -1,13 +1,14 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { ProfileController } from './profile.controller';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Profile, ProfileSchema } from './entities/profile.entity';
 import { Model } from 'mongoose';
 import { IProfileRepository, ProfileRepository } from './repositories/profille.repository';
+import { PermissionsModule } from 'src/features/permissions/permissions.module';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Profile.name, schema: ProfileSchema }])],
+  imports: [MongooseModule.forFeature([{ name: Profile.name, schema: ProfileSchema }]), forwardRef(() => PermissionsModule)],
   controllers: [ProfileController],
   providers: [
     {

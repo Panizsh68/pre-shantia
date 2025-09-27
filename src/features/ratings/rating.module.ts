@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
+import { PermissionsModule } from 'src/features/permissions/permissions.module';
 import { getModelToken } from '@nestjs/mongoose';
 import { Rating, RatingSchema } from './entity/rating.entity';
 import { RatingController } from './rating.controller';
@@ -7,7 +8,7 @@ import { RatingService } from './rating.service';
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
 
 @Module({
-  imports: [GenericRepositoryModule.forFeature<Rating>(Rating.name, Rating, RatingSchema)],
+  imports: [GenericRepositoryModule.forFeature<Rating>(Rating.name, Rating, RatingSchema), forwardRef(() => PermissionsModule)],
   controllers: [RatingController],
   providers: [
     {

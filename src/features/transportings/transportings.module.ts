@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TransportingsService } from './transportings.service';
 import { TransportingsController } from './transportings.controller';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
@@ -10,6 +10,7 @@ import {
 } from './repositories/transporting.repository';
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
 import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/tokens.constants';
+import { PermissionsModule } from 'src/features/permissions/permissions.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/token
       Transporting,
       TransportingSchema,
     ),
+    forwardRef(() => PermissionsModule),
   ],
   controllers: [TransportingsController],
   providers: [
@@ -34,4 +36,4 @@ import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/token
     },
   ],
 })
-export class TransportingsModule {}
+export class TransportingsModule { }

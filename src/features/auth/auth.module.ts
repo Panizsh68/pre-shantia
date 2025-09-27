@@ -16,6 +16,7 @@ import { WalletsModule } from '../wallets/wallets.module';
 import { User, UserSchema } from '../users/entities/user.entity';
 import { AuthRepository, IAuthRepository } from './repositories/auth.repository';
 import { Model } from 'mongoose';
+import { PermissionsModule } from 'src/features/permissions/permissions.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { Model } from 'mongoose';
     ProfileModule,
     forwardRef(() => UsersModule),
     WalletsModule,
+    forwardRef(() => PermissionsModule),
   ],
   controllers: [AuthController],
   providers: [

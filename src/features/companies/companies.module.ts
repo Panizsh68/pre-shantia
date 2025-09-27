@@ -1,13 +1,14 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { CompaniesService } from './companies.service';
 import { CompaniesController } from './companies.controller';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Company, CompanySchema } from './entities/company.entity';
 import { Model } from 'mongoose';
 import { CompanyRepository, ICompanyRepository } from './repositories/company.repository';
+import { PermissionsModule } from 'src/features/permissions/permissions.module';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Company.name, schema: CompanySchema }])],
+  imports: [MongooseModule.forFeature([{ name: Company.name, schema: CompanySchema }]), forwardRef(() => PermissionsModule)],
   controllers: [CompaniesController],
   providers: [
     {
@@ -24,4 +25,4 @@ import { CompanyRepository, ICompanyRepository } from './repositories/company.re
   ],
   exports: ['ICompanyService'],
 })
-export class CompaniesModule {}
+export class CompaniesModule { }

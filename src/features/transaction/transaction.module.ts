@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Transaction, TransactionSchema } from './schema/transaction.schema';
 import { TransactionService } from './transaction.service';
@@ -8,6 +8,7 @@ import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 import { IBaseCrudRepository } from 'src/libs/repository/interfaces/base-repo.interfaces';
 import { ZarinpalModule } from 'src/utils/services/zarinpal/zarinpal.module';
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
+import { PermissionsModule } from 'src/features/permissions/permissions.module';
 import {
   ITransactionRepository,
   TransactionRepository,
@@ -26,6 +27,7 @@ import { TransactionController } from './transaction.controller';
       merchantId: process.env.ZARINPAL_MERCHANT_ID || 'a3c16110-f184-44e2-ad26-649387845a94',
       sandbox: true,
     }),
+    forwardRef(() => PermissionsModule),
   ],
   providers: [
     ZarinpalService,
@@ -43,4 +45,4 @@ import { TransactionController } from './transaction.controller';
   exports: ['ITransactionsService', 'TransactionRepository'],
   controllers: [TransactionController],
 })
-export class TransactionModule {}
+export class TransactionModule { }

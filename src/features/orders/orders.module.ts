@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
@@ -11,6 +11,7 @@ import { CartsModule } from '../carts/carts.module';
 import { OrderFactoryService } from './order-factory.service';
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
 import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/tokens.constants';
+import { PermissionsModule } from 'src/features/permissions/permissions.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/token
     ProductsModule,
     WalletsModule,
     CartsModule,
+    forwardRef(() => PermissionsModule),
   ],
   controllers: [OrdersController],
   providers: [

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TicketingService } from './ticketing.service';
 import { TicketingController } from './ticketing.controller';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
@@ -12,6 +12,7 @@ import { Model } from 'mongoose';
 import { ITicketRepository, TicketRepository } from './repository/ticket.repository';
 import { OrdersModule } from '../orders/orders.module';
 import { WalletsModule } from '../wallets/wallets.module';
+import { PermissionsModule } from 'src/features/permissions/permissions.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { WalletsModule } from '../wallets/wallets.module';
     ScheduleModule.forRoot(),
     OrdersModule, // Added OrdersModule to imports
     WalletsModule, // Added WalletsModule to imports
+    forwardRef(() => PermissionsModule),
   ],
   controllers: [TicketingController],
   providers: [
