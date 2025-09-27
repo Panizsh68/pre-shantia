@@ -2,7 +2,7 @@ import { CreateUserDto } from '../../users/dto/create-user.dto';
 import { IPermission } from 'src/features/permissions/interfaces/permissions.interface';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PermissionDto } from 'src/features/permissions/dto/permission.dto';
-import { IsArray, ValidateNested } from 'class-validator';
+import { IsArray, ValidateNested, IsString, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SignUpDto extends CreateUserDto {
@@ -20,4 +20,12 @@ export class SignUpDto extends CreateUserDto {
   @ValidateNested({ each: true })
   @Type(() => PermissionDto)
   permissions?: PermissionDto[];
+
+  @ApiPropertyOptional({
+    description: 'Company id to assign the user to (optional, used by admin signup)',
+    type: String,
+  })
+  @IsString()
+  @IsOptional()
+  companyId?: string;
 }

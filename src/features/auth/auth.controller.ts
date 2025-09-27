@@ -183,7 +183,7 @@ export class AuthController {
   })
   async getProfile(
     @CurrentUser() user: TokenPayload,
-  ): Promise<{ userId: string; permissions: IPermission[]; profile: AuthProfileDto }> {
+  ): Promise<{ userId: string; phoneNumber: string; companyId?: string; permissions: IPermission[]; profile: AuthProfileDto }> {
     const permissions =
       Array.isArray(user.permissions) && user.permissions.length > 0
         ? user.permissions
@@ -210,9 +210,12 @@ export class AuthController {
       lastName: profile?.lastName,
       address: profile?.address,
       walletId: profile?.walletId?.toString(),
+      companyId: profile?.companyId?.toString(),
     };
     return {
       userId: user.userId,
+      phoneNumber: resultProfile.phoneNumber,
+      companyId: resultProfile.companyId,
       permissions,
       profile: resultProfile,
     };

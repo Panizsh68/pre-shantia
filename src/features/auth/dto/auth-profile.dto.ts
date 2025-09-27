@@ -40,4 +40,11 @@ export class AuthProfileDto {
     required: false
   })
   walletId?: string;
+
+  @ApiProperty({
+    description: 'Company ID the user belongs to',
+    example: '507f1f77bcf86cd799439011',
+    required: false,
+  })
+  companyId?: string;
 }

@@ -31,6 +31,8 @@ import { RequestContext } from 'src/common/types/request-context.interface';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
 import { IPermission } from '../permissions/interfaces/permissions.interface';
+import { determineOwnerTypeFromPermissions } from 'src/utils/wallet-owner.util';
+import { WalletOwnerType } from 'src/features/wallets/enums/wallet-ownertype.enum';
 
 import { VerifyOtpResponse } from './interfaces/auth-response.interface';
 
@@ -178,8 +180,6 @@ export class AuthService {
           console.log(`User created successfully with ID=${user.id}`);
 
 
-          const { determineOwnerTypeFromPermissions } = await import('../../utils/wallet-owner.util');
-          const { WalletOwnerType } = await import('../wallets/enums/wallet-ownertype.enum');
           const ownerType = determineOwnerTypeFromPermissions(permissions);
 
 
@@ -355,7 +355,28 @@ export class AuthService {
       if (exists) throw new ConflictException('User already exists');
 
 
-      const user = await this.usersService.create(signUpDto);
+      // create user but skip automatic profile creation so we can include companyId
+      const user = await this.usersService.create(signUpDto, undefined, { createProfile: false });
+
+      // create wallet similarly to verifyOtp flow and then create profile
+      const ownerType = determineOwnerTypeFromPermissions(user.permissions || []);
+
+      const wallet = await this.walletsService.createWallet({
+        ownerId: user.id.toString(),
+        ownerType: ownerType,
+        balance: 0,
+        currency: 'IRR',
+      });
+
+      // create profile for the new user; include companyId if provided by admin
+      const profileDto: CreateProfileDto = {
+        phoneNumber: signUpDto.phoneNumber,
+        nationalId: signUpDto.nationalId,
+        walletId: wallet.id,
+        userId: user.id.toString(),
+        companyId: signUpDto.companyId,
+      } as CreateProfileDto;
+      await this.profileService.create(profileDto);
 
       const payload: TokenPayload = {
         userId: user.id.toString(),
