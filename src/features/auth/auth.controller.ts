@@ -70,16 +70,28 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<SignUpResponseDto> {
     const tokens = await this.authService.verifyOtp(verifyOtpDto, context);
-    if (tokens.accessToken) {
-      res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    }
-    if (tokens.refreshToken) {
-      res.cookie('refreshToken', tokens.refreshToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
-        maxAge: 1000 * 60 * 60 * 48,
-      });
+    try {
+      // set Authorization header if access token exists
+      if (tokens.accessToken) {
+        res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
+      }
+
+      // choose secure flag dynamically: true in production or when request is secure
+      const req: any = (res as any).req;
+      const secureFlag = req?.secure || req?.protocol === 'https' || process.env.NODE_ENV === 'production';
+
+      if (tokens.refreshToken) {
+        res.cookie('refreshToken', tokens.refreshToken, {
+          httpOnly: true,
+          secure: !!secureFlag,
+          sameSite: 'strict',
+          maxAge: 1000 * 60 * 60 * 48,
+        });
+      }
+    } catch (err) {
+      // Log but don't throw: avoid crashing the request after successful token generation
+      // eslint-disable-next-line no-console
+      console.error('Failed to set headers/cookies in verifyOtp response:', err?.message || err);
     }
     return {
       phoneNumber: verifyOtpDto.phoneNumber,
@@ -114,8 +126,13 @@ export class AuthController {
     const refreshToken = body.refreshToken || (res.req.cookies && res.req.cookies.refreshToken);
     if (!refreshToken) throw new BadRequestException('Refresh token not provided');
     const result = await this.authService.refreshAccessTokenByRefreshToken(refreshToken, context);
-    if (result.accessToken) {
-      res.setHeader('Authorization', 'Bearer ' + result.accessToken);
+    try {
+      if (result.accessToken) {
+        res.setHeader('Authorization', 'Bearer ' + result.accessToken);
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to set Authorization header in refreshToken response:', err?.message || err);
     }
     // refresh فقط accessToken میده، پس refreshToken رو برنمیگردونیم
     return { phoneNumber: '', accessToken: result.accessToken };
@@ -241,16 +258,25 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<SignUpResponseDto> {
     const result = await this.authService.adminSignUp(signUpDto, context);
-    if (result.accessToken) {
-      res.setHeader('Authorization', 'Bearer ' + result.accessToken);
-    }
-    if (result.refreshToken) {
-      res.cookie('refreshToken', result.refreshToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
-        maxAge: 1000 * 60 * 60 * 48,
-      });
+    try {
+      if (result.accessToken) {
+        res.setHeader('Authorization', 'Bearer ' + result.accessToken);
+      }
+
+      const req: any = (res as any).req;
+      const secureFlag = req?.secure || req?.protocol === 'https' || process.env.NODE_ENV === 'production';
+
+      if (result.refreshToken) {
+        res.cookie('refreshToken', result.refreshToken, {
+          httpOnly: true,
+          secure: !!secureFlag,
+          sameSite: 'strict',
+          maxAge: 1000 * 60 * 60 * 48,
+        });
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to set headers/cookies in adminSignUp response:', err?.message || err);
     }
     return result;
   }

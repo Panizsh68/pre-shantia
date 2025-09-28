@@ -26,7 +26,7 @@ import {
     forwardRef(() => ProfileModule),
     forwardRef(() => CompaniesModule),
     forwardRef(() => PermissionsModule),
-  forwardRef(() => ImageUploadModule),
+    forwardRef(() => ImageUploadModule),
   ],
   controllers: [ProductsController],
   providers: [
