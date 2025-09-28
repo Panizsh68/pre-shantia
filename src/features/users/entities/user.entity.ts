@@ -17,6 +17,7 @@ export class User extends Document {
       {
         resource: { type: String, required: true },
         actions: [{ type: String, required: true }],
+        companyId: { type: String, required: false },
       },
     ],
     default: [],

@@ -18,7 +18,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { WalletsService } from './wallets.service';
-import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { Permission } from '../permissions/decorators/permissions.decorators';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';

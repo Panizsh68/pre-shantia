@@ -15,5 +15,7 @@ export interface IUsersService {
 
   update(id: string, updateUserDto: UpdateProfileDto): Promise<User>;
 
+  setPermissions(id: string, permissions: any[]): Promise<User>;
+
   delete(id: string): Promise<void>;
 }

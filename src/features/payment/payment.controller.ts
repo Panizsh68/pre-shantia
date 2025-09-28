@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Inject, Post, Query, UseGuards } from '@nestjs/common';
-import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { Permission } from '../permissions/decorators/permissions.decorators';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';

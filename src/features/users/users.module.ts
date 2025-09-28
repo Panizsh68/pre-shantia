@@ -10,6 +10,9 @@ import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { ProfileModule } from './profile/profile.module';
 import { Model } from 'mongoose';
 import { IUserRepository, UserRepository } from './repositories/user.repository';
+import { CachingService } from 'src/infrastructure/caching/caching.service';
+import { PermissionsModule } from 'src/features/permissions/permissions.module';
+import { CompaniesModule } from 'src/features/companies/companies.module';
 
 @Module({
   imports: [
@@ -21,6 +24,8 @@ import { IUserRepository, UserRepository } from './repositories/user.repository'
     ]),
     forwardRef(() => AuthModule),
     ProfileModule,
+    forwardRef(() => PermissionsModule),
+    forwardRef(() => CompaniesModule),
   ],
   controllers: [UsersController],
   providers: [
@@ -38,6 +43,7 @@ import { IUserRepository, UserRepository } from './repositories/user.repository'
     AuthenticationGuard,
     JwtService,
     TokensService,
+    CachingService,
   ],
   exports: ['IUsersService'],
 })

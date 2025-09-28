@@ -8,5 +8,5 @@ import { AuthenticationGuard } from '../auth/guards/auth.guard';
 @UseGuards(AuthenticationGuard)
 @Controller('users')
 export class UsersController {
-  constructor(@Inject('IUsersService') private readonly usersService: IUsersService) {}
+  constructor(@Inject('IUsersService') private readonly usersService: IUsersService) { }
 }

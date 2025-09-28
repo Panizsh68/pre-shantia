@@ -30,7 +30,7 @@ import { IProductService } from '../products/interfaces/product.service.interfac
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { UpdateCartDto } from './dto/update-cart.dto';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
-import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { Permission } from '../permissions/decorators/permissions.decorators';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
 

@@ -6,7 +6,7 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Transaction } from './schema/transaction.schema';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
-import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { Permission } from '../permissions/decorators/permissions.decorators';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
 

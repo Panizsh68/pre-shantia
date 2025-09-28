@@ -30,7 +30,7 @@ import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-option
 import { IProductService } from './interfaces/product.service.interface';
 import { AuthenticationGuard } from 'src/features/auth/guards/auth.guard';
 import { PermissionsGuard } from 'src/features/permissions/guard/permission.guard';
-import { Permission } from 'src/features/permissions/decoratorss/permissions.decorators';
+import { Permission } from 'src/features/permissions/decorators/permissions.decorators';
 import { Resource } from 'src/features/permissions/enums/resources.enum';
 import { Action } from 'src/features/permissions/enums/actions.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -181,8 +181,8 @@ export class ProductsController {
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.PRODUCTS, Action.CREATE)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new product' })
-  @ApiBody({ type: CreateProductDto })
+  @ApiOperation({ summary: 'Create a new product', description: 'Creates a product for the company associated with the authenticated user. Do NOT include companyId in the request body — it is resolved from the user\'s profile on the server.' })
+  @ApiBody({ type: CreateProductDto, description: 'Product create payload. companyId is resolved server-side from the authenticated user.' })
   @ApiResponse({ status: 201, description: 'Product created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

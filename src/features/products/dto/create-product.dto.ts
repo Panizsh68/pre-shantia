@@ -13,7 +13,7 @@ import {
   IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, ApiHideProperty } from '@nestjs/swagger';
 import { ProductStatus } from '../enums/product-status.enum';
 
 class StockDto {
@@ -107,16 +107,6 @@ export class CreateProductDto {
   @IsNotEmpty()
   @Min(0)
   basePrice: number;
-
-  @ApiProperty({
-    description: 'MongoDB ObjectId of the supplier company',
-    example: '507f1f77bcf86cd799439011',
-  })
-  @IsString()
-  // companyId will be resolved from the user's profile on the server side
-  @IsOptional()
-  @IsString()
-  companyId?: string;
 
   @ApiPropertyOptional({
     description: 'List of category IDs',

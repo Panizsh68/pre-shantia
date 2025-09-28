@@ -9,6 +9,7 @@ import { OtpService } from 'src/utils/services/otp/otp.service';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { JwtService } from '@nestjs/jwt';
 import { UsersModule } from '../users/users.module';
+import { CompaniesModule } from 'src/features/companies/companies.module';
 import { RefreshToken, RefreshTokenSchema } from './schemas/refresh-token.schema';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { ProfileModule } from '../users/profile/profile.module';
@@ -35,6 +36,7 @@ import { PermissionsModule } from 'src/features/permissions/permissions.module';
     OtpModule,
     ProfileModule,
     forwardRef(() => UsersModule),
+    forwardRef(() => CompaniesModule),
     WalletsModule,
     forwardRef(() => PermissionsModule),
   ],

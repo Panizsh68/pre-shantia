@@ -10,7 +10,7 @@ import {
   UseGuards,
   NotFoundException,
 } from '@nestjs/common';
-import { Permission } from 'src/features/permissions/decoratorss/permissions.decorators';
+import { Permission } from 'src/features/permissions/decorators/permissions.decorators';
 import { PermissionsGuard } from 'src/features/permissions/guard/permission.guard';
 import { Resource } from 'src/features/permissions/enums/resources.enum';
 import { Action } from 'src/features/permissions/enums/actions.enum';

@@ -17,7 +17,7 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { IOrdersService } from './interfaces/order.service.interface';
 import { Order } from './entities/order.entity';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
-import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { Permission } from '../permissions/decorators/permissions.decorators';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';

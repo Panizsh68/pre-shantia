@@ -5,7 +5,7 @@ import { UpdateTransportingDto } from './dto/update-transporting.dto';
 import { ITransporting } from './interfaces/transporting.interface';
 import { ITransportingsService } from './interfaces/transporting.service.interface';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
-import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { Permission } from '../permissions/decorators/permissions.decorators';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';

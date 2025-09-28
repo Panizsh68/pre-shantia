@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpStatus, HttpCode, Get, Res, UseGuards, Inject, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, HttpCode, Get, Res, UseGuards, Inject, BadRequestException, Patch, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthProfileDto } from './dto/auth-profile.dto';
 import { IProfileService } from '../users/profile/interfaces/profile.service.interface';
@@ -8,7 +8,7 @@ import { SignUpDto } from './dto/sign-up.dto';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { SignUpResponseDto } from './dto/sign-up.response.dto';
-import { SignInResponseDto } from './dto/signn-in.response.dto';
+import { SignInResponseDto } from './dto/sign-in.response.dto';
 import { RequestContext } from 'src/common/decorators/request-context.decorator';
 import { RequestContext as ContextType } from 'src/common/types/request-context.interface';
 import { TokenPayload } from './interfaces/token-payload.interface';
@@ -16,11 +16,13 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
 import { IPermission } from '../permissions/interfaces/permissions.interface';
 import { Response } from 'express';
-import { Permission } from '../permissions/decoratorss/permissions.decorators';
+import { Permission } from '../permissions/decorators/permissions.decorators';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
 import { AuthenticationGuard } from './guards/auth.guard';
+import { IUsersService } from '../users/interfaces/user.service.interface';
+import { UpdateUserPermissionsDto } from 'src/features/users/dto/update-user-permissions.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -28,6 +30,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     @Inject('IProfileService') private readonly profileService: IProfileService,
+    @Inject('IUsersService') private readonly usersService: IUsersService,
   ) { }
 
   @Public()
@@ -164,6 +167,7 @@ export class AuthController {
                 type: 'array',
                 items: { type: 'string', example: 'r' },
               },
+              companyId: { type: 'string', example: '507f1f77bcf86cd799439011' },
             },
           },
         },
@@ -175,7 +179,8 @@ export class AuthController {
             firstName: { type: 'string', example: 'John' },
             lastName: { type: 'string', example: 'Doe' },
             address: { type: 'string', example: '123 Main St' },
-            walletId: { type: 'string', example: '507f1f77bcf86cd799439011' }
+            walletId: { type: 'string', example: '507f1f77bcf86cd799439011' },
+            companyId: { type: 'string', example: '507f1f77bcf86cd799439011' }
           }
         }
       },
@@ -248,5 +253,15 @@ export class AuthController {
       });
     }
     return result;
+  }
+
+  @Patch('users/:id/permissions')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.USERS, Action.MANAGE)
+  async setUserPermissions(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserPermissionsDto,
+  ) {
+    return this.usersService.setPermissions(id, dto.permissions);
   }
 }

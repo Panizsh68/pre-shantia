@@ -11,6 +11,8 @@ export class SignUpDto extends CreateUserDto {
     example: [
       { resource: 'carts', actions: ['r', 'm'] },
       { resource: 'orders', actions: ['r'] },
+      // scoped permission example:
+      { resource: 'products', actions: ['c'], companyId: '507f1f77bcf86cd799439011' },
     ],
     type: 'array',
     items: { $ref: '#/components/schemas/PermissionDto' },

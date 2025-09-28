@@ -7,12 +7,15 @@ import { UpdateProfileDto } from './profile/dto/update-profile.dto';
 import { IProfileService } from './profile/interfaces/profile.service.interface';
 import { CreateProfileDto } from './profile/dto/create-profile.dto';
 import { ClientSession } from 'mongoose';
+import { CachingService } from 'src/infrastructure/caching/caching.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     @Inject('UserRepository') private readonly usersRepository: IUserRepository,
     @Inject('IProfileService') private readonly profileService: IProfileService,
+    private readonly cacheService: CachingService,
+    @Inject('ICompanyService') private readonly companiesService: import('../companies/interfaces/company.service.interface').ICompanyService,
   ) { }
 
   async findUserByPhoneNumber(phoneNumber: string): Promise<User | null> {
@@ -61,5 +64,32 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} doesn't exist`);
     }
     await this.profileService.deleteByUserId(id);
+  }
+
+  async setPermissions(id: string, permissions: any[]): Promise<User> {
+    // validate any scoped companyIds inside permissions before updating
+    if (Array.isArray(permissions)) {
+      for (const p of permissions) {
+        if (p?.companyId) {
+          try {
+            await this.companiesService.findOne(p.companyId);
+          } catch (err) {
+            throw new NotFoundException(`Company with id ${p.companyId} not found`);
+          }
+        }
+      }
+    }
+
+    const updated = await this.usersRepository.updateById(id, { permissions });
+    if (!updated) throw new NotFoundException(`User with ID ${id} doesn't exist`);
+    // invalidate cached permissions
+    try {
+      await this.cacheService.delete(`permissions:${id}`);
+    } catch (err) {
+      // non-fatal: log and continue
+      // eslint-disable-next-line no-console
+      console.warn('Failed to clear permissions cache for user', id, err?.message || err);
+    }
+    return updated;
   }
 }

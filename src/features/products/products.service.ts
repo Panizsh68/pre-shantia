@@ -59,7 +59,7 @@ export class ProductsService implements IProductService {
     // Ensure company exists
     await this.companyService.findOne(companyIdStr);
 
-    const { companyId: _, categories, ...rest } = dto;
+    const { categories, ...rest } = dto;
     const data: Partial<Product> = {
       ...rest,
       companyId: toObjectId(companyIdStr),
@@ -111,10 +111,11 @@ export class ProductsService implements IProductService {
     if (!existing) throw new NotFoundException(`Product with id ${id} not found`);
     if (existing.createdBy.toString() !== userId)
       throw new ForbiddenException('You do not have permission to update this product');
-    const { companyId, categories, ...rest } = dto;
+    const { categories, ...rest } = dto as any;
     const data: Partial<Product> = {
       ...rest,
-      companyId: companyId ? toObjectId(companyId) : existing.companyId,
+      // companyId cannot be changed by the client; preserve existing.companyId
+      companyId: existing.companyId,
       categories: categories ? toObjectIdArray(categories) : [],
       updatedBy: toObjectId(userId),
     };

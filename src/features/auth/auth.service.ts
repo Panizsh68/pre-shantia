@@ -24,7 +24,7 @@ import { IProfileService } from '../users/profile/interfaces/profile.service.int
 import { CreateProfileDto } from '../users/profile/dto/create-profile.dto';
 import { IWalletService } from '../wallets/interfaces/wallet.service.interface';
 import { SignUpResponseDto } from './dto/sign-up.response.dto';
-import { SignInResponseDto } from './dto/signn-in.response.dto';
+import { SignInResponseDto } from './dto/sign-in.response.dto';
 import { ConfigService } from '@nestjs/config';
 import { IAuthRepository } from './repositories/auth.repository';
 import { RequestContext } from 'src/common/types/request-context.interface';
@@ -46,6 +46,7 @@ interface RefreshSessionInfo {
 export class AuthService {
   constructor(
     @Inject('IUsersService') private readonly usersService: IUsersService,
+    @Inject('ICompanyService') private readonly companiesService: import('../companies/interfaces/company.service.interface').ICompanyService,
     private readonly shahkarService: ShahkarService,
     private readonly otpService: OtpService,
     private readonly tokensService: TokensService,
@@ -353,6 +354,16 @@ export class AuthService {
     try {
       const exists = await this.usersService.findUserByPhoneNumber(signUpDto.phoneNumber);
       if (exists) throw new ConflictException('User already exists');
+
+      // If admin provided a companyId, validate the company exists before creating profile
+      if (signUpDto.companyId) {
+        try {
+          await this.companiesService.findOne(signUpDto.companyId);
+        } catch (err) {
+          // normalize to NotFoundException for invalid company
+          throw new NotFoundException(`Company with id ${signUpDto.companyId} not found`);
+        }
+      }
 
 
       // create user but skip automatic profile creation so we can include companyId
