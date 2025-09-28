@@ -4,7 +4,6 @@ import { UpdateProductDto } from '../dto/update-product.dto';
 import { IProduct } from './product.interface';
 import { ClientSession } from 'mongoose';
 import { TopProduct } from './top-product.interface';
-import { RequestContext } from 'src/common/types/request-context.interface';
 import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
 
 export interface IProductService {
@@ -33,9 +32,10 @@ export interface IProductService {
     id: string,
     updateProductDto: UpdateProductDto,
     userId: string,
+    tokenPayload?: TokenPayload,
     session?: ClientSession,
   ): Promise<IProduct>;
-  remove(id: string, userId: string, session?: ClientSession): Promise<void>;
+  remove(id: string, userId: string, tokenPayload?: TokenPayload, session?: ClientSession): Promise<void>;
   existsByCompany(companyId: string, session?: ClientSession): Promise<boolean>;
   countByCategory(categoryId: string, session?: ClientSession): Promise<number>;
   getTopProductsByRating(limit: number, session?: ClientSession): Promise<TopProduct[]>;
@@ -44,6 +44,14 @@ export interface IProductService {
     userId: string,
     session?: ClientSession,
   ): Promise<IProduct>;
+  transactionalUpdate(
+    id: string,
+    updateProductDto: UpdateProductDto,
+    userId: string,
+    tokenPayload?: TokenPayload,
+    session?: ClientSession,
+  ): Promise<IProduct>;
+  transactionalRemove(id: string, userId: string, tokenPayload?: TokenPayload, session?: ClientSession): Promise<void>;
   existsByName(name: string, session?: ClientSession): Promise<boolean>;
   count(session?: ClientSession): Promise<number>;
   searchProducts(query: string, options?: FindManyOptions): Promise<IProduct[]>;

@@ -105,12 +105,19 @@ export class ProductsService implements IProductService {
     id: string,
     dto: UpdateProductDto,
     userId: string,
+    tokenPayload?: TokenPayload,
     session?: ClientSession,
   ): Promise<IProduct> {
     const existing = await this.repo.findById(id, { session });
     if (!existing) throw new NotFoundException(`Product with id ${id} not found`);
-    if (existing.createdBy.toString() !== userId)
-      throw new ForbiddenException('You do not have permission to update this product');
+
+    // owner can always update; otherwise require scoped permission for the product's company
+    const existingCompanyId = existing.companyId?.toString();
+    if (existing.createdBy.toString() !== userId) {
+      // ensure token payload has permission to UPDATE products scoped to the company
+      this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.UPDATE, existingCompanyId);
+    }
+
     const { categories, ...rest } = dto as any;
     const data: Partial<Product> = {
       ...rest,
@@ -123,11 +130,16 @@ export class ProductsService implements IProductService {
     return toPlain<IProduct>(updatedDoc);
   }
 
-  async remove(id: string, userId: string, session?: ClientSession): Promise<void> {
+  async remove(id: string, userId: string, tokenPayload?: TokenPayload, session?: ClientSession): Promise<void> {
     const existing = await this.repo.findById(id, { session });
     if (!existing) throw new NotFoundException(`Product with id ${id} not found`);
-    if (existing.createdBy.toString() !== userId)
-      throw new ForbiddenException('You do not have permission to delete this product');
+
+    const existingCompanyId = existing.companyId?.toString();
+    if (existing.createdBy.toString() !== userId) {
+      // allow deletion if user has DELETE on PRODUCTS scoped to the company
+      this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.DELETE, existingCompanyId);
+    }
+
     await this.repo.deleteById(id, session);
   }
 
@@ -153,6 +165,35 @@ export class ProductsService implements IProductService {
       const result = await this.create(dto, userId, undefined, txn);
       if (!session) await this.repo.commitTransaction(txn);
       return result;
+    } catch (err) {
+      if (!session) await this.repo.abortTransaction(txn);
+      throw err;
+    }
+  }
+
+  async transactionalUpdate(
+    id: string,
+    dto: UpdateProductDto,
+    userId: string,
+    tokenPayload?: TokenPayload,
+    session?: ClientSession,
+  ): Promise<IProduct> {
+    const txn = session || (await this.repo.startTransaction());
+    try {
+      const result = await this.update(id, dto, userId, tokenPayload, txn);
+      if (!session) await this.repo.commitTransaction(txn);
+      return result;
+    } catch (err) {
+      if (!session) await this.repo.abortTransaction(txn);
+      throw err;
+    }
+  }
+
+  async transactionalRemove(id: string, userId: string, tokenPayload?: TokenPayload, session?: ClientSession): Promise<void> {
+    const txn = session || (await this.repo.startTransaction());
+    try {
+      await this.remove(id, userId, tokenPayload, txn);
+      if (!session) await this.repo.commitTransaction(txn);
     } catch (err) {
       if (!session) await this.repo.abortTransaction(txn);
       throw err;

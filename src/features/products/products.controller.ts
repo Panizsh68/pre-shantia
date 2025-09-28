@@ -26,6 +26,8 @@ import {
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ProductResponseDto } from './dto/product-response.dto';
+import { CountDto, ExistsDto, TopProductDto } from './dto/misc-response.dto';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { IProductService } from './interfaces/product.service.interface';
 import { AuthenticationGuard } from 'src/features/auth/guards/auth.guard';
@@ -183,7 +185,7 @@ export class ProductsController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new product', description: 'Creates a product for the company associated with the authenticated user. Do NOT include companyId in the request body — it is resolved from the user\'s profile on the server.' })
   @ApiBody({ type: CreateProductDto, description: 'Product create payload. companyId is resolved server-side from the authenticated user.' })
-  @ApiResponse({ status: 201, description: 'Product created successfully' })
+  @ApiResponse({ status: 201, description: 'Product created successfully', type: ProductResponseDto })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   create(
@@ -263,7 +265,7 @@ export class ProductsController {
   @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Get product by ID' })
   @ApiParam({ name: 'id', type: String, description: 'Product ID' })
-  @ApiResponse({ status: 200, description: 'Product found' })
+  @ApiResponse({ status: 200, description: 'Product found', type: ProductResponseDto })
   @ApiResponse({ status: 404, description: 'Product not found' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   findOne(@Param('id') id: string) {
@@ -276,7 +278,7 @@ export class ProductsController {
   @ApiOperation({ summary: 'Update product by ID' })
   @ApiParam({ name: 'id', type: String, description: 'Product ID' })
   @ApiBody({ type: UpdateProductDto })
-  @ApiResponse({ status: 200, description: 'Product updated' })
+  @ApiResponse({ status: 200, description: 'Product updated', type: ProductResponseDto })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
@@ -285,7 +287,7 @@ export class ProductsController {
     @Body() dto: UpdateProductDto,
     @CurrentUser() user: TokenPayload,
   ) {
-    return this.productsService.update(id, dto, user.userId);
+    return this.productsService.transactionalUpdate(id, dto, user.userId, user as TokenPayload);
   }
 
   @Delete(':id')
@@ -301,7 +303,7 @@ export class ProductsController {
     @Param('id') id: string,
     @CurrentUser() user: TokenPayload,
   ) {
-    await this.productsService.remove(id, user.userId);
+    await this.productsService.transactionalRemove(id, user.userId, user as TokenPayload);
   }
 
   @Get('count/category/:categoryId')
@@ -309,7 +311,7 @@ export class ProductsController {
   @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Count products by category ID' })
   @ApiParam({ name: 'categoryId', type: String, description: 'Category ID' })
-  @ApiResponse({ status: 200, description: 'Number of products returned' })
+  @ApiResponse({ status: 200, description: 'Number of products returned', type: CountDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   countByCategory(@Param('categoryId') categoryId: string) {
     return this.productsService.countByCategory(categoryId);
@@ -320,7 +322,7 @@ export class ProductsController {
   @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Get top-selling products' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 5 })
-  @ApiResponse({ status: 200, description: 'Top products returned' })
+  @ApiResponse({ status: 200, description: 'Top products returned', type: [TopProductDto] })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   getTopProducts(@Query('limit') limit?: string) {
     const lim = limit ? parseInt(limit, 10) : 5;
@@ -335,7 +337,7 @@ export class ProductsController {
   @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Check if a product exists by name' })
   @ApiParam({ name: 'name', type: String, description: 'Product name' })
-  @ApiResponse({ status: 200, description: 'Existence result' })
+  @ApiResponse({ status: 200, description: 'Existence result', type: ExistsDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async existsByName(@Param('name') name: string) {
     return { exists: await this.productsService.existsByName(name) };
@@ -345,7 +347,7 @@ export class ProductsController {
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Get total number of products' })
-  @ApiResponse({ status: 200, description: 'Total count returned' })
+  @ApiResponse({ status: 200, description: 'Total count returned', type: CountDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async count() {
     return { count: await this.productsService.count() };

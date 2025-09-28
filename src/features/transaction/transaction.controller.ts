@@ -12,7 +12,7 @@ import { Action } from '../permissions/enums/actions.enum';
 
 @Controller('transaction')
 export class TransactionController {
-  constructor(@Inject('ITransactionsService') private readonly transactionService: TransactionService) {}
+  constructor(@Inject('ITransactionsService') private readonly transactionService: TransactionService) { }
 
   @Get()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
@@ -20,7 +20,7 @@ export class TransactionController {
   @ApiOperation({ summary: 'Get transaction history for current user' })
   @ApiOkResponse({
     description: 'List of user transactions returned successfully',
-    type: [Transaction], 
+    type: [Transaction],
   })
   async getTransactionHistory(@CurrentUser() user: TokenPayload) {
     return this.transactionService.findAllByProfile(user.userId);
