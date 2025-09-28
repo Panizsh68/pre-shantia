@@ -39,7 +39,6 @@ export class CreateCompanyDto {
     example: '1234567890',
   })
   @IsNotEmpty()
-  @IsIdentityCard('IR')
   registrationNumber: string;
 
   @ApiPropertyOptional({
