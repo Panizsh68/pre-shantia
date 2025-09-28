@@ -11,13 +11,19 @@ export class ImageUploadService {
   private bucket: string;
   private publicBaseUrl?: string;
 
-  constructor(@Inject(IMAGE_UPLOAD_TOKEN.S3_CLIENT) private readonly s3: S3Client) {
+  constructor(@Inject(IMAGE_UPLOAD_TOKEN.S3_CLIENT) private readonly s3: S3Client | null) {
     this.bucket = process.env.R2_BUCKET || process.env.CLOUDFLARE_R2_BUCKET || '';
     this.publicBaseUrl = process.env.R2_PUBLIC_BASE_URL || process.env.CLOUDFLARE_R2_PUBLIC_BASE_URL;
-    if (!this.bucket) throw new Error('R2 bucket is not configured (R2_BUCKET)');
+    // do not throw here to allow app to boot in non-R2 environments; validate when used
   }
 
   async createPresignedUrls(dto: CreatePresignDto): Promise<CreatePresignResponseDto> {
+    if (!this.s3) {
+      throw new InternalServerErrorException('R2 S3 client is not configured. Please set R2 endpoint and credentials.');
+    }
+    if (!this.bucket) {
+      throw new InternalServerErrorException('R2 bucket is not configured (R2_BUCKET)');
+    }
     this.validateDto(dto);
 
     const items: PresignItemDto[] = [];
@@ -62,7 +68,9 @@ export class ImageUploadService {
     }
     // fallback to S3-style URL using endpoint if available
     // Note: endpoint might include protocol and host
-    const endpoint = (this.s3.config.endpoint as any)?.href || (this.s3.config.endpoint as any) || '';
+    const s3 = this.s3!; // asserted non-null by caller checks
+    const endpointVal = (s3.config.endpoint as any) || '';
+    const endpoint = endpointVal?.href || endpointVal || '';
     if (endpoint) {
       // try to craft URL: endpoint/bucket/key
       return `${endpoint.replace(/\/$/, '')}/${this.bucket}/${key}`;
@@ -73,8 +81,9 @@ export class ImageUploadService {
 
   private async getPresignedPutUrl(key: string, contentType: string) {
     try {
+      const s3 = this.s3!;
       const command = new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType });
-      const url = await getSignedUrl(this.s3, command, { expiresIn: DEFAULTS.PRESIGN_EXPIRES_SECONDS });
+      const url = await getSignedUrl(s3, command, { expiresIn: DEFAULTS.PRESIGN_EXPIRES_SECONDS });
       return url;
     } catch (err) {
       throw new InternalServerErrorException('Failed to generate presigned URL');

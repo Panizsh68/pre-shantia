@@ -6,9 +6,10 @@ import { Company, CompanySchema } from './entities/company.entity';
 import { Model } from 'mongoose';
 import { CompanyRepository, ICompanyRepository } from './repositories/company.repository';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
+import { ImageUploadModule } from 'src/features/image-upload/image-upload.module';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Company.name, schema: CompanySchema }]), forwardRef(() => PermissionsModule)],
+  imports: [MongooseModule.forFeature([{ name: Company.name, schema: CompanySchema }]), forwardRef(() => PermissionsModule), forwardRef(() => ImageUploadModule)],
   controllers: [CompaniesController],
   providers: [
     {

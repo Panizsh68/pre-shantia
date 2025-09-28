@@ -9,4 +9,4 @@ import { IImageUploadServiceToken } from './interfaces/image-upload.service.inte
   controllers: [ImageUploadController],
   exports: [IImageUploadServiceToken],
 })
-export class ImageUploadModule {}
+export class ImageUploadModule { }

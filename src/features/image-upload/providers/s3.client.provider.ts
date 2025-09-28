@@ -9,7 +9,9 @@ export const S3ClientProvider: Provider = {
     const accessKeyId = process.env.R2_ACCESS_KEY || process.env.CLOUDFLARE_R2_ACCESS_KEY;
     const secretAccessKey = process.env.R2_SECRET_KEY || process.env.CLOUDFLARE_R2_SECRET_KEY;
     if (!endpoint || !accessKeyId || !secretAccessKey) {
-      throw new Error('R2 S3 credentials or endpoint are not configured');
+      // Don't throw during bootstrap — return null so app can start in environments without R2 configured.
+      // Methods that require R2 will validate and throw an informative error at call time.
+      return null;
     }
     return new S3Client({
       region: 'auto',

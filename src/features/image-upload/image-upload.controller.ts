@@ -11,7 +11,7 @@ export class ImageUploadController {
   constructor(
     @Inject(IImageUploadServiceToken)
     private readonly service: IImageUploadService,
-  ) {}
+  ) { }
 
   @Post('presign')
   @HttpCode(HttpStatus.OK)

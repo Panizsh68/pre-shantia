@@ -81,5 +81,4 @@ export class Transaction extends Document {
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);
 
 // Indexes for fast lookup
-TransactionSchema.index({ authority: 1 });
 TransactionSchema.index({ userId: 1 });

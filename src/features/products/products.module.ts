@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { ProfileModule } from 'src/features/users/profile/profile.module';
 import { CompaniesModule } from 'src/features/companies/companies.module';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
+import { ImageUploadModule } from 'src/features/image-upload/image-upload.module';
 import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 import { AuthenticationGuard } from 'src/features/auth/guards/auth.guard';
@@ -25,6 +26,7 @@ import {
     forwardRef(() => ProfileModule),
     forwardRef(() => CompaniesModule),
     forwardRef(() => PermissionsModule),
+  forwardRef(() => ImageUploadModule),
   ],
   controllers: [ProductsController],
   providers: [
