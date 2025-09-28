@@ -21,6 +21,7 @@ import {
   ApiParam,
   ApiBody,
   ApiQuery,
+  ApiUnauthorizedResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -40,9 +41,9 @@ import { Types } from 'mongoose';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { RequestContext } from 'src/common/decorators/request-context.decorator';
 import { RequestContext as IRequestContext } from 'src/common/types/request-context.interface';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @ApiTags('Categories')
-@ApiBearerAuth()
 @Controller('categories')
 export class CategoriesController {
   constructor(
@@ -52,6 +53,8 @@ export class CategoriesController {
 
   @Post()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @Permission(Resource.CATEGORIES, Action.CREATE)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new category' })
@@ -72,8 +75,7 @@ export class CategoriesController {
   }
 
   @Get()
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.CATEGORIES, Action.READ)
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all categories' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -82,7 +84,6 @@ export class CategoriesController {
   @ApiQuery({ name: 'parentId', required: false, type: String, description: 'Parent category ID to filter by' })
   @ApiResponse({ status: 200, description: 'List of categories', type: [Category] })
   @ApiResponse({ status: 400, description: 'Bad Request - Invalid ID format' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(
     @Query('limit') limit?: string,
     @Query('page') page?: string,
@@ -138,23 +139,22 @@ export class CategoriesController {
     }
   }
 
-  @Get(':id')
 
   @Get(':id')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.CATEGORIES, Action.READ)
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get category by ID', description: 'This route is open for default users.' })
   @ApiParam({ name: 'id', type: String, description: 'Category ID' })
   @ApiResponse({ status: 200, description: 'Category found', type: Category })
   @ApiResponse({ status: 404, description: 'Category not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findOne(@Param('id') id: string): Promise<ICategory> {
     return this.categoriesService.findOne(id);
   }
 
   @Patch(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @Permission(Resource.CATEGORIES, Action.UPDATE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update category by ID' })
@@ -206,6 +206,8 @@ export class CategoriesController {
 
   @Delete(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @Permission(Resource.CATEGORIES, Action.DELETE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete category by ID' })
@@ -240,6 +242,8 @@ export class CategoriesController {
 
   @Patch(':id/status')
   @UseGuards(PermissionsGuard)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @Permission(Resource.CATEGORIES, Action.UPDATE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Set status for a category' })
@@ -290,15 +294,13 @@ export class CategoriesController {
   }
 
   @Get('parent/:parentId')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.CATEGORIES, Action.READ)
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get categories by parent ID' })
   @ApiParam({ name: 'parentId', type: String, description: 'Parent category ID' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiResponse({ status: 200, description: 'List of child categories', type: [Category] })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findByParentId(
     @Param('parentId') parentId: string,
     @Query('limit') limit?: string,
@@ -323,22 +325,18 @@ export class CategoriesController {
   }
 
   @Get('exists/slug/:slug')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.CATEGORIES, Action.READ)
+  @Public()
   @ApiOperation({ summary: 'Check if a category exists by slug' })
   @ApiParam({ name: 'slug', type: String, description: 'Category slug' })
   @ApiResponse({ status: 200, description: 'Existence result' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async existsBySlug(@Param('slug') slug: string): Promise<{ exists: boolean }> {
     return { exists: await this.categoriesService.existsBySlug(slug) };
   }
 
   @Get('count')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.CATEGORIES, Action.READ)
+  @Public()
   @ApiOperation({ summary: 'Get total number of categories' })
   @ApiResponse({ status: 200, description: 'Total count returned' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async count(): Promise<{ count: number }> {
     return { count: await this.categoriesService.count() };
   }
