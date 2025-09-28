@@ -14,6 +14,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional, ApiHideProperty } from '@nestjs/swagger';
+import { ImageMetaDto } from '../../image-upload/dto/create-presign.dto';
 import { ProductStatus } from '../enums/product-status.enum';
 
 class StockDto {
@@ -172,6 +173,16 @@ export class CreateProductDto {
   @Type(() => ImageDto)
   @IsOptional()
   images?: ImageDto[];
+
+  @ApiPropertyOptional({
+    description: 'Files metadata for presigning uploads',
+    type: [ImageMetaDto],
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ImageMetaDto)
+  @IsOptional()
+  imagesMeta?: ImageMetaDto[];
 
   @ApiPropertyOptional({
     description: 'User comments about the product',

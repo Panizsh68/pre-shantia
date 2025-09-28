@@ -15,6 +15,9 @@ import { ProductStatus } from './enums/product-status.enum';
 import { AdvancedSearchParams } from './types/advanced-search-params.type';
 import { IProfileService } from '../users/profile/interfaces/profile.service.interface';
 import { ICompanyService } from '../companies/interfaces/company.service.interface';
+import { IImageUploadServiceToken, IImageUploadService } from '../image-upload/interfaces/image-upload.service.interface';
+import { CreatePresignDto } from '../image-upload/dto/create-presign.dto';
+import { CreatePresignResponseDto } from '../image-upload/dto/presign-response.dto';
 import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
 import { Resource } from 'src/features/permissions/enums/resources.enum';
 import { Action } from 'src/features/permissions/enums/actions.enum';
@@ -38,6 +41,7 @@ export class ProductsService implements IProductService {
     @Inject('IProfileService') private readonly profileService: IProfileService,
     @Inject('ICompanyService') private readonly companyService: ICompanyService,
     private readonly permissionsService: PermissionsService,
+    @Inject(IImageUploadServiceToken) private readonly imageUploadService?: IImageUploadService,
   ) { }
 
 
@@ -67,6 +71,20 @@ export class ProductsService implements IProductService {
       createdBy: toObjectId(userId),
       updatedBy: toObjectId(userId),
     };
+
+    // Integration: if the DTO contains files metadata to presign (client wants to upload images)
+    // dto.imagesMeta is an optional field expected to be an array of { filename, contentType, size }
+    // Request presigned URLs and store the permanent public URLs on the product before saving.
+    const imagesMeta = (dto as CreateProductDto).imagesMeta;
+    if (imagesMeta && imagesMeta.length > 0 && this.imageUploadService) {
+      const presignPayload: CreatePresignDto = { type: 'product', files: imagesMeta };
+      const presignResult: CreatePresignResponseDto = await this.imageUploadService.createPresignedUrls(presignPayload);
+      // presignResult.items[].publicUrl can be persisted as product.images (or another field).
+      data.images = presignResult.items.map((it) => ({ url: it.publicUrl }));
+      // also return presigned URLs to the caller by setting a property on result if needed
+      // (Controller layer can combine responses as desired). The service here persists public URLs.
+    }
+
     const productDoc = await this.repo.createOne(data, session);
     return toPlain<IProduct>(productDoc);
   }

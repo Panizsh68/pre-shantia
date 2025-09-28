@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Express } from 'express';
+import { ImageMetaDto } from '../../image-upload/dto/create-presign.dto';
 
 export class CreateCompanyDto {
   @ApiProperty({
@@ -63,4 +64,8 @@ export class CreateCompanyDto {
   })
   @IsOptional()
   image?: Express.Multer.File;
+
+  @ApiPropertyOptional({ description: 'File metadata to request presign url', type: ImageMetaDto })
+  @IsOptional()
+  imageMeta?: ImageMetaDto;
 }

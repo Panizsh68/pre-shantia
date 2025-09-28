@@ -13,6 +13,7 @@ import { ProductsModule } from './features/products/products.module';
 import { TicketingModule } from './features/ticketing/ticketing.module';
 import { TransportingsModule } from './features/transportings/transportings.module';
 import { CompaniesModule } from './features/companies/companies.module';
+import { ImageUploadModule } from './features/image-upload/image-upload.module';
 import { OrdersModule } from './features/orders/orders.module';
 import { WalletsModule } from './features/wallets/wallets.module';
 import { TransactionModule } from './features/transaction/transaction.module';
@@ -84,6 +85,7 @@ import { RequestContextInterceptor } from './utils/interceptors/request-context.
     SchedulerModule,
     CategoriesModule,
     ZarinpalModule,
+    ImageUploadModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

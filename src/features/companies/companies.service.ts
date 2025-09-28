@@ -9,11 +9,15 @@ import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-option
 import { RequestContext } from 'src/common/types/request-context.interface';
 import { Types } from 'mongoose';
 import { toPlain, toPlainArray } from 'src/libs/repository/utils/doc-mapper';
+import { IImageUploadServiceToken, IImageUploadService } from '../image-upload/interfaces/image-upload.service.interface';
+import { CreatePresignDto } from '../image-upload/dto/create-presign.dto';
+import { CreatePresignResponseDto } from '../image-upload/dto/presign-response.dto';
 
 @Injectable()
 export class CompaniesService implements ICompanyService {
   constructor(
     @Inject('CompanyRepository') private readonly companyRepository: ICompanyRepository,
+    @Inject(IImageUploadServiceToken) private readonly imageUploadService?: IImageUploadService,
   ) { }
 
   async create(
@@ -26,6 +30,18 @@ export class CompaniesService implements ICompanyService {
       createdBy: new Types.ObjectId(userId),
       updatedBy: new Types.ObjectId(userId),
     };
+
+    // Integration: if frontend provides image metadata to be presigned, request presigns and persist public URL
+    // Expect createCompanyDto.imageMeta to be { filename, contentType, size }
+    const imageMeta = (createCompanyDto as CreateCompanyDto).imageMeta;
+    if (imageMeta && this.imageUploadService) {
+      const presignPayload: CreatePresignDto = { type: 'company', files: [imageMeta] };
+      const presignResult: CreatePresignResponseDto = await this.imageUploadService.createPresignedUrls(presignPayload);
+      if (presignResult.items && presignResult.items.length > 0) {
+        data['image'] = presignResult.items[0].publicUrl;
+      }
+    }
+
     const companyDoc = await this.companyRepository.createOne(data);
     return toPlain<ICompany>(companyDoc);
   }
