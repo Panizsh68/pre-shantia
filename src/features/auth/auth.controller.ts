@@ -15,7 +15,9 @@ import { TokenPayload } from './interfaces/token-payload.interface';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { Public } from 'src/common/decorators/public.decorator';
 import { IPermission } from '../permissions/interfaces/permissions.interface';
-import { Response } from 'express';
+import { Response, Request } from 'express';
+import { UserListItemDto } from 'src/features/users/dto/user-list.response.dto';
+import { RefreshTokenRequestDto } from './dto/refresh-token.request.dto';
 import { Permission } from '../permissions/decorators/permissions.decorators';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Resource } from '../permissions/enums/resources.enum';
@@ -42,7 +44,6 @@ export class AuthController {
     type: SignUpResponseDto,
   })
   async signUp(@Body() createUserDto: CreateUserDto): Promise<SignUpResponseDto> {
-    // فقط ثبت نام و ارسال OTP، هیچ توکنی ست نمیشه
     return this.authService.signUp(createUserDto);
   }
 
@@ -52,7 +53,6 @@ export class AuthController {
   @ApiOperation({ summary: 'Sign in with credentials' })
   @ApiResponse({ status: 200, description: 'User signed in successfully', type: SignInResponseDto })
   async signIn(@Body() signInDto: SignInDto): Promise<SignInResponseDto> {
-    // فقط ارسال OTP، هیچ توکنی ست نمیشه
     return this.authService.signIn(signInDto);
   }
 
@@ -77,7 +77,7 @@ export class AuthController {
       }
 
       // choose secure flag dynamically: true in production or when request is secure
-      const req: any = (res as any).req;
+      const req = (res.req as Request);
       const secureFlag = req?.secure || req?.protocol === 'https' || process.env.NODE_ENV === 'production';
 
       if (tokens.refreshToken) {
@@ -119,11 +119,12 @@ export class AuthController {
     type: SignUpResponseDto,
   })
   async refreshToken(
-    @Body() body: { refreshToken?: string },
+    @Body() body: RefreshTokenRequestDto,
     @RequestContext() context: ContextType,
     @Res({ passthrough: true }) res: Response,
   ): Promise<SignUpResponseDto> {
-    const refreshToken = body.refreshToken || (res.req.cookies && res.req.cookies.refreshToken);
+    const reqForCookies = (res.req as Request & { cookies?: Record<string, string> });
+    const refreshToken = body.refreshToken || (reqForCookies.cookies && reqForCookies.cookies.refreshToken);
     if (!refreshToken) throw new BadRequestException('Refresh token not provided');
     const result = await this.authService.refreshAccessTokenByRefreshToken(refreshToken, context);
     try {
@@ -225,8 +226,9 @@ export class AuthController {
         ];
 
     const profile = await this.profileService.getByUserId(user.userId);
+    const userWithPhone = user as TokenPayload & { phoneNumber?: string };
     const resultProfile: AuthProfileDto = {
-      phoneNumber: profile?.phoneNumber || (user as any).phoneNumber || '',
+      phoneNumber: profile?.phoneNumber || userWithPhone.phoneNumber || '',
       nationalId: profile?.nationalId || '',
       firstName: profile?.firstName,
       lastName: profile?.lastName,
@@ -263,7 +265,7 @@ export class AuthController {
         res.setHeader('Authorization', 'Bearer ' + result.accessToken);
       }
 
-      const req: any = (res as any).req;
+      const req = (res.req as Request);
       const secureFlag = req?.secure || req?.protocol === 'https' || process.env.NODE_ENV === 'production';
 
       if (result.refreshToken) {
@@ -284,10 +286,22 @@ export class AuthController {
   @Patch('users/:id/permissions')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.USERS, Action.MANAGE)
+  @ApiOperation({ summary: "Update a user's permissions" })
+  @ApiBody({ type: UpdateUserPermissionsDto })
+  @ApiResponse({ status: 200, description: 'Updated user', type: UserListItemDto })
   async setUserPermissions(
     @Param('id') id: string,
     @Body() dto: UpdateUserPermissionsDto,
-  ) {
-    return this.usersService.setPermissions(id, dto.permissions);
+  ): Promise<UserListItemDto> {
+    const updated = await this.usersService.setPermissions(id, dto.permissions);
+    // attach profile for response
+    const profile = await this.profileService.getByUserId(updated.id.toString());
+    return {
+      id: updated.id.toString(),
+      phoneNumber: updated.phoneNumber,
+      nationalId: updated.nationalId,
+      permissions: updated.permissions || [],
+      profile: profile || null,
+    } as UserListItemDto;
   }
 }

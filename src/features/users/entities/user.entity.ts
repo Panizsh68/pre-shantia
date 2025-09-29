@@ -12,6 +12,10 @@ export class User extends Document {
   @Prop({ required: true })
   nationalId: string;
 
+  @Prop({ required: false })
+  // userId of the admin who created this user (if created via admin flow)
+  createdBy?: string;
+
   @Prop({
     type: [
       {

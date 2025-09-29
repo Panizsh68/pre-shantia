@@ -367,7 +367,11 @@ export class AuthService {
 
 
       // create user but skip automatic profile creation so we can include companyId
-      const user = await this.usersService.create(signUpDto, undefined, { createProfile: false });
+      const createInput = { ...signUpDto } as any;
+      if (context && context.user && context.user.userId) {
+        createInput.createdBy = context.user.userId;
+      }
+      const user = await this.usersService.create(createInput, undefined, { createProfile: false });
 
       // create wallet similarly to verifyOtp flow and then create profile
       const ownerType = determineOwnerTypeFromPermissions(user.permissions || []);

@@ -2,6 +2,7 @@ import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-option
 import { CreateUserDto } from '../dto/create-user.dto';
 import { User } from '../entities/user.entity';
 import { UpdateProfileDto } from '../profile/dto/update-profile.dto';
+import { IPermission } from 'src/features/permissions/interfaces/permissions.interface';
 import { ClientSession } from 'mongoose';
 
 export interface IUsersService {
@@ -15,7 +16,7 @@ export interface IUsersService {
 
   update(id: string, updateUserDto: UpdateProfileDto): Promise<User>;
 
-  setPermissions(id: string, permissions: any[]): Promise<User>;
+  setPermissions(id: string, permissions: IPermission[]): Promise<User>;
 
   delete(id: string): Promise<void>;
 }

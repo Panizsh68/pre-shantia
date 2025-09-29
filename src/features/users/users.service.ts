@@ -8,6 +8,7 @@ import { IProfileService } from './profile/interfaces/profile.service.interface'
 import { CreateProfileDto } from './profile/dto/create-profile.dto';
 import { ClientSession } from 'mongoose';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
+import { IPermission } from 'src/features/permissions/interfaces/permissions.interface';
 
 @Injectable()
 export class UsersService {
@@ -66,7 +67,7 @@ export class UsersService {
     await this.profileService.deleteByUserId(id);
   }
 
-  async setPermissions(id: string, permissions: any[]): Promise<User> {
+  async setPermissions(id: string, permissions: IPermission[]): Promise<User> {
     // validate any scoped companyIds inside permissions before updating
     if (Array.isArray(permissions)) {
       for (const p of permissions) {
