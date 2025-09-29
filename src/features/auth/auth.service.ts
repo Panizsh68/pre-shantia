@@ -304,7 +304,7 @@ export class AuthService {
           { resource: Resource.TICKETING, actions: [Action.READ, Action.CREATE] },
           { resource: Resource.TRANSACTION, actions: [Action.READ] },
           { resource: Resource.TRANSPORTING, actions: [Action.READ] },
-          { resource: Resource.PROFILE, actions: [Action.READ, Action.CREATE] },
+          { resource: Resource.PROFILE, actions: [Action.READ, Action.UPDATE] },
           { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE, Action.deposit_user] },
           { resource: Resource.PAYMENT, actions: [Action.CREATE, Action.UPDATE] },
           { resource: Resource.CARTS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },

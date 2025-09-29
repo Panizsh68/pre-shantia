@@ -15,9 +15,7 @@ import { PermissionsGuard } from 'src/features/permissions/guard/permission.guar
 import { Resource } from 'src/features/permissions/enums/resources.enum';
 import { Action } from 'src/features/permissions/enums/actions.enum';
 import { ProfileService } from './profile.service';
-import { IUsersService } from '../interfaces/user.service.interface';
 import { AuthenticationGuard } from 'src/features/auth/guards/auth.guard';
-import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Profile } from './entities/profile.entity';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -43,7 +41,7 @@ export class ProfileController {
 
   @Get()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.USERS, Action.READ)
+  @Permission(Resource.PROFILE, Action.READ)
   @ApiOperation({ summary: 'Get current user profile', description: 'This route is open for default users.' })
   @ApiResponse({ status: 200, description: 'User profile', type: Profile })
   async getMyProfile(@CurrentUser() user: TokenPayload): Promise<Profile> {
@@ -56,7 +54,7 @@ export class ProfileController {
 
   @Patch(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.USERS, Action.UPDATE)
+  @Permission(Resource.PROFILE, Action.UPDATE)
   @ApiOperation({ summary: 'Update profile by ID', description: 'This route is open for default users.' })
   @ApiParam({ name: 'id', type: String })
   @ApiBody({ type: UpdateProfileDto })
