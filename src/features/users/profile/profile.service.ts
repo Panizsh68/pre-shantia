@@ -19,16 +19,18 @@ export class ProfileService {
       phoneNumber: createProfileDto.phoneNumber,
       nationalId: createProfileDto.nationalId,
       walletId: createProfileDto.walletId,
-      firstName: createProfileDto.firstName,
-      lastName: createProfileDto.lastName,
-      address: createProfileDto.address,
+      // populate required string fields with provided values or safe defaults
+      firstName: createProfileDto.firstName ?? '',
+      lastName: createProfileDto.lastName ?? '',
+      email: createProfileDto.email ?? '',
+      address: createProfileDto.address ?? '',
       cart: createProfileDto.cart,
-      orders: createProfileDto.orders,
-      transactions: createProfileDto.transactions,
-      favorites: createProfileDto.favorites,
+      orders: createProfileDto.orders ?? [],
+      transactions: createProfileDto.transactions ?? [],
+      favorites: createProfileDto.favorites ?? [],
       companyId: createProfileDto.companyId ? new Types.ObjectId(createProfileDto.companyId) : undefined,
     };
-    const creation = await this.profileRepository.createOne(profileData as any, session);
+    const creation = await this.profileRepository.createOne(profileData, session);
     return creation;
   }
 
