@@ -197,6 +197,11 @@ export class AuthService {
             nationalId: signUpData.nationalId,
             walletId: wallet.id,
             userId: user.id.toString(),
+            // provide defaults for required profile fields to satisfy schema
+            firstName: '',
+            lastName: '',
+            email: '',
+            address: '',
           };
           const profile = await this.profileService.create(profileDto, session);
 
