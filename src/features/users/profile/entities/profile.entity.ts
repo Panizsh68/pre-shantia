@@ -7,19 +7,19 @@ export class Profile extends Document {
   @Prop({ type: String, ref: 'User', required: true, unique: true })
   userId: string;
 
-  @Prop({ type: String, required: true, default: '' })
+  @Prop({ type: String, required: false, default: '' })
   firstName?: string;
 
-  @Prop({ type: String, required: true, default: '' })
+  @Prop({ type: String, required: false, default: '' })
   lastName?: string;
 
-  @Prop({ type: String, required: true, default: '' })
+  @Prop({ type: String, required: false, default: '' })
   email?: string;
 
   @Prop({ type: String, required: true })
   phoneNumber: string;
 
-  @Prop({ type: String, required: true, default: '' })
+  @Prop({ type: String, required: false, default: '' })
   address?: string;
 
   @Prop({ type: String, required: true })
