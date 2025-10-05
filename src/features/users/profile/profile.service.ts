@@ -30,8 +30,16 @@ export class ProfileService {
       favorites: createProfileDto.favorites ?? [],
       companyId: createProfileDto.companyId ? new Types.ObjectId(createProfileDto.companyId) : undefined,
     };
-    const creation = await this.profileRepository.createOne(profileData, session);
-    return creation;
+    console.debug('ProfileService.create - profileData prepared:', JSON.stringify(profileData));
+    try {
+      const creation = await this.profileRepository.createOne(profileData, session);
+      return creation;
+    } catch (error) {
+      // Log full context for debugging validation errors without muting the original error
+      console.error('ProfileService.create - Failed to create profile. profileData:', JSON.stringify(profileData));
+      console.error('ProfileService.create - Create error:', (error && (error as Error).message) || error);
+      throw error;
+    }
   }
 
   async getByUserId(userId: string): Promise<Profile | null> {

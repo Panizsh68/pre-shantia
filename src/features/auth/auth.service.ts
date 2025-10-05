@@ -203,6 +203,7 @@ export class AuthService {
             email: '',
             address: '',
           };
+          console.debug('verifyOtp - creating profile with DTO:', JSON.stringify(profileDto));
           const profile = await this.profileService.create(profileDto, session);
 
           console.log(`Profile created with ID=${profile.id} for user ID=${user.id} and linked to wallet ID=${wallet.id}`);
