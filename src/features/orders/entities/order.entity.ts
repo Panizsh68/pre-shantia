@@ -30,8 +30,14 @@ export class Order extends Document {
   @Prop()
   transportId: string;
 
-  @Prop({ type: String, default: null })
+  @Prop({ type: String, index: true, default: null })
   ticketId: string | null;
+
+  @Prop({ type: Date, index: true, default: null })
+  deliveredAt?: Date | null;
+
+  @Prop({ type: Date, index: true, default: null })
+  confirmedAt?: Date | null;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
