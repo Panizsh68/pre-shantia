@@ -35,7 +35,8 @@ export class ProfileService {
   }
 
   async getByUserId(userId: string): Promise<Profile | null> {
-    return this.profileRepository.findOneByCondition({ userId } as any);
+    const condition: import('mongoose').FilterQuery<Profile> = { userId };
+    return this.profileRepository.findOneByCondition(condition);
   }
 
   async update(id: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {

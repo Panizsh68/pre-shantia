@@ -69,8 +69,13 @@ export class ImageUploadService {
     // fallback to S3-style URL using endpoint if available
     // Note: endpoint might include protocol and host
     const s3 = this.s3!; // asserted non-null by caller checks
-    const endpointVal = (s3.config.endpoint as any) || '';
-    const endpoint = endpointVal?.href || endpointVal || '';
+    const endpointCandidate = (s3.config && (s3.config as any).endpoint) || undefined;
+    let endpoint = '';
+    if (endpointCandidate) {
+      if (typeof endpointCandidate === 'string') endpoint = endpointCandidate;
+      else if (typeof endpointCandidate === 'object' && (endpointCandidate as any).href) endpoint = (endpointCandidate as any).href;
+      else endpoint = String(endpointCandidate);
+    }
     if (endpoint) {
       // try to craft URL: endpoint/bucket/key
       return `${endpoint.replace(/\/$/, '')}/${this.bucket}/${key}`;

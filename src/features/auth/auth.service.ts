@@ -372,7 +372,7 @@ export class AuthService {
 
 
       // create user but skip automatic profile creation so we can include companyId
-      const createInput = { ...signUpDto } as any;
+      const createInput: import('../users/dto/create-user.dto').CreateUserDto & { createdBy?: string } = { ...signUpDto };
       if (context && context.user && context.user.userId) {
         createInput.createdBy = context.user.userId;
       }
