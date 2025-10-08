@@ -1,6 +1,6 @@
 
 import { Inject, Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { Types, ClientSession, PipelineStage } from 'mongoose';
+import { Types, ClientSession, PipelineStage, FilterQuery } from 'mongoose';
 import { toPlain, toPlainArray } from 'src/libs/repository/utils/doc-mapper';
 import { Product } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -63,7 +63,7 @@ export class ProductsService implements IProductService {
     // Ensure company exists
     await this.companyService.findOne(companyIdStr);
 
-    const { categories, ...rest } = dto;
+    const { categories, ...rest } = dto as CreateProductDto;
     const data: Partial<Product> = {
       ...rest,
       companyId: toObjectId(companyIdStr),
@@ -115,7 +115,9 @@ export class ProductsService implements IProductService {
       populate: options.populate || ['companyId', 'categories'],
       session,
     };
-    const products = await this.repo.findManyByCondition(conditions as any, queryOptions as any);
+    const typedConditions: FilterQuery<Product> = conditions as unknown as FilterQuery<Product>;
+    const typedQueryOptions: FindManyOptions = queryOptions;
+    const products = await this.repo.findManyByCondition(typedConditions, typedQueryOptions);
     return toPlainArray<IProduct>(products);
   }
 
@@ -136,7 +138,7 @@ export class ProductsService implements IProductService {
       this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.UPDATE, existingCompanyId);
     }
 
-    const { categories, ...rest } = dto as any;
+    const { categories, ...rest } = dto as UpdateProductDto;
     const data: Partial<Product> = {
       ...rest,
       // companyId cannot be changed by the client; preserve existing.companyId

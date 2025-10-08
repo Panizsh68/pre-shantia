@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ClientSession, PipelineStage, Types } from 'mongoose';
+import { Model, ClientSession, PipelineStage, Types, FilterQuery } from 'mongoose';
 import { Product } from '../entities/product.entity';
 import { TopProduct } from '../interfaces/top-product.interface';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
@@ -9,6 +9,7 @@ import {
   IBaseAggregateRepository,
   IBaseTransactionRepository,
 } from 'src/libs/repository/interfaces/base-repo.interfaces';
+import { FindManyOptions, SortOption } from 'src/libs/repository/interfaces/base-repo-options.interface';
 
 export interface IProductRepository extends IBaseCrudRepository<Product>, IBaseAggregateRepository<Product>, IBaseTransactionRepository<Product> {
   getTopProductsByRating(limit?: number, session?: ClientSession): Promise<TopProduct[]>;
@@ -209,13 +210,13 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
     const page = options.page ?? 1;
     const limit = options.limit ?? 10;
 
-    const findOptions = {
+    const findOptions: FindManyOptions = {
       page,
       perPage: limit,
-      sort: options.sort?.map(s => ({ field: s.field, order: s.order === 'asc' ? 1 : -1 })) as any,
-    } as any;
+      sort: options.sort?.map(s => ({ field: s.field, order: s.order === 'asc' ? 'asc' : 'desc' } as SortOption)) as SortOption[],
+    };
 
-    return this.findManyByCondition(condition as any, findOptions as any);
+    return this.findManyByCondition(condition as FilterQuery<Product>, findOptions as FindManyOptions);
   }
 
   async aggregate<R>(pipeline: PipelineStage[], session?: ClientSession): Promise<R[]> {
