@@ -9,6 +9,7 @@ import { ClientSession } from 'mongoose';
 import { Wallet } from './entities/wallet.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { TransactionStatus } from '../transaction/enums/transaction.status.enum';
+import { TransactionType } from '../transaction/enums/transaction.type.enum';
 import { CreateTransactionDto } from '../transaction/dtos/create-transaction.dto';
 import { ITransactionService } from '../transaction/interfaces/transaction.service.interface';
 
@@ -55,6 +56,8 @@ export class WalletsService implements IWalletService {
         email: undefined,
         userId: creditWalletDto.ownerId,
         status: TransactionStatus.COMPLETED,
+        type: TransactionType.CREDIT,
+        currency: wallet.currency,
         createdAt: new Date(),
         toWalletId: wallet.id,
         resultingBalance: updatedWallet.balance,
@@ -106,6 +109,8 @@ export class WalletsService implements IWalletService {
         email: undefined,
         userId: debitWalletDto.ownerId,
         status: TransactionStatus.COMPLETED,
+        type: TransactionType.DEBIT,
+        currency: wallet.currency,
         createdAt: new Date(),
         fromWalletId: wallet.id,
         resultingBalance: updatedWallet.balance,
@@ -169,6 +174,8 @@ export class WalletsService implements IWalletService {
         email: undefined,
         userId: from.ownerId,
         status: TransactionStatus.COMPLETED,
+        type: TransactionType.TRANSFER,
+        currency: fromWallet.currency,
         createdAt: new Date(),
         fromWalletId: fromWallet.id,
         toWalletId: toWallet.id,
@@ -188,6 +195,99 @@ export class WalletsService implements IWalletService {
         await this.walletRepository.abortTransaction(transactionSession);
       }
       throw new BadRequestException(`Transfer failed: ${error.message}`);
+    }
+  }
+
+  // Block amount on a wallet (move from balance -> blockedBalance) and record a BLOCK transaction
+  async blockAmount(
+    owner: { ownerId: string; ownerType: WalletOwnerType },
+    amount: number,
+    meta: { orderId?: string; ticketId?: string; reason?: string } = {},
+    session?: ClientSession,
+  ): Promise<void> {
+    const transactionSession = session || (await this.walletRepository.startTransaction());
+    try {
+      const wallet = await this.walletRepository.findByIdAndType(
+        owner.ownerId,
+        owner.ownerType,
+        transactionSession,
+      );
+      if (!wallet) throw new NotFoundException('Wallet not found');
+      if (wallet.balance < amount) throw new BadRequestException('Insufficient balance to block');
+
+      wallet.balance -= amount;
+      wallet.blockedBalance = (wallet.blockedBalance ?? 0) + amount;
+
+      await this.walletRepository.updateById(wallet.id, { balance: wallet.balance, blockedBalance: wallet.blockedBalance }, transactionSession);
+
+      const txDto: CreateTransactionDto = {
+        authority: uuidv4(),
+        amount,
+        description: `Block ${amount} on wallet ${wallet.id}`,
+        mobile: undefined,
+        email: undefined,
+        userId: owner.ownerId,
+        status: TransactionStatus.COMPLETED,
+        type: TransactionType.BLOCK,
+        currency: wallet.currency,
+        createdAt: new Date(),
+        fromWalletId: wallet.id,
+        resultingBalance: wallet.balance,
+        metadata: { ...meta, reason: meta.reason ?? 'block' },
+      };
+      await this.transactionService.create(txDto, transactionSession);
+
+      if (!session) await this.walletRepository.commitTransaction(transactionSession);
+    } catch (error) {
+      if (!session) await this.walletRepository.abortTransaction(transactionSession);
+      throw new BadRequestException(`Failed to block amount: ${error.message}`);
+    }
+  }
+
+  // Release blocked amount and either refund to user or transfer to another wallet
+  async releaseBlockedAmount(
+    from: { ownerId: string; ownerType: WalletOwnerType },
+    to: { ownerId: string; ownerType: WalletOwnerType },
+    amount: number,
+    meta: { orderId?: string; ticketId?: string; reason?: string; type?: 'REFUND' | 'TRANSFER' },
+    session?: ClientSession,
+  ): Promise<void> {
+    const transactionSession = session || (await this.walletRepository.startTransaction());
+    try {
+      const fromWallet = await this.walletRepository.findByIdAndType(from.ownerId, from.ownerType, transactionSession);
+      const toWallet = await this.walletRepository.findByIdAndType(to.ownerId, to.ownerType, transactionSession);
+      if (!fromWallet || !toWallet) throw new NotFoundException('Wallet not found');
+      if ((fromWallet.blockedBalance ?? 0) < amount) throw new BadRequestException('Insufficient blocked balance');
+
+      fromWallet.blockedBalance -= amount;
+      toWallet.balance += amount;
+
+      await this.walletRepository.updateById(fromWallet.id, { blockedBalance: fromWallet.blockedBalance }, transactionSession);
+      await this.walletRepository.updateById(toWallet.id, { balance: toWallet.balance }, transactionSession);
+
+      const txDto: CreateTransactionDto = {
+        authority: uuidv4(),
+        amount,
+        description: `${meta.type ?? 'TRANSFER'} from blocked on ${fromWallet.id} to ${toWallet.id}`,
+        mobile: undefined,
+        email: undefined,
+        userId: from.ownerId,
+        status: TransactionStatus.COMPLETED,
+        type: meta.type === 'REFUND' ? TransactionType.REFUND : TransactionType.TRANSFER,
+        currency: fromWallet.currency,
+        createdAt: new Date(),
+        fromWalletId: fromWallet.id,
+        toWalletId: toWallet.id,
+        resultingBalance: fromWallet.balance,
+        resultingBalanceTo: toWallet.balance,
+        metadata: { ...meta, reason: meta.reason ?? (meta.type ?? 'transfer') },
+      };
+      await this.transactionService.create(txDto, transactionSession);
+
+      if (!session) await this.walletRepository.commitTransaction(transactionSession);
+    } catch (error) {
+      if (!session) await this.walletRepository.abortTransaction(transactionSession);
+      throw new BadRequestException(`Failed to release blocked amount: ${error.message}`);
     }
   }
 

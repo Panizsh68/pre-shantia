@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { TransactionStatus } from '../enums/transaction.status.enum';
 import { RefundStatus } from '../enums/refund.status.enum';
+import { TransactionType } from '../enums/transaction.type.enum';
 
 @Schema({ timestamps: true })
 export class Transaction extends Document {
@@ -24,6 +25,15 @@ export class Transaction extends Document {
   // wallet-related transactions which are not tied to an Order.
   @Prop({ type: String, ref: 'Order', required: false })
   orderId?: string;
+
+  @Prop({ type: String, enum: TransactionType })
+  type?: TransactionType;
+
+  @Prop({ type: String })
+  currency?: string;
+
+  @Prop({ type: String })
+  ticketId?: string;
 
   @Prop({ type: String, required: true })
   userId: string;

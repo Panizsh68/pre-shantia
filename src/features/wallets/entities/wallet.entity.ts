@@ -14,6 +14,9 @@ export class Wallet extends Document {
   @Prop({ type: Number, required: true, min: 0, default: 0 })
   balance: number;
 
+  @Prop({ type: Number, required: true, min: 0, default: 0 })
+  blockedBalance: number;
+
   @Prop({ type: String, required: true, match: /^[A-Z]{3}$/ })
   currency: string;
 }
