@@ -27,6 +27,11 @@ export class Ticket extends Document {
   orderId?: string;
 
   id: Types.ObjectId;
+
+  // Timestamps added by Mongoose when Schema({ timestamps: true }) is used.
+  // Declare them here so TypeScript knows these properties exist on the document.
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export const TicketSchema = SchemaFactory.createForClass(Ticket);
