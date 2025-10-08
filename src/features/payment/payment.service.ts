@@ -33,9 +33,12 @@ export class PaymentService {
         amount,
         description: `Payment for order ${order.id}`,
         status: TransactionStatus.PENDING,
+        type: undefined,
+        currency: 'IRR',
         createdAt: new Date(),
         userId,
         orderId,
+        metadata: { orderId: order.id.toString() },
       };
 
       const transaction = await this.transactionService.create(createDto, session);
