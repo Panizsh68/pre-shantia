@@ -110,3 +110,25 @@ amazing backers. If you'd like to join them, please
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## Escrow / Ticketing and Transaction Types
+
+This project implements an escrow-like flow for "urgent" order-related tickets. Key points:
+
+- When a user opens an urgent ticket for a delivered order, the platform will block the order amount on the intermediary wallet (move from balance -> blockedBalance) until the ticket is resolved.
+- Admins can resolve tickets via the Ticketing API. On resolution the platform either:
+  - Refunds the blocked amount to the user (transaction type REFUND), or
+  - Releases the blocked amount to the company (transaction type TRANSFER) and marks the order as completed.
+- If the user does not respond within 3 days after delivery, the orders cron may auto-confirm and release funds (unless a ticketId is present on the order, which prevents auto-confirm).
+
+Transactions created by wallet operations now include richer metadata for auditing:
+
+- type: one of BLOCK | UNBLOCK | TRANSFER | REFUND | CREDIT | DEBIT
+- currency: three-letter currency code (default IRR)
+- orderId, ticketId: optional references when transactions are related to an order/ticket
+- metadata: free-form object with reason and other context
+
+Scripts:
+
+- scripts/ensure-order-indexes.ts — run this script (or similar migration) after deploy to ensure indexes on Order (ticketId, deliveredAt, confirmedAt) are created in production.
+
