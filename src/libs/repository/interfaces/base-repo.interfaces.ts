@@ -29,6 +29,8 @@ export interface IBaseCrudRepository<T extends Document> {
   ): Promise<T>;
 
   deleteById(_id: string, _session?: ClientSession): Promise<boolean>;
+  // Delete a single document matching condition
+  deleteOneByCondition?(_condition: FilterQuery<T>, _session?: ClientSession): Promise<boolean>;
 
   countByCondition(_condition: FilterQuery<T>, _session?: ClientSession): Promise<number>;
   existsByCondition(_condition: FilterQuery<T>, _session?: ClientSession): Promise<boolean>;
@@ -46,4 +48,6 @@ export interface IBaseTransactionRepository<_T extends Document> {
   startTransaction(): Promise<ClientSession>;
   commitTransaction(_session: ClientSession): Promise<void>;
   abortTransaction(_session: ClientSession): Promise<void>;
+  // Optional: atomic update helper for transactions keyed by trackId
+  findOneByTrackIdAndStatusAndUpdate?(_trackId: string, _expectedStatus: any, _update: any, _session?: ClientSession): Promise<_T | null>;
 }

@@ -20,6 +20,7 @@ export interface ICartRepository
   IBasePopulateRepository<Cart>,
   IBaseAggregateRepository<Cart> {
   findActiveCartByUserId(userId: string, session?: ClientSession): Promise<Cart>;
+  markAbandonedBefore(date: Date): Promise<number>;
 }
 
 @Injectable()
@@ -42,7 +43,7 @@ export class CartRepository extends BaseCrudRepository<Cart> implements ICartRep
       select: 'items totalPrice status userId',
     };
     // attach session if provided
-    if (session) options.session = session;
+    if (session) { options.session = session; }
     const cart = await this.findOneByCondition(condition, options);
     if (!cart) {
       throw new NotFoundException(`Active cart for user ${userId} not found`);
@@ -82,5 +83,21 @@ export class CartRepository extends BaseCrudRepository<Cart> implements ICartRep
     const aggregation = this.aggregateRepository.aggregate<R>(cartPipeline);
 
     return aggregation;
+  }
+
+  // Mark carts as abandoned if created before the given date.
+  async markAbandonedBefore(date: Date): Promise<number> {
+    const result = await this.model.updateMany(
+      {
+        status: CartStatus.ACTIVE,
+        createdAt: { $lte: date },
+      },
+      { $set: { status: CartStatus.ABANDONED } },
+    ).exec();
+
+    // Mongoose UpdateResult shape varies by version; normalized to a number
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r: any = result;
+    return (r.modifiedCount ?? r.nModified ?? 0) as number;
   }
 }

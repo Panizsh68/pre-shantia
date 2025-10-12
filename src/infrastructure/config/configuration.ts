@@ -11,12 +11,11 @@ export default () => ({
     OTP_TTL: parseInt(process.env.OTP_TTL ?? '300', 10),
     SUPERADMIN_PHONE: process.env.SUPERADMIN_PHONE,
     SUPERADMIN_MELICODE: process.env.SUPERADMIN_MELICODE,
-    ZARINPAL_MERCHANT_ID:
-      process.env.ZARINPAL_MERCHANT_ID || 'a3c16110-f184-44e2-ad26-649387845a94',
-    ZARINPAL_SANDBOX: process.env.ZARINPAL_SANDBOX || true,
-    ZARINPAL_CALLBACK_URL:
-      process.env.ZARINPAL_CALLBACK_URL || 'https://yourdomain.com/payment/callback',
-    ZARINPAL_ACCESS_TOKEN: process.env.ZARINPAL_ACCESS_TOKEN || 'your-access-token',
+    ZIBAL_MERCHANT_ID: process.env.ZIBAL_MERCHANT_ID || '68b44a2ca45c720011a852e0',
+    ZIBAL_SANDBOX: (process.env.ZIBAL_SANDBOX || '').toLowerCase() === 'true',
+    ZIBAL_CALLBACK_URL: process.env.ZIBAL_CALLBACK_URL || 'http://localhost:3000/payment/callback',
+    ZIBAL_SECRET_KEY: process.env.ZIBAL_SECRET_KEY || '',
+    ZIBAL_LOG_LEVEL: parseInt(process.env.ZIBAL_LOG_LEVEL || '2', 10),
     APP_URL: process.env.APP_URL || 'http://localhost:3000',
   },
 });

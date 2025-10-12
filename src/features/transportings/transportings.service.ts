@@ -6,17 +6,17 @@ import { TransportingStatus } from './enums/transporting.status.enum';
 import { Types } from 'mongoose';
 import { CreateTransportingDto } from './dto/create-transporting.dto';
 import { UpdateTransportingDto } from './dto/update-transporting.dto';
+import { runInTransaction } from 'src/libs/repository/run-in-transaction';
 
 @Injectable()
 export class TransportingsService implements ITransportingsService {
   constructor(
     @Inject('TransportingRepository')
     private readonly transportingRepository: ITransportingRepository,
-  ) {}
+  ) { }
 
   async create(dto: CreateTransportingDto): Promise<ITransporting> {
-    const session = await this.transportingRepository.startTransaction();
-    try {
+    return runInTransaction(this.transportingRepository, async (session) => {
       const transportingData = {
         ...dto,
         orderId: dto.orderId,
@@ -25,15 +25,11 @@ export class TransportingsService implements ITransportingsService {
         estimateDelivery: dto.estimatedDelivery ? new Date(dto.estimatedDelivery) : undefined,
       };
 
-      const newTransporting = await this.transportingRepository.createOne(transportingData);
-      await this.transportingRepository.commitTransaction(session);
+      const newTransporting = await this.transportingRepository.createOne(transportingData, session);
       return newTransporting;
-    } catch (error) {
-      await this.transportingRepository.abortTransaction(session);
-      throw new BadRequestException(
-        `Failed to create transporting. Error: ${(error as Error).message}`,
-      );
-    }
+    }).catch(error => {
+      throw new BadRequestException(`Failed to create transporting. Error: ${(error as Error).message}`);
+    });
   }
 
   async findById(id: string): Promise<ITransporting> {
@@ -67,35 +63,30 @@ export class TransportingsService implements ITransportingsService {
     if (!Types.ObjectId.isValid(dto.id)) {
       throw new BadRequestException('Invalid transporting ID format');
     }
-    const session = await this.transportingRepository.startTransaction();
-    try {
+
+    return runInTransaction(this.transportingRepository, async (session) => {
       const updateData = {
         carrier: dto.carrier,
         trackingNumber: dto.trackingNumber,
         status: dto.status,
         estimateDelivery: dto.estimatedDelivery ? new Date(dto.estimatedDelivery) : undefined,
       };
-      const updatedTransporting = await this.transportingRepository.updateById(dto.id, updateData);
+      const updatedTransporting = await this.transportingRepository.updateById(dto.id, updateData, session);
       if (!updatedTransporting) {
         throw new NotFoundException(`Transporting with id: ${dto.id} not found`);
       }
-      await this.transportingRepository.commitTransaction(session);
       return updatedTransporting;
-    } catch (error) {
-      await this.transportingRepository.abortTransaction(session);
-      throw new BadRequestException(
-        `Failed to update transporting. Error: ${(error as Error).message}`,
-      );
-    }
+    }).catch(error => {
+      throw new BadRequestException(`Failed to update transporting. Error: ${(error as Error).message}`);
+    });
   }
 
   async cancel(id: string): Promise<ITransporting> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid transporting ID format');
     }
-    const session = await this.transportingRepository.startTransaction();
-    try {
-      const transporting = await this.transportingRepository.findById(id);
+    return runInTransaction(this.transportingRepository, async (session) => {
+      const transporting = await this.transportingRepository.findById(id, { session });
       if (!transporting) {
         throw new NotFoundException(`Transporting with id: ${id} not found`);
       }
@@ -109,23 +100,18 @@ export class TransportingsService implements ITransportingsService {
       }
       transporting.status = TransportingStatus.CANCELED;
       const updatedTransporting = await this.transportingRepository.saveOne(transporting, session);
-      await this.transportingRepository.commitTransaction(session);
       return updatedTransporting;
-    } catch (error) {
-      await this.transportingRepository.abortTransaction(session);
-      throw new BadRequestException(
-        `Failed to cancel transporting. Error: ${(error as Error).message}`,
-      );
-    }
+    }).catch(error => {
+      throw new BadRequestException(`Failed to cancel transporting. Error: ${(error as Error).message}`);
+    });
   }
 
   async markAsDelivered(id: string, estimatedDelivery?: Date): Promise<ITransporting> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid transporting ID format');
     }
-    const session = await this.transportingRepository.startTransaction();
-    try {
-      const transporting = await this.transportingRepository.findById(id);
+    return runInTransaction(this.transportingRepository, async (session) => {
+      const transporting = await this.transportingRepository.findById(id, { session });
       if (!transporting) {
         throw new NotFoundException(`Transporting with id: ${id} not found`);
       }
@@ -142,13 +128,9 @@ export class TransportingsService implements ITransportingsService {
         transporting.estimatedDelivery = new Date(estimatedDelivery);
       }
       const updatedTransporting = await this.transportingRepository.saveOne(transporting, session);
-      await this.transportingRepository.commitTransaction(session);
       return updatedTransporting;
-    } catch (error) {
-      await this.transportingRepository.abortTransaction(session);
-      throw new BadRequestException(
-        `Failed to mark transporting as delivered. Error: ${(error as Error).message}`,
-      );
-    }
+    }).catch(error => {
+      throw new BadRequestException(`Failed to mark transporting as delivered. Error: ${(error as Error).message}`);
+    });
   }
 }

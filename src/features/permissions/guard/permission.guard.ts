@@ -12,7 +12,7 @@ export class PermissionsGuard implements CanActivate {
       this.reflector.get<PermissionMeta>(PERMISSION_KEY, context.getHandler()) ||
       this.reflector.get<PermissionMeta>(PERMISSION_KEY, context.getClass());
 
-    if (!permissionMeta) return true;
+    if (!permissionMeta) {return true;}
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;

@@ -1,14 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-import { MongooseModule } from '@nestjs/mongoose';
-import { Cart, CartSchema } from '../carts/entities/cart.entity';
 import { CartAbandonJob } from './cart-abandon.job';
+import { CartsModule } from '../carts/carts.module';
 
 @Module({
-  imports: [
-    ScheduleModule.forRoot(),
-    MongooseModule.forFeature([{ name: Cart.name, schema: CartSchema }]),
-  ],
+  imports: [ScheduleModule.forRoot(), CartsModule],
   providers: [CartAbandonJob],
 })
 export class SchedulerModule { }

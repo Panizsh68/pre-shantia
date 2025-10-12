@@ -95,9 +95,9 @@ export class CartsController {
   @HttpCode(HttpStatus.OK)
   async addItem(@CurrentUser() user: TokenPayload, @Body() item: CartItemDto) {
     // explicit ownership check: ensure product exists and belongs to provided companyId
-    if (!item.companyId) throw new BadRequestException('companyId is required');
+    if (!item.companyId) {throw new BadRequestException('companyId is required');}
     const product = await this.productsService.findOne(item.productId);
-    if (!product) throw new NotFoundException(`Product with id ${item.productId} not found`);
+    if (!product) {throw new NotFoundException(`Product with id ${item.productId} not found`);}
     // product.companyId may be an ObjectId; compare as strings
     if (product.companyId?.toString() !== item.companyId) {
       throw new BadRequestException('Product does not belong to the provided companyId');

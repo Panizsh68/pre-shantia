@@ -16,7 +16,7 @@ export class CategoriesService implements ICategoryService {
 
   async create(data: Partial<ICategory>, userId: string, ctx: RequestContext): Promise<ICategory> {
     // Sanitize parentId: اگر رشته خالی یا نامعتبر بود، undefined شود
-    let sanitizedData = { ...data };
+    const sanitizedData = { ...data };
     if (
       (typeof sanitizedData.parentId === 'string' && (sanitizedData.parentId + '').trim() === '')
       || sanitizedData.parentId === null
@@ -68,7 +68,7 @@ export class CategoriesService implements ICategoryService {
 
   async update(id: string, updates: Partial<ICategory>, userId: string): Promise<ICategory> {
     // Defensive: sanitize id
-    let sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? id : undefined;
+    const sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? id : undefined;
     if (!sanitizedId) {
       throw new BadRequestException('Invalid category ID');
     }
@@ -85,7 +85,7 @@ export class CategoriesService implements ICategoryService {
     }
 
     // Sanitize parentId in updates
-    let sanitizedUpdates = { ...updates };
+    const sanitizedUpdates = { ...updates };
     if (
       (typeof sanitizedUpdates.parentId === 'string' && (sanitizedUpdates.parentId + '').trim() === '')
       || sanitizedUpdates.parentId === null
@@ -105,7 +105,7 @@ export class CategoriesService implements ICategoryService {
 
   async remove(id: string, userId: string): Promise<void> {
     // Defensive: sanitize id
-    let sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? id : undefined;
+    const sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? id : undefined;
     if (!sanitizedId) {
       throw new BadRequestException('Invalid category ID');
     }
@@ -130,7 +130,7 @@ export class CategoriesService implements ICategoryService {
 
   async setStatus(id: string, status: CategoryStatus, userId: string): Promise<ICategory> {
     // Defensive: sanitize id
-    let sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? id : undefined;
+    const sanitizedId = (typeof id === 'string' && Types.ObjectId.isValid(id)) ? id : undefined;
     if (!sanitizedId) {
       throw new BadRequestException('Invalid category ID');
     }

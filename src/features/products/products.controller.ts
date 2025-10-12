@@ -66,25 +66,25 @@ export class ProductsController {
     @Query('sort') sort?: string,
   ) {
     const params: Record<string, unknown> = {};
-    if (query) params.query = query;
+    if (query) {params.query = query;}
     if (maxPrice !== undefined) {
       const parsedMaxPrice = parseFloat(maxPrice);
-      if (isNaN(parsedMaxPrice) || parsedMaxPrice < 0) throw new BadRequestException('maxPrice must be a non-negative number');
+      if (isNaN(parsedMaxPrice) || parsedMaxPrice < 0) {throw new BadRequestException('maxPrice must be a non-negative number');}
       params.maxPrice = parsedMaxPrice;
     }
-    if (companyName) params.companyName = companyName;
-    if (categoryIds) params.categoryIds = Array.isArray(categoryIds) ? categoryIds : [categoryIds];
+    if (companyName) {params.companyName = companyName;}
+    if (categoryIds) {params.categoryIds = Array.isArray(categoryIds) ? categoryIds : [categoryIds];}
     if (page !== undefined) {
       const parsedPage = parseInt(page, 10);
-      if (isNaN(parsedPage) || parsedPage < 1) throw new BadRequestException('Page must be a positive integer');
+      if (isNaN(parsedPage) || parsedPage < 1) {throw new BadRequestException('Page must be a positive integer');}
       params.page = parsedPage;
     }
     if (limit !== undefined) {
       const parsedLimit = parseInt(limit, 10);
-      if (isNaN(parsedLimit) || parsedLimit < 1) throw new BadRequestException('Limit must be a positive integer');
+      if (isNaN(parsedLimit) || parsedLimit < 1) {throw new BadRequestException('Limit must be a positive integer');}
       params.limit = parsedLimit;
     }
-    if (sort) params.sort = sort;
+    if (sort) {params.sort = sort;}
     return this.productsService.advancedSearchAggregate(params);
   }
 
@@ -244,17 +244,17 @@ export class ProductsController {
     const options: FindManyOptions = {};
     if (limit) {
       const parsedLimit = parseInt(limit, 10);
-      if (isNaN(parsedLimit) || parsedLimit < 1) throw new BadRequestException('Limit must be a positive integer');
+      if (isNaN(parsedLimit) || parsedLimit < 1) {throw new BadRequestException('Limit must be a positive integer');}
       options.perPage = parsedLimit;
     }
     if (page) {
       const parsedPage = parseInt(page, 10);
-      if (isNaN(parsedPage) || parsedPage < 1) throw new BadRequestException('Page must be a positive integer');
+      if (isNaN(parsedPage) || parsedPage < 1) {throw new BadRequestException('Page must be a positive integer');}
       options.page = parsedPage;
     }
     if (sort) {
       const [field, order] = sort.split(':');
-      if (!field || !order || !['asc', 'desc'].includes(order.toLowerCase())) throw new BadRequestException('Sort must be in format field:asc|desc');
+      if (!field || !order || !['asc', 'desc'].includes(order.toLowerCase())) {throw new BadRequestException('Sort must be in format field:asc|desc');}
       options.sort = [{ field, order: order.toLowerCase() === 'asc' ? SortOrder.ASC : SortOrder.DESC }];
     }
     return this.productsService.findByCompanyId(companyId, options);

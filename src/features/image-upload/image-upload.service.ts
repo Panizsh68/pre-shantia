@@ -72,9 +72,9 @@ export class ImageUploadService {
     const endpointCandidate = (s3.config && (s3.config as any).endpoint) || undefined;
     let endpoint = '';
     if (endpointCandidate) {
-      if (typeof endpointCandidate === 'string') endpoint = endpointCandidate;
-      else if (typeof endpointCandidate === 'object' && (endpointCandidate as any).href) endpoint = (endpointCandidate as any).href;
-      else endpoint = String(endpointCandidate);
+      if (typeof endpointCandidate === 'string') {endpoint = endpointCandidate;}
+      else if (typeof endpointCandidate === 'object' && (endpointCandidate as any).href) {endpoint = (endpointCandidate as any).href;}
+      else {endpoint = String(endpointCandidate);}
     }
     if (endpoint) {
       // try to craft URL: endpoint/bucket/key

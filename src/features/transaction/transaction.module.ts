@@ -2,11 +2,12 @@ import { Module, forwardRef } from '@nestjs/common';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Transaction, TransactionSchema } from './schema/transaction.schema';
 import { TransactionService } from './transaction.service';
-import { ZarinpalService } from 'src/utils/services/zarinpal/zarinpal.service';
+import { ZibalService } from 'src/utils/services/zibal/zibal.service';
+import { ZibalModule } from 'src/utils/services/zibal/zibal.module';
 import { Model } from 'mongoose';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 import { IBaseCrudRepository } from 'src/libs/repository/interfaces/base-repo.interfaces';
-import { ZarinpalModule } from 'src/utils/services/zarinpal/zarinpal.module';
+// zarinpal removed; using Zibal only
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
 import {
@@ -23,14 +24,17 @@ import { TransactionController } from './transaction.controller';
       Transaction,
       TransactionSchema,
     ),
-    ZarinpalModule.register({
-      merchantId: process.env.ZARINPAL_MERCHANT_ID || 'a3c16110-f184-44e2-ad26-649387845a94',
-      sandbox: true,
+    // Register Zibal SDK.
+    ZibalModule.register({
+      merchant: process.env.ZIBAL_MERCHANT_ID || '68b44a2ca45c720011a852e0',
+      callbackUrl: process.env.ZIBAL_CALLBACK_URL || 'http://localhost:3000/payment/callback',
+      sandbox: (process.env.ZIBAL_SANDBOX || '').toLowerCase() === 'true',
+      logLevel: parseInt(process.env.ZIBAL_LOG_LEVEL || '2', 10),
     }),
     forwardRef(() => PermissionsModule),
   ],
   providers: [
-    ZarinpalService,
+    ZibalService,
     {
       provide: 'TransactionRepository',
       useFactory: (transactionModel, transactionRepo): ITransactionRepository =>

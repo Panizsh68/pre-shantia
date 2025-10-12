@@ -15,13 +15,16 @@ export class TransactionService implements ITransactionService {
     createTransactionDto: CreateTransactionDto,
     session?: ClientSession,
   ): Promise<Transaction> {
-    const transaction = await this.transactionRepository.createOne(createTransactionDto, session);
+    // normalize nullable trackId to undefined to satisfy schema typing
+    const normalized = { ...createTransactionDto } as any;
+    if (normalized.trackId === null) { normalized.trackId = undefined; }
+    const transaction = await this.transactionRepository.createOne(normalized, session);
     return transaction;
   }
 
-  async findOne(authority: string, session?: ClientSession): Promise<Transaction> {
+  async findOne(trackId: string, session?: ClientSession): Promise<Transaction> {
     const transaction = await this.transactionRepository.findOneByCondition(
-      { authority },
+      { trackId },
       { session },
     );
     if (!transaction) {
@@ -31,12 +34,12 @@ export class TransactionService implements ITransactionService {
   }
 
   async update(
-    authority: string,
+    trackId: string,
     updateData: Partial<CreateTransactionDto>,
     session?: ClientSession,
   ): Promise<Transaction> {
     const transaction = await this.transactionRepository.updateOneByCondition(
-      { authority },
+      { trackId },
       { $set: updateData },
       { new: true, session },
     );
@@ -44,6 +47,66 @@ export class TransactionService implements ITransactionService {
       throw new NotFoundException('Transaction not found');
     }
     return transaction;
+  }
+
+  async updateByLocalId(
+    localId: string,
+    updateData: Partial<CreateTransactionDto>,
+    session?: ClientSession,
+  ): Promise<Transaction> {
+    const transaction = await this.transactionRepository.updateOneByCondition(
+      { localId },
+      { $set: updateData },
+      { new: true, session },
+    );
+    if (!transaction) {
+      throw new NotFoundException('Transaction not found');
+    }
+    return transaction;
+  }
+
+  /**
+   * Atomically update a transaction only if it is in expectedStatus (e.g., PENDING).
+   * This helps prevent race conditions where two callbacks try to finalize the same transaction.
+   */
+  async updateIfStatus(
+    trackId: string,
+    expectedStatus: string | number | Array<string | number>,
+    updateData: Partial<CreateTransactionDto>,
+    session?: ClientSession,
+    options?: { allowFallback?: boolean },
+  ): Promise<Transaction | null> {
+    // Prefer the repository's atomic helper when available to avoid races.
+    // If not present, fall back to a conditional update.
+    const repo = this.transactionRepository as ITransactionRepository;
+    // Require repository atomic helper by default to avoid race conditions in multi-instance setups.
+    if (!repo.findOneByTrackIdAndStatusAndUpdate) {
+      if (!options?.allowFallback) {
+        throw new Error('Repository does not implement atomic findOneByTrackIdAndStatusAndUpdate; aborting to avoid race conditions');
+      }
+    }
+
+    if (repo.findOneByTrackIdAndStatusAndUpdate) {
+      const tx = await repo.findOneByTrackIdAndStatusAndUpdate(
+        trackId,
+        expectedStatus,
+        { $set: updateData },
+        session,
+      );
+      return tx;
+    }
+
+    // Fallback (only when explicitly allowed): build a condition. If expectedStatus is an array, use $in.
+    const statusCondition = Array.isArray(expectedStatus)
+      ? { $in: expectedStatus }
+      : expectedStatus;
+
+    const tx = await this.transactionRepository.updateOneByCondition(
+      { trackId, status: statusCondition } as any,
+      { $set: updateData },
+      { new: true, session },
+    );
+    return tx ?? null;
   }
 
   async startSession(): Promise<ClientSession> {

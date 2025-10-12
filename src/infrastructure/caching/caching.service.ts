@@ -46,7 +46,7 @@ export class CachingService {
     try {
       // use raw call to allow NX/EX without overload issues
       const result = await this.redis.call('set', key, token, 'NX', 'EX', String(ttlSeconds));
-      if (result === 'OK') return token;
+      if (result === 'OK') {return token;}
       return null;
     } catch (e) {
       console.error(`acquireLock failed for ${key}`, e);

@@ -3,7 +3,7 @@ import { TicketResponseDto } from '../dto/ticket-response.dto';
 
 export function ticketToResponseDto(t: Ticket): TicketResponseDto {
   return {
-    id: t.id ? t.id.toString() : (t as any)._id?.toString?.() ?? '',
+    id: t.id ? t.id.toString() : (t._id as unknown as { toString?: () => string })?.toString?.() ?? '',
     title: t.title,
     description: t.description,
     status: t.status,
@@ -11,7 +11,7 @@ export function ticketToResponseDto(t: Ticket): TicketResponseDto {
     createdBy: t.createdBy,
     assignedTo: t.assignedTo,
     orderId: t.orderId,
-    createdAt: (t as any).createdAt,
-    updatedAt: (t as any).updatedAt,
+    createdAt: (t.createdAt as Date | undefined),
+    updatedAt: (t.updatedAt as Date | undefined),
   };
 }

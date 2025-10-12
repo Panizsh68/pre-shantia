@@ -82,13 +82,13 @@ export class UsersService {
     }
 
     const updated = await this.usersRepository.updateById(id, { permissions });
-    if (!updated) throw new NotFoundException(`User with ID ${id} doesn't exist`);
+    if (!updated) {throw new NotFoundException(`User with ID ${id} doesn't exist`);}
     // invalidate cached permissions
     try {
       await this.cacheService.delete(`permissions:${id}`);
     } catch (err) {
       // non-fatal: log and continue
-      // eslint-disable-next-line no-console
+       
       console.warn('Failed to clear permissions cache for user', id, err?.message || err);
     }
     return updated;

@@ -53,8 +53,8 @@ export class ProductsService implements IProductService {
   ): Promise<IProduct> {
     // Resolve user's profile and companyId
     const profile = await this.profileService.getByUserId(userId);
-    if (!profile) throw new BadRequestException('User profile not found');
-    if (!profile.companyId) throw new BadRequestException('User does not belong to any company');
+    if (!profile) {throw new BadRequestException('User profile not found');}
+    if (!profile.companyId) {throw new BadRequestException('User does not belong to any company');}
 
     const companyIdStr = profile.companyId.toString();
 
@@ -102,7 +102,7 @@ export class ProductsService implements IProductService {
 
   async findOne(id: string, session?: ClientSession): Promise<IProduct> {
     const productDoc = await this.repo.findById(id, { session });
-    if (!productDoc || productDoc.status !== ProductStatus.ACTIVE) throw new NotFoundException(`Product with id ${id} not found or inactive`);
+    if (!productDoc || productDoc.status !== ProductStatus.ACTIVE) {throw new NotFoundException(`Product with id ${id} not found or inactive`);}
     return toPlain<IProduct>(productDoc);
   }
 
@@ -129,7 +129,7 @@ export class ProductsService implements IProductService {
     session?: ClientSession,
   ): Promise<IProduct> {
     const existing = await this.repo.findById(id, { session });
-    if (!existing) throw new NotFoundException(`Product with id ${id} not found`);
+    if (!existing) {throw new NotFoundException(`Product with id ${id} not found`);}
 
     // owner can always update; otherwise require scoped permission for the product's company
     const existingCompanyId = existing.companyId?.toString();
@@ -152,7 +152,7 @@ export class ProductsService implements IProductService {
 
   async remove(id: string, userId: string, tokenPayload?: TokenPayload, session?: ClientSession): Promise<void> {
     const existing = await this.repo.findById(id, { session });
-    if (!existing) throw new NotFoundException(`Product with id ${id} not found`);
+    if (!existing) {throw new NotFoundException(`Product with id ${id} not found`);}
 
     const existingCompanyId = existing.companyId?.toString();
     if (existing.createdBy.toString() !== userId) {
@@ -183,10 +183,10 @@ export class ProductsService implements IProductService {
     const txn = session || (await this.repo.startTransaction());
     try {
       const result = await this.create(dto, userId, undefined, txn);
-      if (!session) await this.repo.commitTransaction(txn);
+      if (!session) {await this.repo.commitTransaction(txn);}
       return result;
     } catch (err) {
-      if (!session) await this.repo.abortTransaction(txn);
+      if (!session) {await this.repo.abortTransaction(txn);}
       throw err;
     }
   }
@@ -201,10 +201,10 @@ export class ProductsService implements IProductService {
     const txn = session || (await this.repo.startTransaction());
     try {
       const result = await this.update(id, dto, userId, tokenPayload, txn);
-      if (!session) await this.repo.commitTransaction(txn);
+      if (!session) {await this.repo.commitTransaction(txn);}
       return result;
     } catch (err) {
-      if (!session) await this.repo.abortTransaction(txn);
+      if (!session) {await this.repo.abortTransaction(txn);}
       throw err;
     }
   }
@@ -213,9 +213,9 @@ export class ProductsService implements IProductService {
     const txn = session || (await this.repo.startTransaction());
     try {
       await this.remove(id, userId, tokenPayload, txn);
-      if (!session) await this.repo.commitTransaction(txn);
+      if (!session) {await this.repo.commitTransaction(txn);}
     } catch (err) {
-      if (!session) await this.repo.abortTransaction(txn);
+      if (!session) {await this.repo.abortTransaction(txn);}
       throw err;
     }
   }
@@ -235,7 +235,7 @@ export class ProductsService implements IProductService {
     const page = options.page && options.page > 0 ? options.page : 1;
     const perPage = options.perPage && options.perPage > 0 ? options.perPage : 10;
     // Only ACTIVE products
-    if (!options.conditions) options.conditions = {};
+    if (!options.conditions) {options.conditions = {};}
     options.conditions.status = ProductStatus.ACTIVE;
     return this.repo.searchProductsAggregate(query, page, perPage);
   }

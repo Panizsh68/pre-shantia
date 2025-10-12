@@ -10,8 +10,11 @@ export interface Config {
   OTP_TTL: number;
   SUPERADMIN_PHONE?: string;
   SUPERADMIN_MELICODE?: string;
-  ZARINPAL_MERCHANT_ID: string;
-  ZARINPAL_SANDBOX: boolean;
-  ZARINPAL_ACCESS_TOKEN: string;
+  ZIBAL_MERCHANT_ID?: string;
+  ZIBAL_SANDBOX?: boolean;
+  ZIBAL_ACCESS_TOKEN?: string;
+  ZIBAL_CALLBACK_URL?: string;
+  ZIBAL_SECRET_KEY?: string;
+  ZIBAL_LOG_LEVEL?: number;
   APP_URL: string;
 }

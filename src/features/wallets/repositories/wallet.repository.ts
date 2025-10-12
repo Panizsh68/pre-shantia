@@ -6,11 +6,11 @@ import {
 } from 'src/libs/repository/interfaces/base-repo.interfaces';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 import { WalletOwnerType } from '../enums/wallet-ownertype.enum';
-import { ClientSession, Model } from 'mongoose';
+import { ClientSession, Model, UpdateQuery } from 'mongoose';
 
 export interface IWalletRepository
   extends IBaseCrudRepository<Wallet>,
-    IBaseTransactionRepository<Wallet> {
+  IBaseTransactionRepository<Wallet> {
   findByIdAndType(
     ownerId: string,
     ownerType: WalletOwnerType,
@@ -39,8 +39,9 @@ export class WalletRepository extends BaseCrudRepository<Wallet> implements IWal
     updateData: Partial<Wallet>,
     session?: ClientSession,
   ): Promise<Wallet> {
-    const updatedWallet = this.updateById(id, updateData, session);
-    return updatedWallet;
+    // Delegate to base repository implementation to avoid accidental recursion
+    // Base method expects an UpdateQuery<T>, so cast to that specific type instead of using `any`.
+    return super.updateById(id, updateData as UpdateQuery<Wallet>, session);
   }
 
   async startTransaction(): Promise<ClientSession> {

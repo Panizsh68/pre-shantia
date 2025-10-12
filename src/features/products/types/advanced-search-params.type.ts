@@ -1,4 +1,4 @@
-export type AdvancedSearchParams = {
+export interface AdvancedSearchParams {
   query?: string;
   maxPrice?: number;
   companyName?: string;
@@ -6,4 +6,4 @@ export type AdvancedSearchParams = {
   page?: number;
   limit?: number;
   sort?: string;
-};
+}

@@ -57,7 +57,7 @@
     "swagger": "^0.7.5",
     "uuid": "^13.0.0",
     "winston": "^3.17.0",
-    "zarinpal-node-sdk": "^2.1.0"
+    "zibal": "^1.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
@@ -102,6 +102,12 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(uuid)/)"
+    ],
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],

@@ -47,7 +47,7 @@ export class HealthController {
 
     // Config
     let configOk = false;
-    let configEnv = process.env.NODE_ENV;
+    const configEnv = process.env.NODE_ENV;
     let configFull = null;
     try {
       const appConfig = this.configService.get('app');

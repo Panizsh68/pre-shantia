@@ -118,7 +118,7 @@ export class TokensService<
       delete decoded.iat;
       delete decoded.exp;
       const decrypted = this.decryptPayload(decoded);
-      if (!isTokenPayload(decrypted)) throw new UnauthorizedException('Invalid token structure');
+      if (!isTokenPayload(decrypted)) {throw new UnauthorizedException('Invalid token structure');}
       return decrypted;
     } catch {
       throw new UnauthorizedException('Invalid token');
@@ -134,7 +134,7 @@ export class TokensService<
       delete decoded.iat;
       delete decoded.exp;
       const decrypted = this.decryptPayload(decoded);
-      if (!isTokenPayload(decrypted)) throw new UnauthorizedException('Invalid token structure');
+      if (!isTokenPayload(decrypted)) {throw new UnauthorizedException('Invalid token structure');}
       const sessionInfo = await this.cachingService.get<{
         ip: string;
         userAgent: string;
@@ -179,10 +179,10 @@ export class TokensService<
       delete decoded.iat;
       delete decoded.exp;
       const decrypted = this.decryptPayload(decoded);
-      // eslint-disable-next-line no-console
+       
       console.log(`Decoded ${type} token payload:`, decrypted);
     } catch (err) {
-      // eslint-disable-next-line no-console
+       
       console.error(`Failed to decode ${type} token:`, err);
     }
   }

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { InitiatePaymentResponseDto } from 'src/utils/services/zarinpal/dtos';
-import { InitiateZarinpalPaymentResponseType } from 'src/utils/services/zarinpal/types';
+import { InitiatePaymentResponseDto } from 'src/utils/services/zibal/dtos/initiate.zibal.payment.dto';
+import { InitiateZibalPaymentResponseType } from 'src/utils/services/zibal/types';
 
 export class HandleCallbackResponseDto {
   @ApiProperty({ example: true })

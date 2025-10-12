@@ -4,6 +4,7 @@ import { IOrdersService } from './interfaces/order.service.interface';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { IOrder } from './interfaces/order.interface';
 import { Types, ClientSession } from 'mongoose';
+import { runInTransaction } from 'src/libs/repository/run-in-transaction';
 import { OrdersStatus } from './enums/orders.status.enum';
 import { WalletOwnerType } from '../wallets/enums/wallet-ownertype.enum';
 import { Order } from './entities/order.entity';
@@ -28,9 +29,7 @@ export class OrdersService implements IOrdersService {
       throw new BadRequestException('Empty cart');
     }
 
-    const orderSession = session || (await this.orderRepository.startTransaction());
-
-    try {
+    return runInTransaction(this.orderRepository, async (orderSession) => {
       const orderDtos = this.orderFactory.buildOrdersFromCart(cart).map(order => ({
         ...order,
         shippingAddress: dto.shippingAddress,
@@ -66,13 +65,8 @@ export class OrdersService implements IOrdersService {
       }
 
       await this.cartsService.checkout(dto.userId, orderSession);
-      if (!session) await this.orderRepository.commitTransaction(orderSession);
-
       return orders;
-    } catch (err) {
-      if (!session) await this.orderRepository.abortTransaction(orderSession);
-      throw err;
-    }
+    }, session);
   }
 
   async findById(id: string, session?: ClientSession): Promise<Order> {
@@ -107,8 +101,7 @@ export class OrdersService implements IOrdersService {
   }
 
   async update(dto: UpdateOrderDto, session?: ClientSession): Promise<Order> {
-    const orderSession = session || (await this.orderRepository.startTransaction());
-    try {
+    return runInTransaction(this.orderRepository, async (orderSession) => {
       const updateData = {
         userId: dto.userId,
         items: dto.items?.map(item => ({
@@ -127,21 +120,14 @@ export class OrdersService implements IOrdersService {
       if (!updatedOrder) {
         throw new NotFoundException(`Order with ID '${dto.id}' not found`);
       }
-      if (!session) {
-        await this.orderRepository.commitTransaction(orderSession);
-      }
       return updatedOrder;
-    } catch (error) {
-      if (!session) {
-        await this.orderRepository.abortTransaction(orderSession);
-      }
+    }, session).catch(error => {
       throw new BadRequestException(`Failed to update order: ${error.message}`);
-    }
+    });
   }
 
   async markAsPaid(id: string, session?: ClientSession): Promise<Order> {
-    const orderSession = session || (await this.orderRepository.startTransaction());
-    try {
+    return runInTransaction(this.orderRepository, async (orderSession) => {
       const order = await this.orderRepository.findById(id, { session: orderSession });
       if (!order) {
         throw new NotFoundException(`Order with ID '${id}' not found`);
@@ -154,24 +140,17 @@ export class OrdersService implements IOrdersService {
 
       const updateData = { status: OrdersStatus.PAID };
       const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
-      if (!session) {
-        await this.orderRepository.commitTransaction(orderSession);
-      }
       return updatedOrder;
-    } catch (error) {
-      if (!session) {
-        await this.orderRepository.abortTransaction(orderSession);
-      }
+    }, session).catch(error => {
       throw new BadRequestException(`Failed to mark order as paid: ${error.message}`);
-    }
+    });
   }
 
   async markAsShipped(id: string, transportId?: string, session?: ClientSession): Promise<Order> {
     if (transportId && !Types.ObjectId.isValid(transportId)) {
       throw new BadRequestException(`Invalid transport ID format: ${transportId}`);
     }
-    const orderSession = session || (await this.orderRepository.startTransaction());
-    try {
+    return runInTransaction(this.orderRepository, async (orderSession) => {
       const order = await this.orderRepository.findById(id, { session: orderSession });
       if (!order) {
         throw new NotFoundException(`Order with ID '${id}' not found`);
@@ -187,21 +166,14 @@ export class OrdersService implements IOrdersService {
         updateData.transportId = transportId;
       }
       const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
-      if (!session) {
-        await this.orderRepository.commitTransaction(orderSession);
-      }
       return updatedOrder;
-    } catch (error) {
-      if (!session) {
-        await this.orderRepository.abortTransaction(orderSession);
-      }
+    }, session).catch(error => {
       throw new BadRequestException(`Failed to mark order as shipped: ${error.message}`);
-    }
+    });
   }
 
   async markAsDelivered(id: string, session?: ClientSession): Promise<Order> {
-    const orderSession = session || (await this.orderRepository.startTransaction());
-    try {
+    return runInTransaction(this.orderRepository, async (orderSession) => {
       const order = await this.orderRepository.findById(id, { session: orderSession });
       if (!order) {
         throw new NotFoundException(`Order with ID '${id}' not found`);
@@ -214,21 +186,14 @@ export class OrdersService implements IOrdersService {
 
       const updateData = { status: OrdersStatus.DELIVERED, deliveredAt: new Date() };
       const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
-      if (!session) {
-        await this.orderRepository.commitTransaction(orderSession);
-      }
       return updatedOrder;
-    } catch (error) {
-      if (!session) {
-        await this.orderRepository.abortTransaction(orderSession);
-      }
+    }, session).catch(error => {
       throw new BadRequestException(`Failed to mark order as delivered: ${error.message}`);
-    }
+    });
   }
 
   async refund(id: string, session?: ClientSession): Promise<IOrder> {
-    const orderSession = session || (await this.orderRepository.startTransaction());
-    try {
+    return runInTransaction(this.orderRepository, async (orderSession) => {
       const order = await this.orderRepository.findById(id, { session: orderSession });
       if (!order) {
         throw new NotFoundException(`Order with ID '${id}' not found`);
@@ -241,21 +206,14 @@ export class OrdersService implements IOrdersService {
 
       const updateData = { status: OrdersStatus.REFUNDED };
       const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
-      if (!session) {
-        await this.orderRepository.commitTransaction(orderSession);
-      }
       return updatedOrder;
-    } catch (error) {
-      if (!session) {
-        await this.orderRepository.abortTransaction(orderSession);
-      }
+    }, session).catch(error => {
       throw new BadRequestException(`Failed to refund order: ${error.message}`);
-    }
+    });
   }
 
   async confirmDelivery(orderId: string, userId: string, session?: ClientSession): Promise<IOrder> {
-    const orderSession = session || (await this.orderRepository.startTransaction());
-    try {
+    return runInTransaction(this.orderRepository, async (orderSession) => {
       const order = await this.orderRepository.findById(orderId, { session: orderSession });
       if (!order) {
         throw new NotFoundException(`Order with ID '${orderId}' not found`);
@@ -277,15 +235,9 @@ export class OrdersService implements IOrdersService {
         orderSession,
       );
 
-      if (!session) {
-        await this.orderRepository.commitTransaction(orderSession);
-      }
       return updatedOrder;
-    } catch (error) {
-      if (!session) {
-        await this.orderRepository.abortTransaction(orderSession);
-      }
+    }, session).catch(error => {
       throw new BadRequestException(`Failed to confirm delivery: ${error.message}`);
-    }
+    });
   }
 }

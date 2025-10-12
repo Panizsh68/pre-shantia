@@ -16,21 +16,21 @@ export class PermissionsService {
     action: Action,
     companyId?: string,
   ): boolean {
-    if (!userPermissions || userPermissions.length === 0) return false;
+    if (!userPermissions || userPermissions.length === 0) {return false;}
 
     const companyObjectId = companyId && isValidObjectId(companyId) ? toObjectIdString(companyId) : undefined;
 
     return userPermissions.some((perm) => {
       // ALL + MANAGE always passes
-      if (perm.resource === Resource.ALL && perm.actions.includes(Action.MANAGE)) return true;
+      if (perm.resource === Resource.ALL && perm.actions.includes(Action.MANAGE)) {return true;}
 
-      if (perm.resource !== resource) return false;
+      if (perm.resource !== resource) {return false;}
 
-      if (!perm.actions.includes(action)) return false;
+      if (!perm.actions.includes(action)) {return false;}
 
       // if permission has companyId, it must match the requested companyId
       if (perm.companyId) {
-        if (!companyObjectId) return false;
+        if (!companyObjectId) {return false;}
         return perm.companyId.toString() === companyObjectId;
       }
 

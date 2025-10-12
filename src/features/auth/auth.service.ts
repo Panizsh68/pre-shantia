@@ -68,7 +68,7 @@ export class AuthService {
         createUserDto.nationalId,
         createUserDto.phoneNumber,
       );
-      if (!valid) throw new BadRequestException('Phone and National ID mismatch');
+      if (!valid) {throw new BadRequestException('Phone and National ID mismatch');}
 
       const ttl = this.configService.get<number>('app.OTP_TTL') ?? 300;
       await this.cacheService.set(
@@ -83,7 +83,7 @@ export class AuthService {
       await this.otpService.sendOtpToPhone(createUserDto.phoneNumber);
       return { phoneNumber: createUserDto.phoneNumber };
     } catch (error) {
-      if (error instanceof HttpException) throw error;
+      if (error instanceof HttpException) {throw error;}
       throw new HttpException(
         'Failed to sign up. Please try again later.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -94,13 +94,13 @@ export class AuthService {
   async signIn(signInDto: SignInDto): Promise<SignInResponseDto> {
     try {
       const user = await this.usersService.findUserByPhoneNumber(signInDto.phoneNumber);
-      if (!user) throw new NotFoundException('User not found');
+      if (!user) {throw new NotFoundException('User not found');}
 
       await this.otpService.sendOtpToPhone(signInDto.phoneNumber);
 
       return { phoneNumber: signInDto.phoneNumber };
     } catch (error) {
-      if (error instanceof HttpException) throw error;
+      if (error instanceof HttpException) {throw error;}
       throw new HttpException(
         'Failed to sign in. Please try again later.',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -162,7 +162,6 @@ export class AuthService {
             { resource: Resource.TRANSPORTING, actions: [Action.READ] },
             { resource: Resource.PROFILE, actions: [Action.READ, Action.UPDATE] },
             { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE, Action.deposit_user] },
-            { resource: Resource.PAYMENT, actions: [Action.CREATE, Action.UPDATE] },
             { resource: Resource.CARTS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
             { resource: Resource.CATEGORIES, actions: [Action.READ] },
             { resource: Resource.COMPANIES, actions: [Action.READ] }
@@ -186,7 +185,7 @@ export class AuthService {
 
           const wallet = await this.walletsService.createWallet({
             ownerId: user.id.toString(),
-            ownerType: ownerType,
+            ownerType,
             balance: 0,
             currency: 'IRR'
           }, session);
@@ -311,7 +310,6 @@ export class AuthService {
           { resource: Resource.TRANSPORTING, actions: [Action.READ] },
           { resource: Resource.PROFILE, actions: [Action.READ, Action.UPDATE] },
           { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE, Action.deposit_user] },
-          { resource: Resource.PAYMENT, actions: [Action.CREATE, Action.UPDATE] },
           { resource: Resource.CARTS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
           { resource: Resource.CATEGORIES, actions: [Action.READ] },
           { resource: Resource.COMPANIES, actions: [Action.READ] }
@@ -358,7 +356,7 @@ export class AuthService {
   async adminSignUp(signUpDto: SignUpDto, context?: RequestContext): Promise<SignUpResponseDto> {
     try {
       const exists = await this.usersService.findUserByPhoneNumber(signUpDto.phoneNumber);
-      if (exists) throw new ConflictException('User already exists');
+      if (exists) {throw new ConflictException('User already exists');}
 
       // If admin provided a companyId, validate the company exists before creating profile
       if (signUpDto.companyId) {
@@ -383,7 +381,7 @@ export class AuthService {
 
       const wallet = await this.walletsService.createWallet({
         ownerId: user.id.toString(),
-        ownerType: ownerType,
+        ownerType,
         balance: 0,
         currency: 'IRR',
       });
@@ -416,7 +414,7 @@ export class AuthService {
 
       return { phoneNumber: user.phoneNumber, accessToken, refreshToken };
     } catch (error) {
-      if (error instanceof HttpException) throw error;
+      if (error instanceof HttpException) {throw error;}
       throw new HttpException(
         'Failed to sign up admin. Please try again later.',
         HttpStatus.INTERNAL_SERVER_ERROR,

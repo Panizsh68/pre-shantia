@@ -20,7 +20,7 @@ import { TransactionModule } from './features/transaction/transaction.module';
 import { PaymentModule } from './features/payment/payment.module';
 import { CartsModule } from './features/carts/carts.module';
 import { CategoriesModule } from './features/categories/categories.module';
-import { ZarinpalModule } from './utils/services/zarinpal/zarinpal.module';
+import { ZibalModule } from './utils/services/zibal/zibal.module';
 import { HealthController } from './health/health.controller';
 import { SchedulerModule } from './features/scheduler/scheduler.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
@@ -84,7 +84,7 @@ import { RequestContextInterceptor } from './utils/interceptors/request-context.
     CartsModule,
     SchedulerModule,
     CategoriesModule,
-    ZarinpalModule,
+    ZibalModule,
     ImageUploadModule,
   ],
   controllers: [AppController, HealthController],

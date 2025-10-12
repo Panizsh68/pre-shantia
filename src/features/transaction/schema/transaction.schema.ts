@@ -6,8 +6,13 @@ import { TransactionType } from '../enums/transaction.type.enum';
 
 @Schema({ timestamps: true })
 export class Transaction extends Document {
+  // Zibal trackId: optional at create time, filled when SDK returns it
+  @Prop({ required: false, unique: true, sparse: true })
+  trackId?: string;
+
+  // Local internal id used for correlation inside our system (UUID)
   @Prop({ required: true, unique: true })
-  authority: string;
+  localId: string;
 
   @Prop({ required: true })
   amount: number;
@@ -92,3 +97,4 @@ export const TransactionSchema = SchemaFactory.createForClass(Transaction);
 
 // Indexes for fast lookup
 TransactionSchema.index({ userId: 1 });
+TransactionSchema.index({ localId: 1 });

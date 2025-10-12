@@ -28,6 +28,6 @@ import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.
       useClass: CartsService,
     },
   ],
-  exports: ['ICartsService'],
+  exports: ['ICartsService', 'CartRepository'],
 })
 export class CartsModule { }

@@ -57,7 +57,7 @@ export class TicketingController {
   @ApiResponse({ status: 404, description: 'Ticket not found' })
   async findOne(@Param('id') id: string): Promise<TicketResponseDto | null> {
     const t = await this.ticketingService.findOne(id);
-    if (!t) return null;
+    if (!t) {return null;}
     return ticketToResponseDto(t);
   }
 
@@ -85,7 +85,7 @@ export class TicketingController {
     @Body() updateTicketDto: UpdateTicketDto,
   ): Promise<TicketResponseDto | null> {
     const t = await this.ticketingService.update(id, updateTicketDto);
-    if (!t) return null;
+    if (!t) {return null;}
     return ticketToResponseDto(t);
   }
 
@@ -114,7 +114,7 @@ export class TicketingController {
     @Body('refund') refund?: boolean,
   ): Promise<TicketResponseDto | null> {
     const t = await this.ticketingService.updateStatus(id, status, refund);
-    if (!t) return null;
+    if (!t) {return null;}
     return ticketToResponseDto(t);
   }
 
@@ -160,7 +160,7 @@ export class TicketingController {
     // delegate to strong-typed service method which updates status and handles funds
     await this.ticketingService.resolveTicket(id, !!refund);
     const t = await this.ticketingService.findOne(id);
-    if (!t) return { success: false };
+    if (!t) {return { success: false };}
     return ticketToResponseDto(t);
   }
 }

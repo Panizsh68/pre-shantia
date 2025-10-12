@@ -43,7 +43,7 @@ export interface IProductRepository extends IBaseCrudRepository<Product>, IBaseA
 
 @Injectable()
 export class ProductRepository extends BaseCrudRepository<Product> implements IProductRepository {
-  async getTopProductsByRating(limit: number = 5, session?: ClientSession): Promise<TopProduct[]> {
+  async getTopProductsByRating(limit = 5, session?: ClientSession): Promise<TopProduct[]> {
     const pipeline: PipelineStage[] = [
       { $match: { status: 'active' } },
       {
@@ -138,8 +138,8 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
   }
   async searchByPriceAndCompanyAggregate(
     params: { maxPrice?: number; companyName?: string },
-    page: number = 1,
-    perPage: number = 10,
+    page = 1,
+    perPage = 10,
     session?: ClientSession,
     sort?: { field: string; order: 'asc' | 'desc' }[]
   ): Promise<Product[]> {
@@ -229,15 +229,15 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
 
   async searchProductsAggregate(
     query: string,
-    page: number = 1,
-    perPage: number = 10,
+    page = 1,
+    perPage = 10,
     session?: ClientSession
   ): Promise<Product[]> {
     function escapeRegExp(str: string): string {
       return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
     const trimmedQuery = query.trim();
-    if (!trimmedQuery) return [];
+    if (!trimmedQuery) {return [];}
     const safeQuery = escapeRegExp(trimmedQuery);
     const regex = new RegExp(safeQuery, 'i');
     const skip = (page - 1) * perPage;

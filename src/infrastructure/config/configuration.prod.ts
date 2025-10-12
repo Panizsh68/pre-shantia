@@ -6,7 +6,7 @@ function parseNumber(val: string | undefined, fallback: number): number {
 }
 
 function parseBoolean(val: string | undefined, fallback: boolean): boolean {
-  if (val === undefined) return fallback;
+  if (val === undefined) {return fallback;}
   return val.toLowerCase() === 'true';
 }
 
@@ -16,7 +16,7 @@ export default registerAs('config', () => ({
   redis: {
     host: process.env.REDIS_HOST || 'redis',
     port: parseNumber(process.env.REDIS_PORT, 6379),
-    password: process.env.REDIS_PASSWORD || 'shantia_ariaSakht0425', // برای پشتیبانی از حالت بدون رمز
+    password: process.env.REDIS_PASSWORD || 'shantia_ariaSakht0425',
   },
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET || '',
@@ -25,11 +25,12 @@ export default registerAs('config', () => ({
   },
   encryptionKey: process.env.ENCRYPTION_KEY || '',
   otpTtl: parseNumber(process.env.OTP_TTL, 300),
-  zarinpal: {
-    merchantId: process.env.ZARINPAL_MERCHANT_ID || '',
-    sandbox: parseBoolean(process.env.ZARINPAL_SANDBOX, false),
-    callbackUrl: process.env.ZARINPAL_CALLBACK_URL || 'https://ariasakht.com/payment/callback',
-    accessToken: process.env.ZARINPAL_ACCESS_TOKEN || '',
+  zibal: {
+    merchant: process.env.ZIBAL_MERCHANT_ID || '68b44a2ca45c720011a852e0',
+    sandbox: parseBoolean(process.env.ZIBAL_SANDBOX, false),
+    callbackUrl: process.env.ZIBAL_CALLBACK_URL || 'https://ariasakht.com/payment/callback',
+    secretKey: process.env.ZIBAL_SECRET_KEY || '',
+    logLevel: parseNumber(process.env.ZIBAL_LOG_LEVEL, 2),
   },
   tabanSms: {
     key: process.env.TABAN_SMS_KEY || '',

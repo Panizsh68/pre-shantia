@@ -52,9 +52,9 @@ export class CompaniesService implements ICompanyService {
     userId: string,
   ): Promise<ICompany> {
     const existing = await this.companyRepository.findById(id);
-    if (!existing) throw new NotFoundException(`Company with id ${id} not found`);
+    if (!existing) {throw new NotFoundException(`Company with id ${id} not found`);}
     if (existing.createdBy.toString() !== userId)
-      throw new ForbiddenException('You do not have permission to update this company');
+      {throw new ForbiddenException('You do not have permission to update this company');}
     const data: Partial<Company> = {
       ...updateCompanyDto,
       updatedBy: new Types.ObjectId(userId),
@@ -65,15 +65,15 @@ export class CompaniesService implements ICompanyService {
 
   async remove(id: string, userId: string): Promise<void> {
     const existing = await this.companyRepository.findById(id);
-    if (!existing) throw new NotFoundException(`Company with id ${id} not found`);
+    if (!existing) {throw new NotFoundException(`Company with id ${id} not found`);}
     if (existing.createdBy.toString() !== userId)
-      throw new ForbiddenException('You do not have permission to delete this company');
+      {throw new ForbiddenException('You do not have permission to delete this company');}
     await this.companyRepository.deleteById(id);
   }
 
   async findOne(id: string): Promise<ICompany> {
     const companyDoc = await this.companyRepository.findById(id);
-    if (!companyDoc) throw new NotFoundException(`Company with id ${id} not found`);
+    if (!companyDoc) {throw new NotFoundException(`Company with id ${id} not found`);}
     return toPlain<ICompany>(companyDoc);
   }
 

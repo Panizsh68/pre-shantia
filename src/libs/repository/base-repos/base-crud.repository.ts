@@ -16,6 +16,7 @@ import {
   SortOrder,
 } from '../interfaces/base-repo-options.interface';
 import { IBaseCrudRepository } from '../interfaces/base-repo.interfaces';
+import { toMongooseSession } from '../session-utils';
 
 // Generic Base Repository for common CRUD operations
 export class BaseCrudRepository<T extends Document> implements IBaseCrudRepository<T> {
@@ -37,11 +38,7 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
   // Save an existing document instance
   async saveOne(document: T, session?: ClientSession): Promise<T> {
     return this.handleOperation(async () => {
-      // Ensure the document is a valid instance of the model
-      if (!(document instanceof this.model)) {
-        throw new BadRequestException('Invalid document instance');
-      }
-      // Save document with optional session
+      // Don't rely on instanceof checks across model boundaries; assume caller provides a valid document
       const savedDoc = await document.save({ session });
       return savedDoc;
     }, 'Failed to save document');
@@ -54,7 +51,7 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
   ): Promise<T | null> {
     this.ensureValidObjectId(id); // Validate ObjectId format
     return this.findOne(() =>
-      this.applyQueryOptions(this.model.findById(id), options).session(options.session ?? null),
+      this.applyQueryOptions(this.model.findById(id), options).session(toMongooseSession(options.session)),
     );
   }
 
@@ -65,7 +62,7 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
   ): Promise<T | null> {
     return this.findOne(() =>
       this.applyQueryOptions(this.model.findOne(condition), options).session(
-        options.session ?? null,
+        toMongooseSession(options.session),
       ),
     );
   }
@@ -101,7 +98,7 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
     return this.handleOperation(
       () =>
         this.applyQueryOptions(this.model.find(sanitizedCondition as FilterQuery<T>), options)
-          .session(options.session ?? null)
+          .session(toMongooseSession(options.session))
           .exec(),
       'Failed to find documents',
     );
@@ -116,7 +113,7 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
   async updateById(id: string, data: UpdateQuery<T>, session?: ClientSession): Promise<T> {
     this.ensureValidObjectId(id); // Validate ObjectId
     return this.updateOne(
-      () => this.model.findByIdAndUpdate(id, data, { new: true }).session(session ?? null),
+      () => this.model.findByIdAndUpdate(id, data, { new: true }).session(toMongooseSession(session)),
       `Document with ID ${id} not found`,
     );
   }
@@ -131,7 +128,7 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
       () =>
         this.model
           .findOneAndUpdate(condition, data, { new: true, ...options })
-          .session(options.session ?? null),
+          .session(toMongooseSession(options.session)),
       'Document matching condition not found',
     );
   }
@@ -140,8 +137,16 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
   async deleteById(id: string, session?: ClientSession): Promise<boolean> {
     this.ensureValidObjectId(id);
     return this.deleteOne(
-      () => this.model.findByIdAndDelete(id).session(session ?? null),
+      () => this.model.findByIdAndDelete(id).session(toMongooseSession(session)),
       `Document with ID ${id} not found`,
+    );
+  }
+
+  // Delete one document matching a condition (optional session)
+  async deleteOneByCondition(condition: FilterQuery<T>, session?: ClientSession): Promise<boolean> {
+    return this.deleteOne(
+      () => this.model.findOneAndDelete(condition).session(toMongooseSession(session)),
+      'Document matching condition not found',
     );
   }
 
@@ -151,7 +156,7 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
       () =>
         this.model
           .countDocuments(condition)
-          .session(session ?? null)
+          .session(toMongooseSession(session))
           .exec(),
       'Failed to count documents',
     );
@@ -160,7 +165,7 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
   // Check if document exists by condition
   async existsByCondition(condition: FilterQuery<T>, session?: ClientSession): Promise<boolean> {
     return this.handleOperation(
-      async () => !!(await this.model.exists(condition).session(session ?? null)),
+      async () => !!(await this.model.exists(condition).session(toMongooseSession(session))),
       'Failed to check existence',
     );
   }

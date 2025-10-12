@@ -90,7 +90,7 @@ export class AuthController {
       }
     } catch (err) {
       // Log but don't throw: avoid crashing the request after successful token generation
-      // eslint-disable-next-line no-console
+       
       console.error('Failed to set headers/cookies in verifyOtp response:', err?.message || err);
     }
     return {
@@ -125,14 +125,14 @@ export class AuthController {
   ): Promise<SignUpResponseDto> {
     const reqForCookies = (res.req as Request & { cookies?: Record<string, string> });
     const refreshToken = body.refreshToken || (reqForCookies.cookies && reqForCookies.cookies.refreshToken);
-    if (!refreshToken) throw new BadRequestException('Refresh token not provided');
+    if (!refreshToken) {throw new BadRequestException('Refresh token not provided');}
     const result = await this.authService.refreshAccessTokenByRefreshToken(refreshToken, context);
     try {
       if (result.accessToken) {
         res.setHeader('Authorization', 'Bearer ' + result.accessToken);
       }
     } catch (err) {
-      // eslint-disable-next-line no-console
+       
       console.error('Failed to set Authorization header in refreshToken response:', err?.message || err);
     }
     // refresh فقط accessToken میده، پس refreshToken رو برنمیگردونیم
@@ -277,7 +277,7 @@ export class AuthController {
         });
       }
     } catch (err) {
-      // eslint-disable-next-line no-console
+       
       console.error('Failed to set headers/cookies in adminSignUp response:', err?.message || err);
     }
     return result;

@@ -8,6 +8,7 @@ import { GetWalletDto } from './dto/get-wallet.dto';
 import { ClientSession } from 'mongoose';
 import { Wallet } from './entities/wallet.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { runInTransaction } from 'src/libs/repository/run-in-transaction';
 import { TransactionStatus } from '../transaction/enums/transaction.status.enum';
 import { TransactionType } from '../transaction/enums/transaction.type.enum';
 import { CreateTransactionDto } from '../transaction/dtos/create-transaction.dto';
@@ -29,8 +30,7 @@ export class WalletsService implements IWalletService {
   ) { }
 
   async creditWallet(creditWalletDto: CreditWalletDto, session?: ClientSession): Promise<Wallet> {
-    const transactionSession = session || (await this.walletRepository.startTransaction());
-    try {
+    return runInTransaction(this.walletRepository, async (transactionSession) => {
       const wallet = await this.walletRepository.findByIdAndType(
         creditWalletDto.ownerId,
         creditWalletDto.ownerType,
@@ -49,7 +49,7 @@ export class WalletsService implements IWalletService {
 
       // create transaction record for credit
       const txDto: CreateTransactionDto = {
-        authority: uuidv4(),
+        trackId: uuidv4(),
         amount: creditWalletDto.amount,
         description: `Credit to wallet ${wallet.id}`,
         mobile: undefined,
@@ -66,21 +66,12 @@ export class WalletsService implements IWalletService {
         metadata: { reason: 'credit' },
       };
       await this.transactionService.create(txDto, transactionSession);
-      if (!session) {
-        await this.walletRepository.commitTransaction(transactionSession);
-      }
       return updatedWallet;
-    } catch (error) {
-      if (!session) {
-        await this.walletRepository.abortTransaction(transactionSession);
-      }
-      throw new BadRequestException(`Failed to credit wallet: ${error.message}`);
-    }
+    }, session);
   }
 
   async debitWallet(debitWalletDto: DebitWalletDto, session?: ClientSession): Promise<Wallet> {
-    const transactionSession = session || (await this.walletRepository.startTransaction());
-    try {
+    return runInTransaction(this.walletRepository, async (transactionSession) => {
       const wallet = await this.walletRepository.findByIdAndType(
         debitWalletDto.ownerId,
         debitWalletDto.ownerType,
@@ -90,6 +81,7 @@ export class WalletsService implements IWalletService {
         throw new NotFoundException(`Wallet not found for owner ${debitWalletDto.ownerId}`);
       }
       if (wallet.balance < debitWalletDto.amount) {
+        console.warn('Insufficient balance for debit', { ownerId: debitWalletDto.ownerId, amount: debitWalletDto.amount, balance: wallet.balance });
         throw new BadRequestException('Insufficient balance');
       }
 
@@ -102,7 +94,7 @@ export class WalletsService implements IWalletService {
 
       // create transaction record for debit
       const txDto: CreateTransactionDto = {
-        authority: uuidv4(),
+        trackId: uuidv4(),
         amount: debitWalletDto.amount,
         description: `Debit from wallet ${wallet.id}`,
         mobile: undefined,
@@ -117,16 +109,8 @@ export class WalletsService implements IWalletService {
         metadata: { reason: 'debit' },
       };
       await this.transactionService.create(txDto, transactionSession);
-      if (!session) {
-        await this.walletRepository.commitTransaction(transactionSession);
-      }
       return updatedWallet;
-    } catch (error) {
-      if (!session) {
-        await this.walletRepository.abortTransaction(transactionSession);
-      }
-      throw new BadRequestException(`Failed to debit wallet: ${error.message}`);
-    }
+    }, session);
   }
 
   async transfer(
@@ -152,6 +136,7 @@ export class WalletsService implements IWalletService {
         throw new NotFoundException('Wallet not found');
       }
       if (fromWallet.balance < amount) {
+        console.warn('Insufficient balance for transfer', { from: from.ownerId, amount, balance: fromWallet.balance });
         throw new BadRequestException('Insufficient balance');
       }
 
@@ -167,7 +152,7 @@ export class WalletsService implements IWalletService {
 
       // create transaction record for transfer (one record representing this transfer)
       const txDto: CreateTransactionDto = {
-        authority: uuidv4(),
+        trackId: uuidv4(),
         amount,
         description: `Transfer from ${from.ownerId} to ${to.ownerId}`,
         mobile: undefined,
@@ -212,8 +197,11 @@ export class WalletsService implements IWalletService {
         owner.ownerType,
         transactionSession,
       );
-      if (!wallet) throw new NotFoundException('Wallet not found');
-      if (wallet.balance < amount) throw new BadRequestException('Insufficient balance to block');
+      if (!wallet) { throw new NotFoundException('Wallet not found'); }
+      if (wallet.balance < amount) {
+        console.warn('Insufficient balance to block', { ownerId: owner.ownerId, amount, balance: wallet.balance });
+        throw new BadRequestException('Insufficient balance to block');
+      }
 
       wallet.balance -= amount;
       wallet.blockedBalance = (wallet.blockedBalance ?? 0) + amount;
@@ -221,7 +209,7 @@ export class WalletsService implements IWalletService {
       await this.walletRepository.updateById(wallet.id, { balance: wallet.balance, blockedBalance: wallet.blockedBalance }, transactionSession);
 
       const txDto: CreateTransactionDto = {
-        authority: uuidv4(),
+        trackId: uuidv4(),
         amount,
         description: `Block ${amount} on wallet ${wallet.id}`,
         mobile: undefined,
@@ -237,9 +225,9 @@ export class WalletsService implements IWalletService {
       };
       await this.transactionService.create(txDto, transactionSession);
 
-      if (!session) await this.walletRepository.commitTransaction(transactionSession);
+      if (!session) { await this.walletRepository.commitTransaction(transactionSession); }
     } catch (error) {
-      if (!session) await this.walletRepository.abortTransaction(transactionSession);
+      if (!session) { await this.walletRepository.abortTransaction(transactionSession); }
       throw new BadRequestException(`Failed to block amount: ${error.message}`);
     }
   }
@@ -256,17 +244,26 @@ export class WalletsService implements IWalletService {
     try {
       const fromWallet = await this.walletRepository.findByIdAndType(from.ownerId, from.ownerType, transactionSession);
       const toWallet = await this.walletRepository.findByIdAndType(to.ownerId, to.ownerType, transactionSession);
-      if (!fromWallet || !toWallet) throw new NotFoundException('Wallet not found');
-      if ((fromWallet.blockedBalance ?? 0) < amount) throw new BadRequestException('Insufficient blocked balance');
+      if (!fromWallet || !toWallet) { throw new NotFoundException('Wallet not found'); }
+      if ((fromWallet.blockedBalance ?? 0) < amount) {
+        console.warn('Insufficient blocked balance for release', { from: from.ownerId, amount, blockedBalance: fromWallet.blockedBalance });
+        throw new BadRequestException('Insufficient blocked balance');
+      }
 
+      // If releasing from and to the same wallet, just reduce blockedBalance and avoid double-crediting
+      const sameWallet = from.ownerId === to.ownerId && from.ownerType === to.ownerType;
       fromWallet.blockedBalance -= amount;
-      toWallet.balance += amount;
+      if (!sameWallet) {
+        toWallet.balance += amount;
+      }
 
       await this.walletRepository.updateById(fromWallet.id, { blockedBalance: fromWallet.blockedBalance }, transactionSession);
-      await this.walletRepository.updateById(toWallet.id, { balance: toWallet.balance }, transactionSession);
+      if (!sameWallet) {
+        await this.walletRepository.updateById(toWallet.id, { balance: toWallet.balance }, transactionSession);
+      }
 
       const txDto: CreateTransactionDto = {
-        authority: uuidv4(),
+        trackId: uuidv4(),
         amount,
         description: `${meta.type ?? 'TRANSFER'} from blocked on ${fromWallet.id} to ${toWallet.id}`,
         mobile: undefined,
@@ -284,9 +281,9 @@ export class WalletsService implements IWalletService {
       };
       await this.transactionService.create(txDto, transactionSession);
 
-      if (!session) await this.walletRepository.commitTransaction(transactionSession);
+      if (!session) { await this.walletRepository.commitTransaction(transactionSession); }
     } catch (error) {
-      if (!session) await this.walletRepository.abortTransaction(transactionSession);
+      if (!session) { await this.walletRepository.abortTransaction(transactionSession); }
       throw new BadRequestException(`Failed to release blocked amount: ${error.message}`);
     }
   }
@@ -301,13 +298,13 @@ export class WalletsService implements IWalletService {
     let wallet = await this.walletRepository.findByIdAndType(ownerId, ownerType, session);
 
     if (!wallet) {
-      // Lazy creation: create wallet with initial values
+      // Lazy creation: create wallet with initial values; ensure creation participates in provided session
       wallet = await this.walletRepository.createOne({
         ownerId,
         ownerType,
         balance: 0,
         currency: 'IRR',
-      });
+      }, session);
     }
 
     return wallet;

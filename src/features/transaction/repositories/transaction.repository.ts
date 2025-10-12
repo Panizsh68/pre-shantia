@@ -7,16 +7,16 @@ import { Model } from 'mongoose';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 import { Injectable } from '@nestjs/common';
 import { ClientSession } from 'mongoose';
+import { toMongooseSession } from 'src/libs/repository/session-utils';
 
 export interface ITransactionRepository
   extends IBaseCrudRepository<Transaction>,
-    IBaseTransactionRepository<Transaction> {}
+  IBaseTransactionRepository<Transaction> { }
 
 @Injectable()
 export class TransactionRepository
   extends BaseCrudRepository<Transaction>
-  implements ITransactionRepository
-{
+  implements ITransactionRepository {
   constructor(
     private readonly userModel: Model<Transaction>,
     private readonly transactionRepository: IBaseTransactionRepository<Transaction>,
@@ -33,5 +33,19 @@ export class TransactionRepository
 
   async abortTransaction(session: ClientSession): Promise<void> {
     return this.transactionRepository.abortTransaction(session);
+  }
+
+  // Atomically update a transaction only if it matches an expected status.
+  async findOneByTrackIdAndStatusAndUpdate(
+    trackId: string,
+    expectedStatus: any,
+    update: any,
+    session?: ClientSession,
+  ): Promise<Transaction | null> {
+    const statusQuery = Array.isArray(expectedStatus) ? { $in: expectedStatus } : expectedStatus;
+    return this.userModel
+      .findOneAndUpdate({ trackId, status: statusQuery }, update, { new: true })
+      .session(toMongooseSession(session))
+      .exec();
   }
 }
