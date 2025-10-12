@@ -49,18 +49,10 @@ async function bootstrap(): Promise<void> {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  // Persist swagger.json on every bootstrap so the file is updated when using
-  // `nest start --watch` or any restart during development.
-  try {
-    const swaggerPath = path.resolve(process.cwd(), 'swagger.json');
-    fs.writeFileSync(swaggerPath, JSON.stringify(document, null, 2), 'utf8');
-    // lightweight console notice for visibility in dev
-    // eslint-disable-next-line no-console
-    console.log(`[${new Date().toISOString()}] Swagger document written to ${swaggerPath}`);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to write swagger.json:', err);
-  }
+  const swaggerPath = path.resolve(process.cwd(), 'swagger.json');
+  fs.writeFileSync(swaggerPath, JSON.stringify(document, null, 2), 'utf8');
+  console.log(`[${new Date().toISOString()}] Swagger document written to ${swaggerPath}`);
+
 
   app.use(
     rateLimit({
