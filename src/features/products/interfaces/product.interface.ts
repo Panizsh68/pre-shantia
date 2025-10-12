@@ -2,6 +2,8 @@ import { Types } from 'mongoose';
 import { ProductStatus } from '../enums/product-status.enum';
 
 export interface IProduct {
+  slug: string;
+  sku: string;
   name: string;
   basePrice: number;
   companyId: Types.ObjectId | { _id: Types.ObjectId; name: string };
@@ -11,6 +13,7 @@ export interface IProduct {
   variants: { name: string; options: { value: string; priceModifier?: number }[] }[];
   attributes?: Record<string, string>;
   images: { url: string }[];
+  tags?: string[];
   comments?: string[];
   rating?: number;
   status: ProductStatus;

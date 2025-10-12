@@ -12,6 +12,7 @@ import {
   Inject,
   UseGuards,
   BadRequestException,
+  Header,
 } from '@nestjs/common';
 import { SortOrder } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import {
@@ -243,6 +244,7 @@ export class ProductsController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiResponse({ status: 200, description: 'List of products returned' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @Header('Cache-Control', 'public, max-age=300')
   findAll(
     @Query('limit') limit?: string,
     @Query('page') page?: string,

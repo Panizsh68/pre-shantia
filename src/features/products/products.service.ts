@@ -23,11 +23,12 @@ import { Resource } from 'src/features/permissions/enums/resources.enum';
 import { Action } from 'src/features/permissions/enums/actions.enum';
 import { PermissionsService } from 'src/features/permissions/permissions.service';
 import { toObjectId, toObjectIdArray } from 'src/utils/objectid.util';
+import { SearchProductParams } from './interfaces/search-params.interface';
 
 @Injectable()
 export class ProductsService implements IProductService {
   async searchByPriceAndCompany(
-    params: { maxPrice?: number; companyName?: string },
+    params: SearchProductParams,
     options: FindManyOptions = {},
   ): Promise<IProduct[]> {
     // entry log
@@ -35,9 +36,31 @@ export class ProductsService implements IProductService {
     console.log(`[ProductsService.searchByPriceAndCompany] entry params=${JSON.stringify(params)} options=${JSON.stringify(options)}`);
     const page = options.page && options.page > 0 ? options.page : 1;
     const perPage = options.perPage && options.perPage > 0 ? options.perPage : 10;
-    const sort = options.sort?.map(s => ({ field: s.field, order: s.order }));
+
+    // Transform sort to handle finalPrice special case
+    const sort = options.sort?.map(s => {
+      if (s.field === 'finalPrice') {
+        // For finalPrice sorting, we need to calculate it in aggregation
+        return {
+          field: 'calculatedFinalPrice',
+          order: s.order
+        };
+      }
+      return { field: s.field, order: s.order };
+    });
+
+    // Add maxFinalPrice if maxPrice is specified (considering discount)
+    const searchParams = { ...params };
+    if (params.maxPrice !== undefined) {
+      if (params.maxPrice < 0) {
+        throw new BadRequestException('Maximum price cannot be negative');
+      }
+      searchParams.maxFinalPrice = params.maxPrice;
+      delete searchParams.maxPrice; // Remove original maxPrice to avoid double filtering
+    }
+
     try {
-      const result = await this.repo.searchByPriceAndCompanyAggregate(params, page, perPage, undefined, sort);
+      const result = await this.repo.searchByPriceAndCompanyAggregate(searchParams, page, perPage, undefined, sort);
       // eslint-disable-next-line no-console
       console.log(`[ProductsService.searchByPriceAndCompany] success count=${Array.isArray(result) ? result.length : 0}`);
       return result;
@@ -91,6 +114,32 @@ export class ProductsService implements IProductService {
       console.log(`[ProductsService.create] validating company exists companyId=${companyIdStr}`);
       await this.companyService.findOne(companyIdStr);
 
+      // Check for duplicates
+      const [nameExists, slugExists, skuExists] = await Promise.all([
+        this.repo.existsByCondition({
+          name: dto.name,
+          status: { $ne: ProductStatus.DELETED }
+        }, session),
+        this.repo.existsByCondition({
+          slug: dto.slug,
+          status: { $ne: ProductStatus.DELETED }
+        }, session),
+        this.repo.existsByCondition({
+          sku: dto.sku,
+          status: { $ne: ProductStatus.DELETED }
+        }, session)
+      ]);
+
+      if (nameExists) {
+        throw new BadRequestException(`Product with name "${dto.name}" already exists`);
+      }
+      if (slugExists) {
+        throw new BadRequestException(`Product with slug "${dto.slug}" already exists`);
+      }
+      if (skuExists) {
+        throw new BadRequestException(`Product with SKU "${dto.sku}" already exists`);
+      }
+
       const { categories, ...rest } = dto as CreateProductDto;
       const data: Partial<Product> = {
         ...rest,
@@ -131,7 +180,14 @@ export class ProductsService implements IProductService {
     try {
       const queryOptions: FindManyOptions = {
         ...options,
-        conditions: { ...options.conditions, status: ProductStatus.ACTIVE },
+        conditions: {
+          ...options.conditions,
+          status: ProductStatus.ACTIVE,
+          $or: [
+            { deletedAt: { $exists: false } },
+            { deletedAt: null }
+          ]
+        },
         populate: options.populate || ['companyId', 'categories'],
         session,
       };
@@ -171,7 +227,15 @@ export class ProductsService implements IProductService {
     console.log('[ProductsService.findByCompanyId] entry companyId=', companyId, 'options=', JSON.stringify(options));
     try {
       // sanitize and build conditions
-      const conditions = { ...(options.conditions || {}), companyId: toObjectId(companyId), status: ProductStatus.ACTIVE };
+      const conditions = {
+        ...(options.conditions || {}),
+        companyId: toObjectId(companyId),
+        status: ProductStatus.ACTIVE,
+        $or: [
+          { deletedAt: { $exists: false } },
+          { deletedAt: null }
+        ]
+      };
       const queryOptions: FindManyOptions = {
         ...options,
         conditions,
@@ -217,6 +281,18 @@ export class ProductsService implements IProductService {
       }
 
       const { categories, ...rest } = dto as UpdateProductDto;
+      // Check name uniqueness if being updated
+      if (dto.name && dto.name !== existing.name) {
+        const nameExists = await this.repo.existsByCondition({
+          name: dto.name,
+          _id: { $ne: toObjectId(id) },
+          status: { $ne: ProductStatus.DELETED }
+        }, session);
+        if (nameExists) {
+          throw new BadRequestException(`Product with name "${dto.name}" already exists`);
+        }
+      }
+
       const data: Partial<Product> = {
         ...rest,
         // companyId cannot be changed by the client; preserve existing.companyId
@@ -257,8 +333,12 @@ export class ProductsService implements IProductService {
       }
 
       // eslint-disable-next-line no-console
-      console.log('[ProductsService.remove] deleting from repo id=', id);
-      await this.repo.deleteById(id, session);
+      console.log('[ProductsService.remove] soft deleting product id=', id);
+      await this.repo.updateById(id, {
+        status: ProductStatus.DELETED,
+        updatedBy: toObjectId(userId),
+        deletedAt: new Date()
+      }, session);
       // eslint-disable-next-line no-console
       console.log('[ProductsService.remove] success id=', id);
     } catch (err) {

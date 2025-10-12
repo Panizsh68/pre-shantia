@@ -38,11 +38,13 @@ class VariantOptionDto {
   value: string;
 
   @ApiPropertyOptional({
-    description: 'Price modifier for this option (in IRR)',
+    description: 'Price modifier for this option (in IRR). Cannot be negative.',
     example: 0,
+    minimum: 0
   })
   @IsNumber()
   @IsOptional()
+  @Min(0)
   priceModifier?: number;
 }
 
@@ -108,6 +110,18 @@ export class CreateProductDto {
   @IsNotEmpty()
   @Min(0)
   basePrice: number;
+
+  @ApiPropertyOptional({
+    description: 'Discount percentage applied to the product (0-100)',
+    example: 10,
+    minimum: 0,
+    maximum: 100,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(100)
+  discount?: number;
 
   @ApiPropertyOptional({
     description: 'List of category IDs',

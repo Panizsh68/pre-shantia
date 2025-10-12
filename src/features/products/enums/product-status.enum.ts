@@ -3,4 +3,5 @@ export enum ProductStatus {
   INACTIVE = 'inactive',
   DRAFT = 'draft',
   ARCHIVED = 'archived',
+  DELETED = 'deleted',  // For soft delete support
 }
