@@ -30,10 +30,22 @@ export class ProductsService implements IProductService {
     params: { maxPrice?: number; companyName?: string },
     options: FindManyOptions = {},
   ): Promise<IProduct[]> {
+    // entry log
+    // eslint-disable-next-line no-console
+    console.log(`[ProductsService.searchByPriceAndCompany] entry params=${JSON.stringify(params)} options=${JSON.stringify(options)}`);
     const page = options.page && options.page > 0 ? options.page : 1;
     const perPage = options.perPage && options.perPage > 0 ? options.perPage : 10;
     const sort = options.sort?.map(s => ({ field: s.field, order: s.order }));
-    return this.repo.searchByPriceAndCompanyAggregate(params, page, perPage, undefined, sort);
+    try {
+      const result = await this.repo.searchByPriceAndCompanyAggregate(params, page, perPage, undefined, sort);
+      // eslint-disable-next-line no-console
+      console.log(`[ProductsService.searchByPriceAndCompany] success count=${Array.isArray(result) ? result.length : 0}`);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.searchByPriceAndCompany] error', err);
+      throw err;
+    }
   }
   constructor(
     @Inject('ProductRepository')
@@ -51,74 +63,132 @@ export class ProductsService implements IProductService {
     tokenPayload?: TokenPayload,
     session?: ClientSession,
   ): Promise<IProduct> {
-    // Resolve user's profile and companyId
-    const profile = await this.profileService.getByUserId(userId);
-    if (!profile) {throw new BadRequestException('User profile not found');}
-    if (!profile.companyId) {throw new BadRequestException('User does not belong to any company');}
+    // detailed logging around create flow
+    // eslint-disable-next-line no-console
+    console.log(`[ProductsService.create] entry userId=${userId} dtoKeys=${Object.keys(dto || {}).join(',')}`);
+    try {
+      // Resolve user's profile and companyId
+      const profile = await this.profileService.getByUserId(userId);
+      if (!profile) {
+        // eslint-disable-next-line no-console
+        console.error('[ProductsService.create] missing profile for userId=', userId);
+        throw new BadRequestException('User profile not found');
+      }
+      if (!profile.companyId) {
+        // eslint-disable-next-line no-console
+        console.error('[ProductsService.create] user has no company companyId missing userId=', userId);
+        throw new BadRequestException('User does not belong to any company');
+      }
 
-    const companyIdStr = profile.companyId.toString();
+      const companyIdStr = profile.companyId.toString();
 
-    // Permission check: user must have CREATE on PRODUCTS for their company
-    this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.CREATE, companyIdStr);
-    // Ensure company exists
-    await this.companyService.findOne(companyIdStr);
+      // Permission check: user must have CREATE on PRODUCTS for their company
+      // eslint-disable-next-line no-console
+      console.log(`[ProductsService.create] checking permissions for companyId=${companyIdStr}`);
+      this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.CREATE, companyIdStr);
+      // Ensure company exists
+      // eslint-disable-next-line no-console
+      console.log(`[ProductsService.create] validating company exists companyId=${companyIdStr}`);
+      await this.companyService.findOne(companyIdStr);
 
-    const { categories, ...rest } = dto as CreateProductDto;
-    const data: Partial<Product> = {
-      ...rest,
-      companyId: toObjectId(companyIdStr),
-      categories: categories ? (categories.map((c) => toObjectId(c))) : [],
-      createdBy: toObjectId(userId),
-      updatedBy: toObjectId(userId),
-    };
+      const { categories, ...rest } = dto as CreateProductDto;
+      const data: Partial<Product> = {
+        ...rest,
+        companyId: toObjectId(companyIdStr),
+        categories: categories ? (categories.map((c) => toObjectId(c))) : [],
+        createdBy: toObjectId(userId),
+        updatedBy: toObjectId(userId),
+      };
 
-    // Integration: if the DTO contains files metadata to presign (client wants to upload images)
-    // dto.imagesMeta is an optional field expected to be an array of { filename, contentType, size }
-    // Request presigned URLs and store the permanent public URLs on the product before saving.
-    const imagesMeta = (dto as CreateProductDto).imagesMeta;
-    if (imagesMeta && imagesMeta.length > 0 && this.imageUploadService) {
-      const presignPayload: CreatePresignDto = { type: 'product', files: imagesMeta };
-      const presignResult: CreatePresignResponseDto = await this.imageUploadService.createPresignedUrls(presignPayload);
-      // presignResult.items[].publicUrl can be persisted as product.images (or another field).
-      data.images = presignResult.items.map((it) => ({ url: it.publicUrl }));
-      // also return presigned URLs to the caller by setting a property on result if needed
-      // (Controller layer can combine responses as desired). The service here persists public URLs.
+      // Integration: if the DTO contains files metadata to presign (client wants to upload images)
+      const imagesMeta = (dto as CreateProductDto).imagesMeta;
+      if (imagesMeta && imagesMeta.length > 0 && this.imageUploadService) {
+        // eslint-disable-next-line no-console
+        console.log('[ProductsService.create] presigning images count=', imagesMeta.length);
+        const presignPayload: CreatePresignDto = { type: 'product', files: imagesMeta };
+        const presignResult: CreatePresignResponseDto = await this.imageUploadService.createPresignedUrls(presignPayload);
+        data.images = presignResult.items.map((it) => ({ url: it.publicUrl }));
+      }
+
+      // persist
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.create] creating product in repo');
+      const productDoc = await this.repo.createOne(data, session);
+      const result = toPlain<IProduct>(productDoc);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.create] success id=', (productDoc && (productDoc as any)._id) || 'unknown');
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.create] error', err);
+      throw err;
     }
-
-    const productDoc = await this.repo.createOne(data, session);
-    return toPlain<IProduct>(productDoc);
   }
 
   async findAll(options: FindManyOptions = {}, session?: ClientSession): Promise<IProduct[]> {
-    const queryOptions: FindManyOptions = {
-      ...options,
-      conditions: { ...options.conditions, status: ProductStatus.ACTIVE },
-      populate: options.populate || ['companyId', 'categories'],
-      session,
-    };
-    const products = await this.repo.findAll(queryOptions);
-    return toPlainArray<IProduct>(products);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.findAll] entry options=', JSON.stringify(options));
+    try {
+      const queryOptions: FindManyOptions = {
+        ...options,
+        conditions: { ...options.conditions, status: ProductStatus.ACTIVE },
+        populate: options.populate || ['companyId', 'categories'],
+        session,
+      };
+      const products = await this.repo.findAll(queryOptions);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.findAll] success count=', Array.isArray(products) ? products.length : 0);
+      return toPlainArray<IProduct>(products);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.findAll] error', err);
+      throw err;
+    }
   }
 
   async findOne(id: string, session?: ClientSession): Promise<IProduct> {
-    const productDoc = await this.repo.findById(id, { session });
-    if (!productDoc || productDoc.status !== ProductStatus.ACTIVE) {throw new NotFoundException(`Product with id ${id} not found or inactive`);}
-    return toPlain<IProduct>(productDoc);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.findOne] entry id=', id);
+    try {
+      const productDoc = await this.repo.findById(id, { session });
+      if (!productDoc || productDoc.status !== ProductStatus.ACTIVE) {
+        // eslint-disable-next-line no-console
+        console.error('[ProductsService.findOne] not found or inactive id=', id);
+        throw new NotFoundException(`Product with id ${id} not found or inactive`);
+      }
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.findOne] success id=', id);
+      return toPlain<IProduct>(productDoc);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.findOne] error', err);
+      throw err;
+    }
   }
 
   async findByCompanyId(companyId: string, options: FindManyOptions = {}, session?: ClientSession): Promise<IProduct[]> {
-    // sanitize and build conditions
-    const conditions = { ...(options.conditions || {}), companyId: toObjectId(companyId), status: ProductStatus.ACTIVE };
-    const queryOptions: FindManyOptions = {
-      ...options,
-      conditions,
-      populate: options.populate || ['companyId', 'categories'],
-      session,
-    };
-    const typedConditions: FilterQuery<Product> = conditions as unknown as FilterQuery<Product>;
-    const typedQueryOptions: FindManyOptions = queryOptions;
-    const products = await this.repo.findManyByCondition(typedConditions, typedQueryOptions);
-    return toPlainArray<IProduct>(products);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.findByCompanyId] entry companyId=', companyId, 'options=', JSON.stringify(options));
+    try {
+      // sanitize and build conditions
+      const conditions = { ...(options.conditions || {}), companyId: toObjectId(companyId), status: ProductStatus.ACTIVE };
+      const queryOptions: FindManyOptions = {
+        ...options,
+        conditions,
+        populate: options.populate || ['companyId', 'categories'],
+        session,
+      };
+      const typedConditions: FilterQuery<Product> = conditions as unknown as FilterQuery<Product>;
+      const typedQueryOptions: FindManyOptions = queryOptions;
+      const products = await this.repo.findManyByCondition(typedConditions, typedQueryOptions);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.findByCompanyId] success count=', Array.isArray(products) ? products.length : 0);
+      return toPlainArray<IProduct>(products);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.findByCompanyId] error', err);
+      throw err;
+    }
   }
 
   async update(
@@ -128,51 +198,119 @@ export class ProductsService implements IProductService {
     tokenPayload?: TokenPayload,
     session?: ClientSession,
   ): Promise<IProduct> {
-    const existing = await this.repo.findById(id, { session });
-    if (!existing) {throw new NotFoundException(`Product with id ${id} not found`);}
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.update] entry id=', id, 'userId=', userId, 'dtoKeys=', Object.keys(dto || {}).join(','));
+    try {
+      const existing = await this.repo.findById(id, { session });
+      if (!existing) {
+        // eslint-disable-next-line no-console
+        console.error('[ProductsService.update] product not found id=', id);
+        throw new NotFoundException(`Product with id ${id} not found`);
+      }
 
-    // owner can always update; otherwise require scoped permission for the product's company
-    const existingCompanyId = existing.companyId?.toString();
-    if (existing.createdBy.toString() !== userId) {
-      // ensure token payload has permission to UPDATE products scoped to the company
-      this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.UPDATE, existingCompanyId);
+      // owner can always update; otherwise require scoped permission for the product's company
+      const existingCompanyId = existing.companyId?.toString();
+      if (existing.createdBy.toString() !== userId) {
+        // eslint-disable-next-line no-console
+        console.log('[ProductsService.update] checking permissions for update companyId=', existingCompanyId);
+        this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.UPDATE, existingCompanyId);
+      }
+
+      const { categories, ...rest } = dto as UpdateProductDto;
+      const data: Partial<Product> = {
+        ...rest,
+        // companyId cannot be changed by the client; preserve existing.companyId
+        companyId: existing.companyId,
+        categories: categories ? toObjectIdArray(categories) : [],
+        updatedBy: toObjectId(userId),
+      };
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.update] updating repo id=', id);
+      const updatedDoc = await this.repo.updateById(id, data, session);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.update] success id=', id);
+      return toPlain<IProduct>(updatedDoc);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.update] error', err);
+      throw err;
     }
-
-    const { categories, ...rest } = dto as UpdateProductDto;
-    const data: Partial<Product> = {
-      ...rest,
-      // companyId cannot be changed by the client; preserve existing.companyId
-      companyId: existing.companyId,
-      categories: categories ? toObjectIdArray(categories) : [],
-      updatedBy: toObjectId(userId),
-    };
-    const updatedDoc = await this.repo.updateById(id, data, session);
-    return toPlain<IProduct>(updatedDoc);
   }
 
   async remove(id: string, userId: string, tokenPayload?: TokenPayload, session?: ClientSession): Promise<void> {
-    const existing = await this.repo.findById(id, { session });
-    if (!existing) {throw new NotFoundException(`Product with id ${id} not found`);}
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.remove] entry id=', id, 'userId=', userId);
+    try {
+      const existing = await this.repo.findById(id, { session });
+      if (!existing) {
+        // eslint-disable-next-line no-console
+        console.error('[ProductsService.remove] not found id=', id);
+        throw new NotFoundException(`Product with id ${id} not found`);
+      }
 
-    const existingCompanyId = existing.companyId?.toString();
-    if (existing.createdBy.toString() !== userId) {
-      // allow deletion if user has DELETE on PRODUCTS scoped to the company
-      this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.DELETE, existingCompanyId);
+      const existingCompanyId = existing.companyId?.toString();
+      if (existing.createdBy.toString() !== userId) {
+        // allow deletion if user has DELETE on PRODUCTS scoped to the company
+        // eslint-disable-next-line no-console
+        console.log('[ProductsService.remove] checking permissions for delete companyId=', existingCompanyId);
+        this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.DELETE, existingCompanyId);
+      }
+
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.remove] deleting from repo id=', id);
+      await this.repo.deleteById(id, session);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.remove] success id=', id);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.remove] error', err);
+      throw err;
     }
-
-    await this.repo.deleteById(id, session);
   }
 
   async existsByCompany(companyId: string, session?: ClientSession): Promise<boolean> {
-    return this.repo.existsByCondition({ companyId: toObjectId(companyId) }, session);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.existsByCompany] entry companyId=', companyId);
+    try {
+      const result = await this.repo.existsByCondition({ companyId: toObjectId(companyId) }, session);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.existsByCompany] result=', result);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.existsByCompany] error', err);
+      throw err;
+    }
   }
 
   async countByCategory(categoryId: string, session?: ClientSession): Promise<number> {
-    return this.repo.countByCondition({ categories: toObjectId(categoryId) }, session);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.countByCategory] entry categoryId=', categoryId);
+    try {
+      const result = await this.repo.countByCondition({ categories: toObjectId(categoryId) }, session);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.countByCategory] result=', result);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.countByCategory] error', err);
+      throw err;
+    }
   }
 
   async getTopProductsByRating(limit = 5, session?: ClientSession): Promise<TopProduct[]> {
-    return this.repo.getTopProductsByRating(limit, session);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.getTopProductsByRating] entry limit=', limit);
+    try {
+      const result = await this.repo.getTopProductsByRating(limit, session);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.getTopProductsByRating] success count=', Array.isArray(result) ? result.length : 0);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.getTopProductsByRating] error', err);
+      throw err;
+    }
   }
 
   async transactionalCreate(
@@ -180,13 +318,19 @@ export class ProductsService implements IProductService {
     userId: string,
     session?: ClientSession,
   ): Promise<IProduct> {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.transactionalCreate] entry userId=', userId);
     const txn = session || (await this.repo.startTransaction());
     try {
       const result = await this.create(dto, userId, undefined, txn);
-      if (!session) {await this.repo.commitTransaction(txn);}
+      if (!session) { await this.repo.commitTransaction(txn); }
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.transactionalCreate] success');
       return result;
     } catch (err) {
-      if (!session) {await this.repo.abortTransaction(txn);}
+      if (!session) { await this.repo.abortTransaction(txn); }
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.transactionalCreate] error', err);
       throw err;
     }
   }
@@ -198,49 +342,105 @@ export class ProductsService implements IProductService {
     tokenPayload?: TokenPayload,
     session?: ClientSession,
   ): Promise<IProduct> {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.transactionalUpdate] entry id=', id, 'userId=', userId);
     const txn = session || (await this.repo.startTransaction());
     try {
       const result = await this.update(id, dto, userId, tokenPayload, txn);
-      if (!session) {await this.repo.commitTransaction(txn);}
+      if (!session) { await this.repo.commitTransaction(txn); }
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.transactionalUpdate] success id=', id);
       return result;
     } catch (err) {
-      if (!session) {await this.repo.abortTransaction(txn);}
+      if (!session) { await this.repo.abortTransaction(txn); }
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.transactionalUpdate] error', err);
       throw err;
     }
   }
 
   async transactionalRemove(id: string, userId: string, tokenPayload?: TokenPayload, session?: ClientSession): Promise<void> {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.transactionalRemove] entry id=', id, 'userId=', userId);
     const txn = session || (await this.repo.startTransaction());
     try {
       await this.remove(id, userId, tokenPayload, txn);
-      if (!session) {await this.repo.commitTransaction(txn);}
+      if (!session) { await this.repo.commitTransaction(txn); }
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.transactionalRemove] success id=', id);
     } catch (err) {
-      if (!session) {await this.repo.abortTransaction(txn);}
+      if (!session) { await this.repo.abortTransaction(txn); }
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.transactionalRemove] error', err);
       throw err;
     }
   }
 
   async existsByName(name: string, session?: ClientSession): Promise<boolean> {
-    return this.repo.existsByCondition({ name }, session);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.existsByName] entry name=', name);
+    try {
+      const result = await this.repo.existsByCondition({ name }, session);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.existsByName] result=', result);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.existsByName] error', err);
+      throw err;
+    }
   }
 
   async count(session?: ClientSession): Promise<number> {
-    return this.repo.countByCondition({}, session);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.count] entry');
+    try {
+      const result = await this.repo.countByCondition({}, session);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.count] result=', result);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.count] error', err);
+      throw err;
+    }
   }
 
   async searchProducts(
     query: string,
     options: FindManyOptions = {},
   ): Promise<IProduct[]> {
-    const page = options.page && options.page > 0 ? options.page : 1;
-    const perPage = options.perPage && options.perPage > 0 ? options.perPage : 10;
-    // Only ACTIVE products
-    if (!options.conditions) {options.conditions = {};}
-    options.conditions.status = ProductStatus.ACTIVE;
-    return this.repo.searchProductsAggregate(query, page, perPage);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.searchProducts] entry query=', query, 'options=', JSON.stringify(options));
+    try {
+      const page = options.page && options.page > 0 ? options.page : 1;
+      const perPage = options.perPage && options.perPage > 0 ? options.perPage : 10;
+      // Only ACTIVE products
+      if (!options.conditions) { options.conditions = {}; }
+      options.conditions.status = ProductStatus.ACTIVE;
+      const result = await this.repo.searchProductsAggregate(query, page, perPage);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.searchProducts] success count=', Array.isArray(result) ? result.length : 0);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.searchProducts] error', err);
+      throw err;
+    }
   }
 
   async advancedSearchAggregate(params: AdvancedSearchParams): Promise<IProduct[]> {
-    return this.repo.advancedSearchAggregate(params);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.advancedSearchAggregate] entry params=', JSON.stringify(params));
+    try {
+      const result = await this.repo.advancedSearchAggregate(params);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.advancedSearchAggregate] success count=', Array.isArray(result) ? result.length : 0);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.advancedSearchAggregate] error', err);
+      throw err;
+    }
   }
 }

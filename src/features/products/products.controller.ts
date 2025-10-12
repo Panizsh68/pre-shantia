@@ -45,8 +45,6 @@ import { RequestContext as IRequestContext } from 'src/common/types/request-cont
 @Controller('products')
 export class ProductsController {
   @Get('advanced-search')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Advanced search for products with multiple filters', description: 'This route is open for default users.' })
   @ApiQuery({ name: 'query', required: false, type: String })
   @ApiQuery({ name: 'maxPrice', required: false, type: Number })
@@ -65,27 +63,38 @@ export class ProductsController {
     @Query('limit') limit?: string,
     @Query('sort') sort?: string,
   ) {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.advancedSearch] entry', { query, maxPrice, companyName, categoryIds, page, limit, sort });
     const params: Record<string, unknown> = {};
-    if (query) {params.query = query;}
+    if (query) { params.query = query; }
     if (maxPrice !== undefined) {
       const parsedMaxPrice = parseFloat(maxPrice);
-      if (isNaN(parsedMaxPrice) || parsedMaxPrice < 0) {throw new BadRequestException('maxPrice must be a non-negative number');}
+      if (isNaN(parsedMaxPrice) || parsedMaxPrice < 0) { throw new BadRequestException('maxPrice must be a non-negative number'); }
       params.maxPrice = parsedMaxPrice;
     }
-    if (companyName) {params.companyName = companyName;}
-    if (categoryIds) {params.categoryIds = Array.isArray(categoryIds) ? categoryIds : [categoryIds];}
+    if (companyName) { params.companyName = companyName; }
+    if (categoryIds) { params.categoryIds = Array.isArray(categoryIds) ? categoryIds : [categoryIds]; }
     if (page !== undefined) {
       const parsedPage = parseInt(page, 10);
-      if (isNaN(parsedPage) || parsedPage < 1) {throw new BadRequestException('Page must be a positive integer');}
+      if (isNaN(parsedPage) || parsedPage < 1) { throw new BadRequestException('Page must be a positive integer'); }
       params.page = parsedPage;
     }
     if (limit !== undefined) {
       const parsedLimit = parseInt(limit, 10);
-      if (isNaN(parsedLimit) || parsedLimit < 1) {throw new BadRequestException('Limit must be a positive integer');}
+      if (isNaN(parsedLimit) || parsedLimit < 1) { throw new BadRequestException('Limit must be a positive integer'); }
       params.limit = parsedLimit;
     }
-    if (sort) {params.sort = sort;}
-    return this.productsService.advancedSearchAggregate(params);
+    if (sort) { params.sort = sort; }
+    try {
+      const result = await this.productsService.advancedSearchAggregate(params);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.advancedSearch] success count=', Array.isArray(result) ? result.length : 0);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.advancedSearch] error', err);
+      throw err;
+    }
   }
 
   constructor(
@@ -94,8 +103,6 @@ export class ProductsController {
   ) { }
 
   @Get('search-by-price-company')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Search products by max price and company name' })
   @ApiQuery({ name: 'maxPrice', required: false, type: Number, example: 500000 })
   @ApiQuery({ name: 'companyName', required: false, type: String, example: 'Nike' })
@@ -111,6 +118,8 @@ export class ProductsController {
     @Query('page') page?: string,
     @Query('sort') sort?: string,
   ) {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.searchByPriceAndCompany] entry', { maxPrice, companyName, limit, page, sort });
     const options: FindManyOptions = {};
     if (limit) {
       const parsedLimit = parseInt(limit, 10);
@@ -141,12 +150,19 @@ export class ProductsController {
         throw new BadRequestException('maxPrice must be a non-negative number');
       }
     }
-    return this.productsService.searchByPriceAndCompany({ maxPrice: max, companyName }, options);
+    try {
+      const result = await this.productsService.searchByPriceAndCompany({ maxPrice: max, companyName }, options);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.searchByPriceAndCompany] success count=', Array.isArray(result) ? result.length : 0);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.searchByPriceAndCompany] error', err);
+      throw err;
+    }
   }
 
   @Get('search')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Search products by name, company, or category' })
   @ApiQuery({ name: 'query', required: true, type: String, example: 'کفش' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -158,7 +174,11 @@ export class ProductsController {
     @Query('limit') limit?: string,
     @Query('page') page?: string,
   ) {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.searchProducts] entry', { query, limit, page });
     if (!query || typeof query !== 'string' || !query.trim()) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.searchProducts] bad request missing query');
       throw new BadRequestException('Query parameter is required');
     }
     const options: FindManyOptions = {};
@@ -176,7 +196,16 @@ export class ProductsController {
       }
       options.page = parsedPage;
     }
-    return this.productsService.searchProducts(query, options);
+    try {
+      const result = await this.productsService.searchProducts(query, options);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.searchProducts] success count=', Array.isArray(result) ? result.length : 0);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.searchProducts] error', err);
+      throw err;
+    }
   }
 
   @Post()
@@ -193,13 +222,22 @@ export class ProductsController {
     @CurrentUser() user: TokenPayload,
     @RequestContext() ctx: IRequestContext,
   ) {
-    // Pass full user payload to allow permission checks inside service
-    return this.productsService.create(dto, user.userId, user as TokenPayload);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.create] entry userId=', user?.userId, 'dtoKeys=', Object.keys(dto || {}).join(','));
+    try {
+      const result = this.productsService.create(dto, user.userId, user as TokenPayload);
+      // Note: result may be a Promise; controller can return it directly. Log after resolution if needed inside service.
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.create] forwarded to service');
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.create] error', err);
+      throw err;
+    }
   }
 
   @Get()
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Get a paginated list of products' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
@@ -209,6 +247,8 @@ export class ProductsController {
     @Query('limit') limit?: string,
     @Query('page') page?: string,
   ) {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.findAll] entry', { limit, page });
     const options: FindManyOptions = {};
     if (limit) {
       const parsedLimit = parseInt(limit, 10);
@@ -224,12 +264,19 @@ export class ProductsController {
       }
       options.page = parsedPage;
     }
-    return this.productsService.findAll(options);
+    try {
+      const result = this.productsService.findAll(options);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.findAll] forwarded to service');
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.findAll] error', err);
+      throw err;
+    }
   }
 
   @Get('company/:companyId')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Get products by company ID' })
   @ApiParam({ name: 'companyId', type: String })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
@@ -241,35 +288,55 @@ export class ProductsController {
     @Query('page') page?: string,
     @Query('sort') sort?: string,
   ) {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.findByCompanyId] entry', { companyId, limit, page, sort });
     const options: FindManyOptions = {};
     if (limit) {
       const parsedLimit = parseInt(limit, 10);
-      if (isNaN(parsedLimit) || parsedLimit < 1) {throw new BadRequestException('Limit must be a positive integer');}
+      if (isNaN(parsedLimit) || parsedLimit < 1) { throw new BadRequestException('Limit must be a positive integer'); }
       options.perPage = parsedLimit;
     }
     if (page) {
       const parsedPage = parseInt(page, 10);
-      if (isNaN(parsedPage) || parsedPage < 1) {throw new BadRequestException('Page must be a positive integer');}
+      if (isNaN(parsedPage) || parsedPage < 1) { throw new BadRequestException('Page must be a positive integer'); }
       options.page = parsedPage;
     }
     if (sort) {
       const [field, order] = sort.split(':');
-      if (!field || !order || !['asc', 'desc'].includes(order.toLowerCase())) {throw new BadRequestException('Sort must be in format field:asc|desc');}
+      if (!field || !order || !['asc', 'desc'].includes(order.toLowerCase())) { throw new BadRequestException('Sort must be in format field:asc|desc'); }
       options.sort = [{ field, order: order.toLowerCase() === 'asc' ? SortOrder.ASC : SortOrder.DESC }];
     }
-    return this.productsService.findByCompanyId(companyId, options);
+    try {
+      const result = await this.productsService.findByCompanyId(companyId, options);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.findByCompanyId] success count=', Array.isArray(result) ? result.length : 0);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.findByCompanyId] error', err);
+      throw err;
+    }
   }
 
   @Get(':id')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Get product by ID' })
   @ApiParam({ name: 'id', type: String, description: 'Product ID' })
   @ApiResponse({ status: 200, description: 'Product found', type: ProductResponseDto })
   @ApiResponse({ status: 404, description: 'Product not found' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   findOne(@Param('id') id: string) {
-    return this.productsService.findOne(id);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.findOne] entry id=', id);
+    try {
+      const result = this.productsService.findOne(id);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.findOne] forwarded to service id=', id);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.findOne] error', err);
+      throw err;
+    }
   }
 
   @Patch(':id')
@@ -287,7 +354,18 @@ export class ProductsController {
     @Body() dto: UpdateProductDto,
     @CurrentUser() user: TokenPayload,
   ) {
-    return this.productsService.transactionalUpdate(id, dto, user.userId, user as TokenPayload);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.update] entry id=', id, 'userId=', user?.userId, 'dtoKeys=', Object.keys(dto || {}).join(','));
+    try {
+      const result = this.productsService.transactionalUpdate(id, dto, user.userId, user as TokenPayload);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.update] forwarded to service id=', id);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.update] error', err);
+      throw err;
+    }
   }
 
   @Delete(':id')
@@ -303,53 +381,102 @@ export class ProductsController {
     @Param('id') id: string,
     @CurrentUser() user: TokenPayload,
   ) {
-    await this.productsService.transactionalRemove(id, user.userId, user as TokenPayload);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.remove] entry id=', id, 'userId=', user?.userId);
+    try {
+      const result = await this.productsService.transactionalRemove(id, user.userId, user as TokenPayload);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.remove] success id=', id);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.remove] error', err);
+      throw err;
+    }
   }
 
   @Get('count/category/:categoryId')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Count products by category ID' })
   @ApiParam({ name: 'categoryId', type: String, description: 'Category ID' })
   @ApiResponse({ status: 200, description: 'Number of products returned', type: CountDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   countByCategory(@Param('categoryId') categoryId: string) {
-    return this.productsService.countByCategory(categoryId);
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.countByCategory] entry categoryId=', categoryId);
+    try {
+      const result = this.productsService.countByCategory(categoryId);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.countByCategory] forwarded to service');
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.countByCategory] error', err);
+      throw err;
+    }
   }
 
   @Get('top-sales')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Get top-selling products' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 5 })
   @ApiResponse({ status: 200, description: 'Top products returned', type: [TopProductDto] })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   getTopProducts(@Query('limit') limit?: string) {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.getTopProducts] entry limit=', limit);
     const lim = limit ? parseInt(limit, 10) : 5;
     if (isNaN(lim) || lim < 1) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.getTopProducts] bad request invalid limit=', limit);
       throw new BadRequestException('Limit must be a positive integer');
     }
-    return this.productsService.getTopProductsByRating(lim);
+    try {
+      const result = this.productsService.getTopProductsByRating(lim);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.getTopProducts] forwarded to service limit=', lim);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.getTopProducts] error', err);
+      throw err;
+    }
   }
 
   @Get('exists/name/:name')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Check if a product exists by name' })
   @ApiParam({ name: 'name', type: String, description: 'Product name' })
   @ApiResponse({ status: 200, description: 'Existence result', type: ExistsDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async existsByName(@Param('name') name: string) {
-    return { exists: await this.productsService.existsByName(name) };
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.existsByName] entry name=', name);
+    try {
+      const exists = await this.productsService.existsByName(name);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.existsByName] result=', exists);
+      return { exists };
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.existsByName] error', err);
+      throw err;
+    }
   }
 
   @Get('count')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Get total number of products' })
   @ApiResponse({ status: 200, description: 'Total count returned', type: CountDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async count() {
-    return { count: await this.productsService.count() };
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.count] entry');
+    try {
+      const count = await this.productsService.count();
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.count] result=', count);
+      return { count };
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.count] error', err);
+      throw err;
+    }
   }
 }

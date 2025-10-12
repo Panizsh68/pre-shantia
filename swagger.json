@@ -15,9 +15,9 @@
         ]
       }
     },
-    "/api/health/mongo": {
+    "/api/health": {
       "get": {
-        "operationId": "HealthController_checkMongoConnection",
+        "operationId": "HealthController_checkAll",
         "parameters": [],
         "responses": {
           "200": {
@@ -29,59 +29,112 @@
         ]
       }
     },
-    "/api/health/cache-store": {
+    "/api/users": {
       "get": {
-        "operationId": "HealthController_checkCacheStore",
-        "parameters": [],
+        "operationId": "UsersController_listUsers",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 50
+            }
+          },
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 0
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponseDto"
+                }
+              }
+            }
           }
         },
+        "summary": "List all users (super-admin only)",
         "tags": [
-          "Health"
+          "users"
         ]
       }
     },
-    "/api/health/redis": {
+    "/api/users/created-by-super": {
       "get": {
-        "operationId": "HealthController_checkRedis",
-        "parameters": [],
+        "operationId": "UsersController_listUsersCreatedBySuper",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 50
+            }
+          },
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 0
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "List of users created by super-admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponseDto"
+                }
+              }
+            }
           }
         },
+        "summary": "List users created by the super-admin",
         "tags": [
-          "Health"
+          "users"
         ]
       }
     },
-    "/api/health/config": {
+    "/api/users/{id}": {
       "get": {
-        "operationId": "HealthController_checkConfig",
-        "parameters": [],
+        "operationId": "UsersController_getUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "User detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetailResponseDto"
+                }
+              }
+            }
           }
         },
+        "summary": "Get a user's details and profile (super-admin only)",
         "tags": [
-          "Health"
-        ]
-      }
-    },
-    "/api/health/jwt": {
-      "get": {
-        "operationId": "HealthController_checkJwt",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Health"
+          "users"
         ]
       }
     },
@@ -169,13 +222,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    }
-                  }
+                  "$ref": "#/components/schemas/SignUpResponseDto"
                 }
               }
             }
@@ -213,13 +260,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    }
-                  }
+                  "$ref": "#/components/schemas/SignUpResponseDto"
                 }
               }
             }
@@ -290,7 +331,44 @@
                               "type": "string",
                               "example": "r"
                             }
+                          },
+                          "companyId": {
+                            "type": "string",
+                            "example": "507f1f77bcf86cd799439011"
                           }
+                        }
+                      }
+                    },
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "phoneNumber": {
+                          "type": "string",
+                          "example": "09123456789"
+                        },
+                        "nationalId": {
+                          "type": "string",
+                          "example": "0123456789"
+                        },
+                        "firstName": {
+                          "type": "string",
+                          "example": "John"
+                        },
+                        "lastName": {
+                          "type": "string",
+                          "example": "Doe"
+                        },
+                        "address": {
+                          "type": "string",
+                          "example": "123 Main St"
+                        },
+                        "walletId": {
+                          "type": "string",
+                          "example": "507f1f77bcf86cd799439011"
+                        },
+                        "companyId": {
+                          "type": "string",
+                          "example": "507f1f77bcf86cd799439011"
                         }
                       }
                     }
@@ -338,25 +416,70 @@
         ]
       }
     },
-    "/api/profile": {
-      "post": {
-        "operationId": "ProfileController_create",
-        "parameters": [],
+    "/api/auth/users/{id}/permissions": {
+      "patch": {
+        "operationId": "AuthController_setUserPermissions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateProfileDto"
+                "$ref": "#/components/schemas/UpdateUserPermissionsDto"
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "Updated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListItemDto"
+                }
+              }
+            }
           }
         },
+        "summary": "Update a user's permissions",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/profile": {
+      "get": {
+        "description": "This route is open for default users.",
+        "operationId": "ProfileController_getMyProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user profile",
         "tags": [
           "Profile"
         ]
@@ -364,6 +487,7 @@
     },
     "/api/profile/{id}": {
       "patch": {
+        "description": "This route is open for default users.",
         "operationId": "ProfileController_update",
         "parameters": [
           {
@@ -387,22 +511,217 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Profile updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update profile by ID",
         "tags": [
           "Profile"
         ]
       }
     },
-    "/api/profile/{userId}": {
-      "delete": {
-        "operationId": "ProfileController_deleteByUserId",
+    "/api/companies": {
+      "post": {
+        "operationId": "CompaniesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Company created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new company",
+        "tags": [
+          "Companies"
+        ]
+      },
+      "get": {
+        "operationId": "CompaniesController_findAll",
         "parameters": [
           {
-            "name": "userId",
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all companies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Company"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all companies",
+        "tags": [
+          "Companies"
+        ]
+      }
+    },
+    "/api/companies/{id}": {
+      "patch": {
+        "operationId": "CompaniesController_update",
+        "parameters": [
+          {
+            "name": "id",
             "required": true,
             "in": "path",
+            "description": "Company ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Company updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a company by ID",
+        "tags": [
+          "Companies"
+        ]
+      },
+      "delete": {
+        "operationId": "CompaniesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Company deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete company by ID",
+        "tags": [
+          "Companies"
+        ]
+      },
+      "get": {
+        "operationId": "CompaniesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company ID",
             "schema": {
               "type": "string"
             }
@@ -410,20 +729,514 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Company found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Company not found"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get company by ID",
         "tags": [
-          "Profile"
+          "Companies"
+        ]
+      }
+    },
+    "/api/companies/exists/name/{name}": {
+      "get": {
+        "operationId": "CompaniesController_existsByName",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "description": "Company name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existence result"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check if a company exists by name",
+        "tags": [
+          "Companies"
+        ]
+      }
+    },
+    "/api/companies/count": {
+      "get": {
+        "operationId": "CompaniesController_count",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Total count returned"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get total number of companies",
+        "tags": [
+          "Companies"
+        ]
+      }
+    },
+    "/api/images/presign": {
+      "post": {
+        "operationId": "ImageUploadController_presign",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePresignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Presigned URLs created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePresignResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create presigned URLs for image uploads",
+        "tags": [
+          "images"
+        ]
+      }
+    },
+    "/api/wallets": {
+      "get": {
+        "description": "This route is open for default users.",
+        "operationId": "WalletsController_getWallet",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Wallet returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Wallet"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get wallet for authenticated user",
+        "tags": [
+          "Wallets"
+        ]
+      }
+    },
+    "/api/wallets/credit": {
+      "post": {
+        "operationId": "WalletsController_creditWallet",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreditWalletDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet credited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Wallet"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Credit wallet",
+        "tags": [
+          "Wallets"
+        ]
+      }
+    },
+    "/api/wallets/debit": {
+      "post": {
+        "operationId": "WalletsController_debitWallet",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DebitWalletDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet debited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Wallet"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Debit wallet",
+        "tags": [
+          "Wallets"
+        ]
+      }
+    },
+    "/api/wallets/transfer": {
+      "post": {
+        "operationId": "WalletsController_transfer",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "example": {
+                  "to": {
+                    "ownerId": "userId2",
+                    "ownerType": "user"
+                  },
+                  "amount": 1000
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transfer successful"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Transfer funds between wallets - User can only transfer to intermediary companies",
+        "tags": [
+          "Wallets"
+        ]
+      }
+    },
+    "/api/transaction": {
+      "get": {
+        "operationId": "TransactionController_getTransactionHistory",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of user transactions returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Transaction"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get transaction history for current user",
+        "tags": [
+          "Transaction"
+        ]
+      }
+    },
+    "/api/products/advanced-search": {
+      "get": {
+        "description": "This route is open for default users.",
+        "operationId": "ProductsController_advancedSearch",
+        "parameters": [
+          {
+            "name": "query",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxPrice",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "companyName",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryIds",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Advanced search results returned"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Advanced search for products with multiple filters",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/products/search-by-price-company": {
+      "get": {
+        "operationId": "ProductsController_searchByPriceAndCompany",
+        "parameters": [
+          {
+            "name": "maxPrice",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 500000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "companyName",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Nike",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "basePrice:desc",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results returned"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search products by max price and company name",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/products/search": {
+      "get": {
+        "operationId": "ProductsController_searchProducts",
+        "parameters": [
+          {
+            "name": "query",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "کفش",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results returned"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search products by name, company, or category",
+        "tags": [
+          "Products"
         ]
       }
     },
     "/api/products": {
       "post": {
+        "description": "Creates a product for the company associated with the authenticated user. Do NOT include companyId in the request body — it is resolved from the user's profile on the server.",
         "operationId": "ProductsController_create",
         "parameters": [],
         "requestBody": {
           "required": true,
+          "description": "Product create payload. companyId is resolved server-side from the authenticated user.",
           "content": {
             "application/json": {
               "schema": {
@@ -434,9 +1247,27 @@
         },
         "responses": {
           "201": {
-            "description": "Product created successfully"
+            "description": "Product created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Create a new product",
         "tags": [
           "Products"
@@ -450,8 +1281,8 @@
             "required": false,
             "in": "query",
             "schema": {
-              "example": "10",
-              "type": "string"
+              "example": 10,
+              "type": "number"
             }
           },
           {
@@ -459,17 +1290,81 @@
             "required": false,
             "in": "query",
             "schema": {
-              "example": "2",
-              "type": "string"
+              "example": 1,
+              "type": "number"
             }
           }
         ],
         "responses": {
           "200": {
             "description": "List of products returned"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Get a paginated list of products",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/products/company/{companyId}": {
+      "get": {
+        "operationId": "ProductsController_findByCompanyId",
+        "parameters": [
+          {
+            "name": "companyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "basePrice:desc",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get products by company ID",
         "tags": [
           "Products"
         ]
@@ -483,6 +1378,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Product ID",
             "schema": {
               "type": "string"
             }
@@ -490,12 +1386,27 @@
         ],
         "responses": {
           "200": {
-            "description": "Product found"
+            "description": "Product found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "404": {
             "description": "Product not found"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Get product by ID",
         "tags": [
           "Products"
@@ -508,6 +1419,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Product ID",
             "schema": {
               "type": "string"
             }
@@ -525,9 +1437,30 @@
         },
         "responses": {
           "200": {
-            "description": "Product updated"
+            "description": "Product updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Update product by ID",
         "tags": [
           "Products"
@@ -540,16 +1473,28 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Product ID",
             "schema": {
               "type": "string"
             }
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": "Product deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Delete product by ID",
         "tags": [
           "Products"
@@ -564,6 +1509,7 @@
             "name": "categoryId",
             "required": true,
             "in": "path",
+            "description": "Category ID",
             "schema": {
               "type": "string"
             }
@@ -571,9 +1517,24 @@
         ],
         "responses": {
           "200": {
-            "description": "Number of products returned"
+            "description": "Number of products returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Count products by category ID",
         "tags": [
           "Products"
@@ -589,17 +1550,105 @@
             "required": false,
             "in": "query",
             "schema": {
-              "example": "5",
+              "example": 5,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Top products returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TopProductDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get top-selling products",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/products/exists/name/{name}": {
+      "get": {
+        "operationId": "ProductsController_existsByName",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "description": "Product name",
+            "schema": {
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Top products returned"
+            "description": "Existence result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExistsDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
-        "summary": "Get top-selling products",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check if a product exists by name",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/products/count": {
+      "get": {
+        "operationId": "ProductsController_count",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Total count returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get total number of products",
         "tags": [
           "Products"
         ]
@@ -621,7 +1670,14 @@
         },
         "responses": {
           "201": {
-            "description": "Ticket created successfully"
+            "description": "Ticket created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponseDto"
+                }
+              }
+            }
           }
         },
         "summary": "Create a new ticket",
@@ -630,11 +1686,22 @@
         ]
       },
       "get": {
+        "description": "This route is open for default users.",
         "operationId": "TicketingController_findAll",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "List of tickets returned"
+            "description": "List of tickets returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TicketResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "Get all tickets (with optional filters)",
@@ -658,7 +1725,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Ticket found"
+            "description": "Ticket found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponseDto"
+                }
+              }
+            }
           },
           "404": {
             "description": "Ticket not found"
@@ -669,7 +1743,7 @@
           "Tickets"
         ]
       },
-      "put": {
+      "patch": {
         "operationId": "TicketingController_update",
         "parameters": [
           {
@@ -693,10 +1767,17 @@
         },
         "responses": {
           "200": {
-            "description": "Ticket updated successfully"
+            "description": "Ticket updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponseDto"
+                }
+              }
+            }
           }
         },
-        "summary": "Update ticket by ID",
+        "summary": "Patch ticket by ID",
         "tags": [
           "Tickets"
         ]
@@ -739,7 +1820,17 @@
         ],
         "responses": {
           "200": {
-            "description": "Ticket status returned"
+            "description": "Ticket status returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketStatusResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ticket not found"
           }
         },
         "summary": "Get status of a ticket by ID",
@@ -747,7 +1838,7 @@
           "Tickets"
         ]
       },
-      "put": {
+      "patch": {
         "operationId": "TicketingController_updateStatus",
         "parameters": [
           {
@@ -777,6 +1868,10 @@
                       "escalated"
                     ],
                     "example": "open"
+                  },
+                  "refund": {
+                    "type": "boolean",
+                    "description": "When resolving a ticket related to an order, set true to refund to user, false to release to company"
                   }
                 }
               }
@@ -785,10 +1880,17 @@
         },
         "responses": {
           "200": {
-            "description": "Ticket status updated"
+            "description": "Ticket status updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponseDto"
+                }
+              }
+            }
           }
         },
-        "summary": "Update ticket status",
+        "summary": "Patch ticket status",
         "tags": [
           "Tickets"
         ]
@@ -818,190 +1920,15 @@
         ]
       }
     },
-    "/api/transportings": {
-      "post": {
-        "operationId": "TransportingsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTransportingDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Transporting record created successfully"
-          },
-          "400": {
-            "description": "Invalid input"
-          }
-        },
-        "summary": "Create a new transporting record",
-        "tags": [
-          "transportings"
-        ]
-      },
+    "/api/tickets/{id}/resolve": {
       "patch": {
-        "operationId": "TransportingsController_update",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTransportingDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Transporting record updated successfully"
-          },
-          "404": {
-            "description": "Transporting record not found"
-          }
-        },
-        "summary": "Update a transporting record",
-        "tags": [
-          "transportings"
-        ]
-      }
-    },
-    "/api/transportings/{id}": {
-      "get": {
-        "operationId": "TransportingsController_findById",
+        "operationId": "TicketingController_adminResolve",
         "parameters": [
           {
             "name": "id",
             "required": true,
             "in": "path",
-            "description": "Transporting ID",
             "schema": {
-              "example": "507f1f77bcf86cd799439011",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Transporting record found"
-          },
-          "404": {
-            "description": "Transporting record not found"
-          }
-        },
-        "summary": "Get transporting record by ID",
-        "tags": [
-          "transportings"
-        ]
-      }
-    },
-    "/api/transportings/order/{orderId}": {
-      "get": {
-        "operationId": "TransportingsController_findByOrderId",
-        "parameters": [
-          {
-            "name": "orderId",
-            "required": true,
-            "in": "path",
-            "description": "Order ID",
-            "schema": {
-              "example": "507f1f77bcf86cd799439012",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Transporting record found"
-          },
-          "404": {
-            "description": "Transporting record not found"
-          }
-        },
-        "summary": "Get transporting record by order ID",
-        "tags": [
-          "transportings"
-        ]
-      }
-    },
-    "/api/transportings/company/{companyId}": {
-      "get": {
-        "operationId": "TransportingsController_findByCompanyId",
-        "parameters": [
-          {
-            "name": "companyId",
-            "required": true,
-            "in": "path",
-            "description": "Company ID",
-            "schema": {
-              "example": "507f1f77bcf86cd799439013",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of transporting records found"
-          },
-          "404": {
-            "description": "No transporting records found for the company"
-          }
-        },
-        "summary": "Get transporting records by company ID",
-        "tags": [
-          "transportings"
-        ]
-      }
-    },
-    "/api/transportings/{id}/cancel": {
-      "patch": {
-        "operationId": "TransportingsController_cancel",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Transporting ID",
-            "schema": {
-              "example": "507f1f77bcf86cd799439011",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Transporting record canceled successfully"
-          },
-          "400": {
-            "description": "Transporting record cannot be canceled"
-          },
-          "404": {
-            "description": "Transporting record not found"
-          }
-        },
-        "summary": "Cancel a transporting record",
-        "tags": [
-          "transportings"
-        ]
-      }
-    },
-    "/api/transportings/{id}/delivered": {
-      "patch": {
-        "operationId": "TransportingsController_markAsDelivered",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Transporting ID",
-            "schema": {
-              "example": "507f1f77bcf86cd799439011",
               "type": "string"
             }
           }
@@ -1013,9 +1940,9 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "estimatedDelivery": {
-                    "type": "string",
-                    "format": "date-time"
+                  "refund": {
+                    "type": "boolean",
+                    "description": "true => refund to user, false => release to company"
                   }
                 }
               }
@@ -1024,173 +1951,18 @@
         },
         "responses": {
           "200": {
-            "description": "Transporting record marked as delivered successfully"
-          },
-          "400": {
-            "description": "Transporting record cannot be marked as delivered"
-          },
-          "404": {
-            "description": "Transporting record not found"
+            "description": "Ticket resolved"
           }
         },
-        "summary": "Mark a transporting record as delivered",
+        "summary": "Admin resolve a ticket (refund or release funds)",
         "tags": [
-          "transportings"
-        ]
-      }
-    },
-    "/api/companies": {
-      "post": {
-        "operationId": "CompaniesController_createCompany",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Company"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Company created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Company"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Create a new company",
-        "tags": [
-          "Companies"
-        ]
-      },
-      "get": {
-        "operationId": "CompaniesController_getAllCompanies",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "List of all companies",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Company"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "Get all companies",
-        "tags": [
-          "Companies"
-        ]
-      }
-    },
-    "/api/companies/{id}": {
-      "patch": {
-        "operationId": "CompaniesController_updateCompany",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Company ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Company"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Company updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Company"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Update a company by ID",
-        "tags": [
-          "Companies"
-        ]
-      },
-      "delete": {
-        "operationId": "CompaniesController_deleteCompany",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Company ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Company deleted successfully"
-          }
-        },
-        "summary": "Delete a company by ID",
-        "tags": [
-          "Companies"
-        ]
-      },
-      "get": {
-        "operationId": "CompaniesController_getCompanyById",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Company ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Company fetched successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Company"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Get a company by ID",
-        "tags": [
-          "Companies"
+          "Tickets"
         ]
       }
     },
     "/api/orders": {
       "post": {
+        "description": "This route is open for default users.",
         "operationId": "OrdersController_create",
         "parameters": [],
         "requestBody": {
@@ -1263,6 +2035,7 @@
     },
     "/api/orders/{id}": {
       "get": {
+        "description": "This route is open for default users.",
         "operationId": "OrdersController_getById",
         "parameters": [
           {
@@ -1288,71 +2061,6 @@
           }
         },
         "summary": "Get order by ID",
-        "tags": [
-          "Orders"
-        ]
-      },
-      "patch": {
-        "operationId": "OrdersController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Order ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateOrderDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Order updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Order"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Update an order by ID",
-        "tags": [
-          "Orders"
-        ]
-      }
-    },
-    "/api/orders/{id}/cancel": {
-      "patch": {
-        "operationId": "OrdersController_cancel",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Order ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Order cancelled"
-          }
-        },
-        "summary": "Cancel an order",
         "tags": [
           "Orders"
         ]
@@ -1512,20 +2220,6 @@
         "summary": "User confirms delivery of order",
         "tags": [
           "Orders"
-        ]
-      }
-    },
-    "/api/wallets": {
-      "get": {
-        "operationId": "WalletsController_getWallet",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Wallets"
         ]
       }
     },
@@ -1709,6 +2403,12 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad request - invalid companyId or product-company mismatch"
+          },
+          "404": {
+            "description": "Product or active cart not found"
           }
         },
         "security": [
@@ -1813,8 +2513,232 @@
         ]
       }
     },
+    "/api/transportings": {
+      "post": {
+        "operationId": "TransportingsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTransportingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transporting record created successfully"
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        },
+        "summary": "Create a new transporting record",
+        "tags": [
+          "transportings"
+        ]
+      },
+      "patch": {
+        "operationId": "TransportingsController_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTransportingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transporting record updated successfully"
+          },
+          "404": {
+            "description": "Transporting record not found"
+          }
+        },
+        "summary": "Update a transporting record",
+        "tags": [
+          "transportings"
+        ]
+      }
+    },
+    "/api/transportings/{id}": {
+      "get": {
+        "description": "This route is open for default users.",
+        "operationId": "TransportingsController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Transporting ID",
+            "schema": {
+              "example": "507f1f77bcf86cd799439011",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transporting record found"
+          },
+          "404": {
+            "description": "Transporting record not found"
+          }
+        },
+        "summary": "Get transporting record by ID",
+        "tags": [
+          "transportings"
+        ]
+      }
+    },
+    "/api/transportings/order/{orderId}": {
+      "get": {
+        "description": "This route is open for default users.",
+        "operationId": "TransportingsController_findByOrderId",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "description": "Order ID",
+            "schema": {
+              "example": "507f1f77bcf86cd799439012",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transporting record found"
+          },
+          "404": {
+            "description": "Transporting record not found"
+          }
+        },
+        "summary": "Get transporting record by order ID",
+        "tags": [
+          "transportings"
+        ]
+      }
+    },
+    "/api/transportings/company/{companyId}": {
+      "get": {
+        "operationId": "TransportingsController_findByCompanyId",
+        "parameters": [
+          {
+            "name": "companyId",
+            "required": true,
+            "in": "path",
+            "description": "Company ID",
+            "schema": {
+              "example": "507f1f77bcf86cd799439013",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of transporting records found"
+          },
+          "404": {
+            "description": "No transporting records found for the company"
+          }
+        },
+        "summary": "Get transporting records by company ID",
+        "tags": [
+          "transportings"
+        ]
+      }
+    },
+    "/api/transportings/{id}/cancel": {
+      "patch": {
+        "operationId": "TransportingsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Transporting ID",
+            "schema": {
+              "example": "507f1f77bcf86cd799439011",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transporting record canceled successfully"
+          },
+          "400": {
+            "description": "Transporting record cannot be canceled"
+          },
+          "404": {
+            "description": "Transporting record not found"
+          }
+        },
+        "summary": "Cancel a transporting record",
+        "tags": [
+          "transportings"
+        ]
+      }
+    },
+    "/api/transportings/{id}/delivered": {
+      "patch": {
+        "operationId": "TransportingsController_markAsDelivered",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Transporting ID",
+            "schema": {
+              "example": "507f1f77bcf86cd799439011",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "estimatedDelivery": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transporting record marked as delivered successfully"
+          },
+          "400": {
+            "description": "Transporting record cannot be marked as delivered"
+          },
+          "404": {
+            "description": "Transporting record not found"
+          }
+        },
+        "summary": "Mark a transporting record as delivered",
+        "tags": [
+          "transportings"
+        ]
+      }
+    },
     "/api/payment/initiate": {
       "post": {
+        "description": "This route is open for default users.",
         "operationId": "PaymentController_initiatePayment",
         "parameters": [],
         "requestBody": {
@@ -1835,13 +2759,13 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "authority": {
+                    "transactionId": {
                       "type": "string",
-                      "example": "A00000000000000000000000000123456789"
+                      "example": "tx1"
                     },
-                    "redirectUrl": {
+                    "paymentUrl": {
                       "type": "string",
-                      "example": "https://www.zibal.ir/pg/StartPay/A00000000000000000000000000123456789"
+                      "example": "https://sandbox.zibal.ir/pg/StartPay/1533727744287"
                     }
                   }
                 }
@@ -1857,27 +2781,36 @@
     },
     "/api/payment/callback": {
       "get": {
+        "description": "This route is open for default users.",
         "operationId": "PaymentController_handleCallback",
         "parameters": [
           {
-            "name": "Authority",
+            "name": "trackId",
             "required": true,
             "in": "query",
-            "description": "Zibal authority token",
+            "description": "Zibal trackId",
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "Status",
+            "name": "success",
             "required": true,
             "in": "query",
-            "description": "Payment status from Zibal",
+            "description": "Payment success flag (1 = success)",
             "schema": {
               "enum": [
-                "OK",
-                "NOK"
+                "1",
+                "0"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "secret",
+            "required": true,
+            "in": "query",
+            "schema": {
               "type": "string"
             }
           }
@@ -1909,7 +2842,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Category"
+                "$ref": "#/components/schemas/CreateCategoryDto"
               }
             }
           }
@@ -1924,8 +2857,19 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Create a new category",
         "tags": [
           "Categories"
@@ -1933,7 +2877,44 @@
       },
       "get": {
         "operationId": "CategoriesController_findAll",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "_id",
+            "required": false,
+            "in": "query",
+            "description": "Category ID to filter by",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "parentId",
+            "required": false,
+            "in": "query",
+            "description": "Parent category ID to filter by",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "List of categories",
@@ -1947,9 +2928,12 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request - Invalid ID format"
           }
         },
-        "summary": "Get all categories for current user",
+        "summary": "Get all categories",
         "tags": [
           "Categories"
         ]
@@ -1957,6 +2941,7 @@
     },
     "/api/categories/{id}": {
       "get": {
+        "description": "This route is open for default users.",
         "operationId": "CategoriesController_findOne",
         "parameters": [
           {
@@ -1979,6 +2964,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Category not found"
           }
         },
         "summary": "Get category by ID",
@@ -2004,7 +2992,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Category"
+                "$ref": "#/components/schemas/UpdateCategoryDto"
               }
             }
           }
@@ -2019,8 +3007,22 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Update category by ID",
         "tags": [
           "Categories"
@@ -2040,10 +3042,27 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": "Category deleted"
+          },
+          "400": {
+            "description": "Bad Request - Invalid ID format"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Category not found"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Delete category by ID",
         "tags": [
           "Categories"
@@ -2088,8 +3107,22 @@
         "responses": {
           "200": {
             "description": "Category status updated"
+          },
+          "400": {
+            "description": "Bad Request - Invalid ID or status"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Category not found"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Set status for a category",
         "tags": [
           "Categories"
@@ -2107,6 +3140,24 @@
             "description": "Parent category ID",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
             }
           }
         ],
@@ -2130,18 +3181,216 @@
           "Categories"
         ]
       }
+    },
+    "/api/categories/exists/slug/{slug}": {
+      "get": {
+        "operationId": "CategoriesController_existsBySlug",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "description": "Category slug",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existence result"
+          }
+        },
+        "summary": "Check if a category exists by slug",
+        "tags": [
+          "Categories"
+        ]
+      }
+    },
+    "/api/categories/count": {
+      "get": {
+        "operationId": "CategoriesController_count",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Total count returned"
+          }
+        },
+        "summary": "Get total number of categories",
+        "tags": [
+          "Categories"
+        ]
+      }
     }
   },
   "info": {
-    "title": "practice",
-    "description": "API documentation for my practice app",
-    "version": "0.0.1",
+    "title": "API Docs",
+    "description": "API description",
+    "version": "1.0",
     "contact": {}
   },
   "tags": [],
   "servers": [],
   "components": {
     "schemas": {
+      "AuthProfileDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "description": "User phone number",
+            "example": "09123456789"
+          },
+          "nationalId": {
+            "type": "string",
+            "description": "User national ID",
+            "example": "0123456789"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "User first name",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "User last name",
+            "example": "Doe"
+          },
+          "address": {
+            "type": "string",
+            "description": "User address",
+            "example": "123 Main St"
+          },
+          "walletId": {
+            "type": "string",
+            "description": "User wallet ID",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "companyId": {
+            "type": "string",
+            "description": "Company ID the user belongs to",
+            "example": "507f1f77bcf86cd799439011"
+          }
+        },
+        "required": [
+          "phoneNumber",
+          "nationalId"
+        ]
+      },
+      "UserListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "User id (ObjectId string)",
+            "example": "68d94bffebbe4333cc7f8f03"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Phone number of the user",
+            "example": "+989123456789"
+          },
+          "nationalId": {
+            "type": "string",
+            "description": "National id (meli code)",
+            "example": "2284280072"
+          },
+          "permissions": {
+            "description": "Assigned permissions for the user",
+            "example": [
+              {
+                "resource": "users",
+                "actions": [
+                  "r"
+                ]
+              }
+            ],
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "profile": {
+            "description": "User's profile (if available)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthProfileDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "phoneNumber"
+        ]
+      },
+      "UserListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "List of users",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserListItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total number of users (when known)",
+            "example": 123
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "UserDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "User id (ObjectId string)",
+            "example": "68d94bffebbe4333cc7f8f03"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Phone number of the user",
+            "example": "+989123456789"
+          },
+          "nationalId": {
+            "type": "string",
+            "description": "National id (meli code)",
+            "example": "2284280072"
+          },
+          "permissions": {
+            "description": "Assigned permissions for the user",
+            "example": [
+              {
+                "resource": "users",
+                "actions": [
+                  "r"
+                ]
+              }
+            ],
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "profile": {
+            "description": "Full profile information",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthProfileDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "phoneNumber"
+        ]
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {
@@ -2168,6 +3417,28 @@
             "type": "string",
             "example": "1234567890",
             "description": "User phone number"
+          },
+          "accessToken": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "description": "JWT access token"
+          },
+          "refreshToken": {
+            "type": "string",
+            "example": "dGhpc2lzYXJlZnJlc2h0b2tlbg==",
+            "description": "JWT refresh token"
+          },
+          "profile": {
+            "type": "object",
+            "description": "User profile information",
+            "example": {
+              "phoneNumber": "09123456789",
+              "nationalId": "1234567890",
+              "firstName": "John",
+              "lastName": "Doe",
+              "address": "123 Main St",
+              "walletId": "507f1f77bcf86cd799439011"
+            }
           }
         },
         "required": [
@@ -2248,47 +3519,22 @@
                 "actions": [
                   "r"
                 ]
+              },
+              {
+                "resource": "products",
+                "actions": [
+                  "c"
+                ],
+                "companyId": "507f1f77bcf86cd799439011"
               }
             ],
             "items": {
-              "type": "object",
-              "properties": {
-                "resource": {
-                  "type": "string",
-                  "enum": [
-                    "carts",
-                    "categories",
-                    "companies",
-                    "orders",
-                    "payment",
-                    "products",
-                    "roles",
-                    "ticketing",
-                    "transaction",
-                    "transporting",
-                    "users",
-                    "wallets",
-                    "all"
-                  ]
-                },
-                "actions": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "enum": [
-                      "r",
-                      "u",
-                      "c",
-                      "d",
-                      "m",
-                      "dc",
-                      "di",
-                      "du"
-                    ]
-                  }
-                }
-              }
+              "$ref": "#/components/schemas/PermissionDto"
             }
+          },
+          "companyId": {
+            "type": "string",
+            "description": "Company id to assign the user to (optional, used by admin signup)"
           }
         },
         "required": [
@@ -2296,92 +3542,54 @@
           "nationalId"
         ]
       },
-      "CreateProfileDto": {
+      "PermissionDto": {
         "type": "object",
         "properties": {
-          "phoneNumber": {
+          "resource": {
             "type": "string",
-            "description": "Iranian phone number of the user",
-            "example": "+989123456789"
+            "description": "Resource name for the permission",
+            "example": "carts"
           },
-          "nationalId": {
-            "type": "string",
-            "description": "National ID of the user",
-            "example": "1234567890"
+          "actions": {
+            "description": "Allowed actions for the resource",
+            "example": [
+              "r",
+              "m"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
-          "firstName": {
+          "companyId": {
             "type": "string",
-            "description": "First name of the user",
-            "example": "Ali"
-          },
-          "lastName": {
-            "type": "string",
-            "description": "Last name of the user",
-            "example": "Hosseini"
-          },
-          "address": {
-            "type": "string",
-            "description": "Address of the user",
-            "example": "Tehran, Valiasr St., No. 123"
-          },
-          "walletId": {
-            "type": "string",
-            "description": "Wallet ID associated with the user (optional)",
+            "description": "Optional company id to scope the permission",
             "example": "507f1f77bcf86cd799439011"
-          },
-          "orders": {
-            "description": "List of order IDs associated with the user",
-            "example": [
-              "507f1f77bcf86cd799439011",
-              "507f1f77bcf86cd799439012"
-            ],
-            "default": [],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "transactions": {
-            "description": "List of transaction IDs associated with the user",
-            "example": [
-              "507f1f77bcf86cd799439013",
-              "507f1f77bcf86cd799439014"
-            ],
-            "default": [],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "favorites": {
-            "description": "List of favorite product IDs",
-            "example": [
-              "507f1f77bcf86cd799439015",
-              "507f1f77bcf86cd799439016"
-            ],
-            "default": [],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "cart": {
-            "type": "string",
-            "description": "ObjectId of user’s shopping cart",
-            "example": "60f6c0c3d3b5e20017a0a3c2"
           }
         },
         "required": [
-          "phoneNumber",
-          "nationalId",
-          "firstName",
-          "lastName",
-          "address",
-          "orders",
-          "transactions",
-          "favorites",
-          "cart"
+          "resource",
+          "actions"
         ]
+      },
+      "UpdateUserPermissionsDto": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "description": "List of permissions to assign to the user",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PermissionDto"
+            }
+          }
+        },
+        "required": [
+          "permissions"
+        ]
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {}
       },
       "UpdateProfileDto": {
         "type": "object",
@@ -2396,32 +3604,36 @@
             "description": "National ID of the user",
             "example": "1234567890"
           },
+          "userId": {
+            "type": "string",
+            "description": "User's ID (ObjectId string). This links profile to the user.",
+            "example": "507f1f77bcf86cd799439011"
+          },
           "firstName": {
             "type": "string",
             "description": "First name of the user",
-            "example": "Ali"
+            "example": "Ali",
+            "default": ""
           },
           "lastName": {
             "type": "string",
             "description": "Last name of the user",
-            "example": "Hosseini"
+            "example": "Hosseini",
+            "default": ""
           },
           "address": {
             "type": "string",
             "description": "Address of the user",
             "example": "Tehran, Valiasr St., No. 123"
           },
-          "walletId": {
+          "email": {
             "type": "string",
-            "description": "Wallet ID associated with the user (optional)",
-            "example": "507f1f77bcf86cd799439011"
+            "description": "Email address of the user",
+            "example": "ali@example.com"
           },
           "orders": {
             "description": "List of order IDs associated with the user",
-            "example": [
-              "507f1f77bcf86cd799439011",
-              "507f1f77bcf86cd799439012"
-            ],
+            "example": [],
             "default": [],
             "type": "array",
             "items": {
@@ -2430,10 +3642,7 @@
           },
           "transactions": {
             "description": "List of transaction IDs associated with the user",
-            "example": [
-              "507f1f77bcf86cd799439013",
-              "507f1f77bcf86cd799439014"
-            ],
+            "example": [],
             "default": [],
             "type": "array",
             "items": {
@@ -2442,10 +3651,7 @@
           },
           "favorites": {
             "description": "List of favorite product IDs",
-            "example": [
-              "507f1f77bcf86cd799439015",
-              "507f1f77bcf86cd799439016"
-            ],
+            "example": [],
             "default": [],
             "type": "array",
             "items": {
@@ -2456,8 +3662,210 @@
             "type": "string",
             "description": "ObjectId of user’s shopping cart",
             "example": "60f6c0c3d3b5e20017a0a3c2"
+          },
+          "walletId": {
+            "type": "string",
+            "description": "Wallet ID for the profile",
+            "example": "60f6c0c3d3b5e20017a0a3c2"
+          },
+          "companyId": {
+            "type": "string",
+            "description": "Company id the user belongs to (optional)",
+            "example": "507f1f77bcf86cd799439011"
           }
         }
+      },
+      "ImageMetaDto": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "Original filename",
+            "example": "photo.jpg"
+          },
+          "contentType": {
+            "type": "string",
+            "description": "MIME content type",
+            "example": "image/jpeg"
+          },
+          "size": {
+            "type": "number",
+            "description": "File size in bytes",
+            "example": 34567
+          }
+        },
+        "required": [
+          "filename",
+          "contentType",
+          "size"
+        ]
+      },
+      "CreateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the company",
+            "example": "Tech Innovations Inc."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address of the company",
+            "example": "info@techinnovations.com"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number of the company",
+            "example": "+982123456789"
+          },
+          "registrationNumber": {
+            "type": "string",
+            "description": "Registration number of the company",
+            "example": "1234567890"
+          },
+          "address": {
+            "type": "string",
+            "description": "Address of the company",
+            "example": "Tehran, Iran"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Active status of the company",
+            "example": true
+          },
+          "image": {
+            "type": "string",
+            "description": "Company logo or image",
+            "format": "binary"
+          },
+          "imageMeta": {
+            "description": "File metadata to request presign url",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImageMetaDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "registrationNumber"
+        ]
+      },
+      "Company": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateCompanyDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the company",
+            "example": "507f1f77bcf86cd799439011"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "CreatePresignDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type of upload target",
+            "enum": [
+              "product",
+              "company"
+            ]
+          },
+          "files": {
+            "description": "Files to presign",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageMetaDto"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "files"
+        ]
+      },
+      "PresignItemDto": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "Original filename"
+          },
+          "contentType": {
+            "type": "string",
+            "description": "MIME content type"
+          },
+          "presignedUrl": {
+            "type": "string",
+            "description": "Presigned URL to upload the file"
+          },
+          "publicUrl": {
+            "type": "string",
+            "description": "Public URL to access the uploaded file"
+          }
+        },
+        "required": [
+          "filename",
+          "contentType",
+          "presignedUrl",
+          "publicUrl"
+        ]
+      },
+      "CreatePresignResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PresignItemDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Wallet": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreditWalletDto": {
+        "type": "object",
+        "properties": {
+          "ownerId": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the wallet owner",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Amount to credit to the wallet (in IRR)",
+            "example": 100000,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "ownerId",
+          "amount"
+        ]
+      },
+      "DebitWalletDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {}
       },
       "StockDto": {
         "type": "object",
@@ -2549,11 +3957,6 @@
             "example": 2000000,
             "minimum": 0
           },
-          "companyId": {
-            "type": "string",
-            "description": "MongoDB ObjectId of the supplier company",
-            "example": "507f1f77bcf86cd799439011"
-          },
           "categories": {
             "description": "List of category IDs",
             "example": [
@@ -2611,6 +4014,13 @@
               "$ref": "#/components/schemas/ImageDto"
             }
           },
+          "imagesMeta": {
+            "description": "Files metadata for presigning uploads",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageMetaDto"
+            }
+          },
           "comments": {
             "description": "User comments about the product",
             "example": [
@@ -2646,8 +4056,121 @@
           "slug",
           "sku",
           "basePrice",
-          "companyId",
           "stock"
+        ]
+      },
+      "ProductResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "basePrice": {
+            "type": "number"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "companyId": {
+            "type": "string"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "stock": {
+            "$ref": "#/components/schemas/StockDto"
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VariantDto"
+            }
+          },
+          "attributes": {
+            "type": "object"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageDto"
+            }
+          },
+          "comments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rating": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "draft",
+              "archived"
+            ]
+          },
+          "deletedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "finalPrice": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "sku",
+          "basePrice",
+          "companyId",
+          "categories",
+          "stock",
+          "status",
+          "createdBy",
+          "updatedBy",
+          "createdAt",
+          "updatedAt"
         ]
       },
       "UpdateProductDto": {
@@ -2661,6 +4184,49 @@
         },
         "required": [
           "id"
+        ]
+      },
+      "CountDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number",
+            "example": 42
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "TopProductDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sales": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "sales"
+        ]
+      },
+      "ExistsDto": {
+        "type": "object",
+        "properties": {
+          "exists": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "exists"
         ]
       },
       "CreateTicketDto": {
@@ -2709,11 +4275,107 @@
             "type": "string",
             "description": "ID of the user assigned to the ticket",
             "example": "507f1f77bcf86cd799439012"
+          },
+          "orderId": {
+            "type": "string",
+            "description": "Order id if this ticket is related to an order",
+            "example": "507f1f77bcf86cd799439099"
           }
         },
         "required": [
           "title",
           "description"
+        ]
+      },
+      "TicketResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Ticket id",
+            "example": "68d94bffebbe4333cc7f8f03"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the ticket"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the ticket"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the ticket",
+            "enum": [
+              "open",
+              "in_progress",
+              "resolved",
+              "closed",
+              "reopened",
+              "escalated"
+            ],
+            "example": "open"
+          },
+          "priority": {
+            "type": "string",
+            "description": "Priority of the ticket",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "urgent"
+            ],
+            "example": "low"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "ID of the user who created the ticket"
+          },
+          "assignedTo": {
+            "type": "string",
+            "description": "ID of the user assigned to the ticket"
+          },
+          "orderId": {
+            "type": "string",
+            "description": "Order id if this ticket is related to an order"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Created at timestamp"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Updated at timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "status",
+          "priority"
+        ]
+      },
+      "TicketStatusResponseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Current status of the ticket",
+            "enum": [
+              "open",
+              "in_progress",
+              "resolved",
+              "closed",
+              "reopened",
+              "escalated"
+            ]
+          }
+        },
+        "required": [
+          "status"
         ]
       },
       "UpdateTicketDto": {
@@ -2757,8 +4419,222 @@
             "type": "string",
             "description": "ID of the user assigned to the ticket",
             "example": "507f1f77bcf86cd799439012"
+          },
+          "orderId": {
+            "type": "string",
+            "description": "Order id if this ticket is related to an order",
+            "example": "507f1f77bcf86cd799439099"
           }
         }
+      },
+      "OrderItemDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the product",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "companyId": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the supplier company",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity of the product",
+            "example": 2,
+            "minimum": 1
+          },
+          "priceAtAdd": {
+            "type": "number",
+            "description": "Price of the product at the time of ordering (in IRR)",
+            "example": 2000000,
+            "minimum": 0
+          },
+          "variant": {
+            "type": "object",
+            "description": "Selected variant of the product (e.g., size, packaging)",
+            "example": {
+              "name": "Packaging",
+              "value": "50 kg"
+            }
+          }
+        },
+        "required": [
+          "productId",
+          "companyId",
+          "quantity",
+          "priceAtAdd"
+        ]
+      },
+      "CreateOrderDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the user",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "items": {
+            "description": "List of order items",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemDto"
+            }
+          },
+          "totalPrice": {
+            "type": "number",
+            "description": "Total price of the order (in IRR)",
+            "example": 1500000,
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the order",
+            "enum": [
+              "pending",
+              "paid",
+              "shipped",
+              "delivered",
+              "completed",
+              "refunded",
+              "failed"
+            ],
+            "example": "pending"
+          },
+          "shippingAddress": {
+            "type": "string",
+            "description": "Shipping address for the order",
+            "example": "123 Street, Tehran, Iran"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "description": "Payment method used for the order",
+            "example": "Credit Card"
+          },
+          "companyId": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the supplier company",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "transportId": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the transport record",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "ticketId": {
+            "type": "object",
+            "description": "Ticket id if user opened a ticket for this order",
+            "example": "507f1f77bcf86cd799439099"
+          }
+        },
+        "required": [
+          "userId",
+          "items",
+          "totalPrice",
+          "status",
+          "companyId"
+        ]
+      },
+      "Order": {
+        "type": "object",
+        "properties": {}
+      },
+      "Cart": {
+        "type": "object",
+        "properties": {}
+      },
+      "CartItemDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the product",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "companyId": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the supplier company",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantity of the product in the cart",
+            "example": 2,
+            "minimum": 1
+          },
+          "priceAtAdd": {
+            "type": "number",
+            "description": "Price of the product at the time of adding to cart (in IRR)",
+            "example": 2000000,
+            "minimum": 0
+          },
+          "variant": {
+            "type": "object",
+            "description": "Selected variant of the product (e.g., size, packaging)",
+            "example": {
+              "name": "Packaging",
+              "value": "50 kg"
+            }
+          }
+        },
+        "required": [
+          "productId",
+          "companyId",
+          "quantity",
+          "priceAtAdd"
+        ]
+      },
+      "CreateCartDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the user owning the cart",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "items": {
+            "description": "List of items in the cart",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItemDto"
+            }
+          },
+          "totalAmount": {
+            "type": "number",
+            "description": "Total amount of the cart (in IRR)",
+            "example": 4000000,
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the cart",
+            "enum": [
+              "active",
+              "abandoned",
+              "checked_out"
+            ],
+            "example": "active"
+          }
+        },
+        "required": [
+          "userId",
+          "items"
+        ]
+      },
+      "UpdateCartDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the cart",
+            "example": "507f1f77bcf86cd799439011"
+          }
+        },
+        "required": [
+          "id"
+        ]
       },
       "CreateTransportingDto": {
         "type": "object",
@@ -2821,220 +4697,6 @@
           "id"
         ]
       },
-      "Company": {
-        "type": "object",
-        "properties": {}
-      },
-      "OrderItemDto": {
-        "type": "object",
-        "properties": {
-          "productId": {
-            "type": "string",
-            "description": "MongoDB ObjectId of the product",
-            "example": "507f1f77bcf86cd799439011"
-          },
-          "quantity": {
-            "type": "number",
-            "description": "Quantity of the product",
-            "example": 2,
-            "minimum": 1
-          }
-        },
-        "required": [
-          "productId",
-          "quantity"
-        ]
-      },
-      "CreateOrderDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string",
-            "description": "MongoDB ObjectId of the user",
-            "example": "507f1f77bcf86cd799439011"
-          },
-          "items": {
-            "description": "List of order items",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/OrderItemDto"
-            }
-          },
-          "totalPrice": {
-            "type": "number",
-            "description": "Total price of the order (in IRR)",
-            "example": 1500000,
-            "minimum": 0
-          },
-          "status": {
-            "type": "string",
-            "description": "Status of the order",
-            "enum": [
-              "pending",
-              "paid",
-              "shipped",
-              "delivered",
-              "completed",
-              "refunded",
-              "canceled",
-              "failed"
-            ],
-            "example": "pending"
-          },
-          "shippingAddress": {
-            "type": "string",
-            "description": "Shipping address for the order",
-            "example": "123 Street, Tehran, Iran"
-          },
-          "paymentMethod": {
-            "type": "string",
-            "description": "Payment method used for the order",
-            "example": "Credit Card"
-          },
-          "companyId": {
-            "type": "string",
-            "description": "MongoDB ObjectId of the supplier company",
-            "example": "507f1f77bcf86cd799439011"
-          },
-          "transportId": {
-            "type": "string",
-            "description": "MongoDB ObjectId of the transport record",
-            "example": "507f1f77bcf86cd799439011"
-          }
-        },
-        "required": [
-          "userId",
-          "items",
-          "totalPrice",
-          "status",
-          "companyId"
-        ]
-      },
-      "Order": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateOrderDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "MongoDB ObjectId of the order",
-            "example": "507f1f77bcf86cd799439011"
-          }
-        },
-        "required": [
-          "id"
-        ]
-      },
-      "Cart": {
-        "type": "object",
-        "properties": {}
-      },
-      "CartItemDto": {
-        "type": "object",
-        "properties": {
-          "productId": {
-            "type": "string",
-            "description": "MongoDB ObjectId of the product",
-            "example": "507f1f77bcf86cd799439011"
-          },
-          "companyId": {
-            "type": "string",
-            "description": "MongoDB ObjectId of the supplier company",
-            "example": "507f1f77bcf86cd799439011"
-          },
-          "quantity": {
-            "type": "number",
-            "description": "Quantity of the product in the cart",
-            "example": 2,
-            "minimum": 1
-          },
-          "priceAtAdd": {
-            "type": "number",
-            "description": "Price of the product at the time of adding to cart (in IRR)",
-            "example": 2000000,
-            "minimum": 0
-          },
-          "variant": {
-            "type": "object",
-            "description": "Selected variant of the product (e.g., size, packaging)",
-            "example": {
-              "name": "Packaging",
-              "value": "50 kg"
-            }
-          },
-          "notes": {
-            "type": "string",
-            "description": "Additional notes for the cart item",
-            "example": "Urgent delivery required"
-          },
-          "discount": {
-            "type": "object",
-            "description": "Discount applied to the cart item",
-            "example": {
-              "type": "percentage",
-              "value": 10
-            }
-          }
-        },
-        "required": [
-          "productId",
-          "companyId",
-          "quantity",
-          "priceAtAdd"
-        ]
-      },
-      "CreateCartDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string",
-            "description": "MongoDB ObjectId of the user owning the cart",
-            "example": "507f1f77bcf86cd799439011"
-          },
-          "items": {
-            "description": "List of items in the cart",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CartItemDto"
-            }
-          },
-          "totalAmount": {
-            "type": "number",
-            "description": "Total amount of the cart (in IRR)",
-            "example": 4000000,
-            "minimum": 0
-          },
-          "status": {
-            "type": "string",
-            "description": "Status of the cart",
-            "enum": [
-              "active",
-              "abandoned",
-              "checked_out"
-            ],
-            "example": "active"
-          }
-        },
-        "required": [
-          "userId",
-          "items"
-        ]
-      },
-      "UpdateCartDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "MongoDB ObjectId of the cart",
-            "example": "507f1f77bcf86cd799439011"
-          }
-        },
-        "required": [
-          "id"
-        ]
-      },
       "InitiatePaymentDto": {
         "type": "object",
         "properties": {
@@ -3071,18 +4733,18 @@
       "InitiatePaymentResponseDto": {
         "type": "object",
         "properties": {
-          "authority": {
+          "trackId": {
             "type": "string",
-            "example": "A00000000000000000000000000123456789"
+            "example": "1533727744287"
           },
-          "redirectUrl": {
+          "paymentUrl": {
             "type": "string",
-            "example": "https://www.zibal.ir/pg/StartPay/A00000000000000000000000000123456789"
+            "example": "https://zibal.ir/pg/StartPay/1533727744287"
           }
         },
         "required": [
-          "authority",
-          "redirectUrl"
+          "trackId",
+          "paymentUrl"
         ]
       },
       "HandleCallbackResponseDto": {
@@ -3106,9 +4768,62 @@
           "data"
         ]
       },
+      "CreateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the category",
+            "example": "Cement"
+          },
+          "slug": {
+            "type": "string",
+            "description": "SEO-friendly unique slug for the category",
+            "example": "cement"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the category",
+            "example": "Category for various types of cement",
+            "maxLength": 500
+          },
+          "parentId": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the parent category",
+            "example": "507f1f77bcf86cd799439014"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the category",
+            "enum": [
+              "active",
+              "inactive",
+              "draft"
+            ],
+            "example": "draft"
+          }
+        },
+        "required": [
+          "name",
+          "slug"
+        ]
+      },
       "Category": {
         "type": "object",
         "properties": {}
+      },
+      "UpdateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "MongoDB ObjectId of the category",
+            "example": "507f1f77bcf86cd799439011"
+          }
+        },
+        "required": [
+          "id"
+        ]
       }
     }
   }

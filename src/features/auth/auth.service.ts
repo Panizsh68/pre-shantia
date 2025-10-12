@@ -155,7 +155,6 @@ export class AuthService {
           ]
           : [
             { resource: Resource.ORDERS, actions: [Action.CREATE, Action.READ] },
-            { resource: Resource.PRODUCTS, actions: [Action.READ] },
             { resource: Resource.RATINGS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
             { resource: Resource.TICKETING, actions: [Action.READ, Action.CREATE] },
             { resource: Resource.TRANSACTION, actions: [Action.READ] },
@@ -303,7 +302,6 @@ export class AuthService {
         ? user.permissions
         : [
           { resource: Resource.ORDERS, actions: [Action.CREATE, Action.READ] },
-          { resource: Resource.PRODUCTS, actions: [Action.READ] },
           { resource: Resource.RATINGS, actions: [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE] },
           { resource: Resource.TICKETING, actions: [Action.READ, Action.CREATE] },
           { resource: Resource.TRANSACTION, actions: [Action.READ] },
