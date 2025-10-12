@@ -18,8 +18,12 @@ export class PermissionsGuard implements CanActivate {
     const user = request.user;
 
     // allow guard to consider an optional companyId in the request body/query/params
-    const companyId = request.body?.companyId || request.params?.companyId || request.query?.companyId || undefined;
+    let companyId = request.body?.companyId || request.params?.companyId || request.query?.companyId || undefined;
 
+    if (!companyId && user?.permissions) {
+      const perm = user.permissions.find(p => p.resource === permissionMeta.resource && p.actions.includes(permissionMeta.action));
+      companyId = perm?.companyId;
+    }
     return this.permissionsService.hasPermission(user?.permissions, permissionMeta.resource, permissionMeta.action, companyId);
   }
 }
