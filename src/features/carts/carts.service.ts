@@ -19,8 +19,8 @@ export class CartsService implements ICartsService {
     @Inject('IProductsService') private readonly productsService: IProductService,
   ) { }
 
-  async getUserActiveCart(userId: string): Promise<ICart> {
-    return this.cartRepository.findActiveCartByUserId(userId);
+  async getUserActiveCart(userId: string, session?: any): Promise<ICart> {
+    return this.cartRepository.findActiveCartByUserId(userId, session);
   }
 
   async getPopulatedCartsForUserById(userId: string): Promise<Cart[]> {
@@ -78,7 +78,7 @@ export class CartsService implements ICartsService {
     }
     // verify the product exists and belongs to the companyId
     const product = await this.productsService.findOne(item.productId);
-    if (!product) {throw new NotFoundException(`Product with id ${item.productId} not found`);}
+    if (!product) { throw new NotFoundException(`Product with id ${item.productId} not found`); }
     if (product.companyId?.toString() !== item.companyId) {
       throw new BadRequestException('Product does not belong to the provided companyId');
     }

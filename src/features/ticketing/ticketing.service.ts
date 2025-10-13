@@ -96,7 +96,7 @@ export class TicketingService implements ITicketingService {
             tx,
           );
         }
-        await this.orderRepository.updateById(orderId, { ticketId: ticket.id }, tx);
+        await this.orderRepository.updateById(orderId, { ticketId: ticket.id.toString() }, tx);
         if (ticket) { await this.cacheService.set(`ticket:${ticket.id}`, ticket, 3000); }
         return ticket;
       });

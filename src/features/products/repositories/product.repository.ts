@@ -12,6 +12,7 @@ import {
 import { FindManyOptions, SortOption } from 'src/libs/repository/interfaces/base-repo-options.interface';
 
 export interface IProductRepository extends IBaseCrudRepository<Product>, IBaseAggregateRepository<Product>, IBaseTransactionRepository<Product> {
+  bulkDecrementStock(items: { productId: Types.ObjectId; qty: number }[], session?: ClientSession): Promise<number>;
   getTopProductsByRating(limit?: number, session?: ClientSession): Promise<TopProduct[]>;
   findByCompanyId(companyId: string | Types.ObjectId, options?: { page?: number; limit?: number; sort?: { field: string; order: 'asc' | 'desc' }[] }, session?: ClientSession): Promise<Product[]>;
   advancedSearchAggregate(
@@ -43,6 +44,28 @@ export interface IProductRepository extends IBaseCrudRepository<Product>, IBaseA
 
 @Injectable()
 export class ProductRepository extends BaseCrudRepository<Product> implements IProductRepository {
+  /**
+   * Atomically decrement stock for multiple products. Returns number of modified docs.
+   * @param items [{ productId, qty }]
+   * @param session
+   */
+  async bulkDecrementStock(
+    items: { productId: Types.ObjectId; qty: number }[],
+    session?: ClientSession
+  ): Promise<number> {
+    if (!items?.length) return 0;
+    const bulkOps = items.map(it => ({
+      updateOne: {
+        filter: {
+          _id: it.productId,
+          'stock.quantity': { $gte: it.qty },
+        },
+        update: { $inc: { 'stock.quantity': -it.qty } },
+      },
+    }));
+    const res = await (this.model as any).bulkWrite(bulkOps, { session });
+    return res.modifiedCount || 0;
+  }
   async getTopProductsByRating(limit = 5, session?: ClientSession): Promise<TopProduct[]> {
     const pipeline: PipelineStage[] = [
       { $match: { status: 'active' } },
@@ -237,7 +260,7 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
       return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
     const trimmedQuery = query.trim();
-    if (!trimmedQuery) {return [];}
+    if (!trimmedQuery) { return []; }
     const safeQuery = escapeRegExp(trimmedQuery);
     const regex = new RegExp(safeQuery, 'i');
     const skip = (page - 1) * perPage;

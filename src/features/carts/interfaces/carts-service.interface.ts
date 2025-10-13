@@ -6,7 +6,7 @@ import { CartSummary } from './cart-summary.interface';
 import { ClientSession } from 'mongoose';
 
 export interface ICartsService {
-  getUserActiveCart(userId: string): Promise<ICart>;
+  getUserActiveCart(userId: string, session?: any): Promise<ICart>;
   getPopulatedCartsForUserById(userId: string): Promise<Cart[]>;
   getPopulatedCartsForUser(userId: string): Promise<Cart[]>;
   getCartSummaryByUser(userId: string): Promise<CartSummary[]>;

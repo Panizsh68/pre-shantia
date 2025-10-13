@@ -11,7 +11,7 @@ export class Transaction extends Document {
   trackId?: string;
 
   // Local internal id used for correlation inside our system (UUID)
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   localId: string;
 
   @Prop({ required: true })
@@ -97,4 +97,4 @@ export const TransactionSchema = SchemaFactory.createForClass(Transaction);
 
 // Indexes for fast lookup
 TransactionSchema.index({ userId: 1 });
-TransactionSchema.index({ localId: 1 });
+TransactionSchema.index({ localId: 1 }, { unique: true });

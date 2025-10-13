@@ -3891,8 +3891,9 @@
           },
           "priceModifier": {
             "type": "number",
-            "description": "Price modifier for this option (in IRR)",
-            "example": 0
+            "description": "Price modifier for this option (in IRR). Cannot be negative.",
+            "example": 0,
+            "minimum": 0
           }
         },
         "required": [
@@ -3956,6 +3957,13 @@
             "description": "Base price of the product (in IRR)",
             "example": 2000000,
             "minimum": 0
+          },
+          "discount": {
+            "type": "number",
+            "description": "Discount percentage applied to the product (0-100)",
+            "example": 10,
+            "minimum": 0,
+            "maximum": 100
           },
           "categories": {
             "description": "List of category IDs",
@@ -4046,7 +4054,8 @@
               "active",
               "inactive",
               "draft",
-              "archived"
+              "archived",
+              "deleted"
             ],
             "example": "draft"
           }
@@ -4132,7 +4141,8 @@
               "active",
               "inactive",
               "draft",
-              "archived"
+              "archived",
+              "deleted"
             ]
           },
           "deletedAt": {
@@ -4173,18 +4183,32 @@
           "updatedAt"
         ]
       },
-      "UpdateProductDto": {
+      "UpdateStockDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "description": "MongoDB ObjectId of the product",
-            "example": "507f1f77bcf86cd799439011"
+          "quantity": {
+            "type": "number",
+            "description": "New quantity in stock",
+            "example": 500,
+            "minimum": 0
           }
         },
         "required": [
-          "id"
+          "quantity"
         ]
+      },
+      "UpdateProductDto": {
+        "type": "object",
+        "properties": {
+          "stock": {
+            "description": "Stock update information",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UpdateStockDto"
+              }
+            ]
+          }
+        }
       },
       "CountDto": {
         "type": "object",

@@ -39,11 +39,11 @@ describe('OrdersService (unit)', () => {
 
     const orderRepoPlain: Partial<IOrderRepository> = {
       startTransaction: jest.fn().mockResolvedValue({}),
-      createOne: jest.fn().mockImplementation((dto: Record<string, unknown>) => ({ ...dto, id: 'order_' + Math.random() })),
+      create: jest.fn().mockImplementation((order) => ({ ...order, id: 'order_' + Math.random() })),
       commitTransaction: jest.fn().mockResolvedValue(undefined),
       abortTransaction: jest.fn().mockResolvedValue(undefined),
     };
-    const orderRepositoryMock = orderRepoPlain as unknown as IOrderRepository;
+    const orderRepositoryMock = orderRepoPlain as IOrderRepository;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -91,7 +91,7 @@ describe('OrdersService (unit)', () => {
 
     // Ensure repository createOne was called for each company
     const repo = (service as any).orderRepository as IOrderRepository;
-    expect(repo.createOne).toHaveBeenCalledTimes(2);
+    expect(repo.create).toHaveBeenCalledTimes(2);
   });
 
   it('throws when cart is empty', async () => {

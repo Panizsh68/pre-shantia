@@ -6,6 +6,8 @@ import { RequestContextInterceptor } from './utils/interceptors/request-context.
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import express from 'express';
 import { ExpressAdapter } from '@nestjs/platform-express';
+import * as fs from 'fs';
+import * as path from 'path';
 
 async function bootstrap(): Promise<void> {
   const expressApp = express();
@@ -45,6 +47,14 @@ async function bootstrap(): Promise<void> {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+
+  // Save swagger.json in project root
+  const fs = require('fs');
+  const path = require('path');
+  const swaggerPath = path.join(__dirname, '..', 'swagger.json');
+  fs.writeFileSync(swaggerPath, JSON.stringify(document, null, 2), 'utf8');
+  console.log(`Swagger JSON file written to: ${swaggerPath}`);
+
   SwaggerModule.setup('docs', app, document);
 
   app.use(
