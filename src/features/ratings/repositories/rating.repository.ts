@@ -9,12 +9,12 @@ import { IBaseCrudRepository } from 'src/libs/repository/interfaces/base-repo.in
 
 export interface IRatingRepository extends IBaseCrudRepository<Rating> {
   upsertRating(userId: string, productId: string, rating: number, comment?: string, session?: ClientSession): Promise<Rating>;
-  findByProduct(productId: string): Promise<Rating[]>;
-  findByUserAndProduct(userId: string, productId: string): Promise<Rating | null>;
-  updateRating(userId: string, productId: string, rating: number, comment?: string): Promise<Rating | null>;
-  deleteRating(userId: string, productId: string): Promise<void>;
-  getAverageRating(productId: string): Promise<number>;
-  getRatingsCount(productId: string): Promise<number>;
+  findByProduct(productId: string, session?: ClientSession): Promise<Rating[]>;
+  findByUserAndProduct(userId: string, productId: string, session?: ClientSession): Promise<Rating | null>;
+  updateRating(userId: string, productId: string, rating: number, comment?: string, session?: ClientSession): Promise<Rating | null>;
+  deleteRating(userId: string, productId: string, session?: ClientSession): Promise<void>;
+  getAverageRating(productId: string, session?: ClientSession): Promise<number>;
+  getRatingsCount(productId: string, session?: ClientSession): Promise<number>;
 }
 
 @Injectable()
@@ -24,7 +24,7 @@ export class RatingRepository extends BaseCrudRepository<Rating> implements IRat
   }
 
   async upsertRating(userId: string, productId: string, rating: number, comment?: string, session?: ClientSession): Promise<Rating> {
-    const existing = await this.findOneByCondition({ userId, productId }, { session });
+    const existing = await this.findOneByCondition({ userId: toObjectId(userId), productId: toObjectId(productId) }, { session });
     if (existing) {
       existing.rating = rating;
       if (comment !== undefined) { existing.comment = comment; }
@@ -35,20 +35,20 @@ export class RatingRepository extends BaseCrudRepository<Rating> implements IRat
     return created;
   }
 
-  async findByProduct(productId: string): Promise<Rating[]> {
-    return this.findManyByCondition({ productId: toObjectId(productId) });
+  async findByProduct(productId: string, session?: ClientSession): Promise<Rating[]> {
+    return this.findManyByCondition({ productId: toObjectId(productId) }, { session });
   }
 
-  async findByUserAndProduct(userId: string, productId: string): Promise<Rating | null> {
-    return this.findOneByCondition({ userId: toObjectId(userId), productId: toObjectId(productId) });
+  async findByUserAndProduct(userId: string, productId: string, session?: ClientSession): Promise<Rating | null> {
+    return this.findOneByCondition({ userId: toObjectId(userId), productId: toObjectId(productId) }, { session });
   }
 
-  async updateRating(userId: string, productId: string, rating: number, comment?: string): Promise<Rating | null> {
+  async updateRating(userId: string, productId: string, rating: number, comment?: string, session?: ClientSession): Promise<Rating | null> {
     try {
       const updated = await this.updateOneByCondition(
         { userId: toObjectId(userId), productId: toObjectId(productId) } as any,
         { $set: { rating, ...(comment !== undefined ? { comment } : {}) } },
-        { new: true },
+        { new: true, session },
       );
       return updated;
     } catch (err) {
@@ -56,11 +56,11 @@ export class RatingRepository extends BaseCrudRepository<Rating> implements IRat
     }
   }
 
-  async deleteRating(userId: string, productId: string): Promise<void> {
-    await this.deleteOneByCondition({ userId: toObjectId(userId), productId: toObjectId(productId) });
+  async deleteRating(userId: string, productId: string, session?: ClientSession): Promise<void> {
+    await this.deleteOneByCondition({ userId: toObjectId(userId), productId: toObjectId(productId) }, session);
   }
 
-  async getAverageRating(productId: string): Promise<number> {
+  async getAverageRating(productId: string, session?: ClientSession): Promise<number> {
     const result = await this.model.aggregate([
       { $match: { productId: toObjectId(productId) } },
       { $group: { _id: null, avg: { $avg: '$rating' } } }
@@ -68,7 +68,7 @@ export class RatingRepository extends BaseCrudRepository<Rating> implements IRat
     return result[0]?.avg ?? 0;
   }
 
-  async getRatingsCount(productId: string): Promise<number> {
-    return this.countByCondition({ productId });
+  async getRatingsCount(productId: string, session?: ClientSession): Promise<number> {
+    return this.countByCondition({ productId: toObjectId(productId) }, session);
   }
 }

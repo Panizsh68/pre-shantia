@@ -1,4 +1,5 @@
 import { Inject, Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { IMAGE_UPLOAD_TOKEN, DEFAULTS } from './constants/image-upload.constants';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -11,9 +12,13 @@ export class ImageUploadService {
   private bucket: string;
   private publicBaseUrl?: string;
 
-  constructor(@Inject(IMAGE_UPLOAD_TOKEN.S3_CLIENT) private readonly s3: S3Client | null) {
-    this.bucket = process.env.R2_BUCKET || process.env.CLOUDFLARE_R2_BUCKET || '';
-    this.publicBaseUrl = process.env.R2_PUBLIC_BASE_URL || process.env.CLOUDFLARE_R2_PUBLIC_BASE_URL;
+  constructor(
+    @Inject(IMAGE_UPLOAD_TOKEN.S3_CLIENT) private readonly s3: S3Client | null,
+    private readonly configService: ConfigService,
+  ) {
+    const r2Config = this.configService.get('config.r2');
+    this.bucket = r2Config?.bucket || '';
+    this.publicBaseUrl = r2Config?.publicBaseUrl;
     // do not throw here to allow app to boot in non-R2 environments; validate when used
   }
 
@@ -72,9 +77,9 @@ export class ImageUploadService {
     const endpointCandidate = (s3.config && (s3.config as any).endpoint) || undefined;
     let endpoint = '';
     if (endpointCandidate) {
-      if (typeof endpointCandidate === 'string') {endpoint = endpointCandidate;}
-      else if (typeof endpointCandidate === 'object' && (endpointCandidate as any).href) {endpoint = (endpointCandidate as any).href;}
-      else {endpoint = String(endpointCandidate);}
+      if (typeof endpointCandidate === 'string') { endpoint = endpointCandidate; }
+      else if (typeof endpointCandidate === 'object' && (endpointCandidate as any).href) { endpoint = (endpointCandidate as any).href; }
+      else { endpoint = String(endpointCandidate); }
     }
     if (endpoint) {
       // try to craft URL: endpoint/bucket/key

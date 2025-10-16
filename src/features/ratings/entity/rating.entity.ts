@@ -17,3 +17,6 @@ export class Rating extends Document {
 }
 
 export const RatingSchema = SchemaFactory.createForClass(Rating);
+// Ensure one rating per user per product and index for product lookups
+RatingSchema.index({ productId: 1, userId: 1 }, { unique: true });
+RatingSchema.index({ productId: 1 });

@@ -382,10 +382,17 @@ export class ProductsService implements IProductService {
     // eslint-disable-next-line no-console
     console.log('[ProductsService.getTopProductsByRating] entry limit=', limit);
     try {
-      const result = await this.repo.getTopProductsByRating(limit, session);
+      const raw = await this.repo.getTopProductsByRating(limit, session);
+      // raw items come from aggregation with fields: _id, name, avgRating, company?
+      const mapped: TopProduct[] = (raw || []).map((it: any) => ({
+        id: String(it._id ?? it.id ?? ''),
+        name: it.name ?? '',
+        avgRating: typeof it.avgRating === 'number' ? it.avgRating : 0,
+        company: it.company ? { id: String(it.company._id ?? it.company.id ?? ''), name: it.company.name } : undefined,
+      }));
       // eslint-disable-next-line no-console
-      console.log('[ProductsService.getTopProductsByRating] success count=', Array.isArray(result) ? result.length : 0);
-      return result;
+      console.log('[ProductsService.getTopProductsByRating] success count=', mapped.length);
+      return mapped;
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[ProductsService.getTopProductsByRating] error', err);

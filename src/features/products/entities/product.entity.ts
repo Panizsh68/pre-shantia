@@ -114,6 +114,24 @@ export class Product extends Document {
   @Prop({ min: 1, max: 5 })
   rating?: number;
 
+  // Denormalized rating fields for fast reads and atomic updates
+  @Prop({ type: Number, default: 0 })
+  avgRate?: number;
+
+  @Prop({ type: Number, default: 0 })
+  totalRatings?: number;
+
+  @Prop({ type: Object, default: {} })
+  ratingsSummary?: Record<number, number>; // counts per rating value (1..5)
+
+  @Prop([{
+    userId: { type: Types.ObjectId, ref: 'User' },
+    rating: { type: Number },
+    comment: { type: String },
+    createdAt: { type: Date },
+  }])
+  denormComments?: { userId?: Types.ObjectId; rating?: number; comment?: string; createdAt?: Date }[];
+
   @Prop({ enum: ProductStatus, type: String, default: ProductStatus.ACTIVE })
   status: ProductStatus;
 

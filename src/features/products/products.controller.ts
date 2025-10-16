@@ -320,6 +320,34 @@ export class ProductsController {
     }
   }
 
+
+
+  @Get('top-sales')
+  @ApiOperation({ summary: 'Get top-selling products' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 5 })
+  @ApiResponse({ status: 200, description: 'Top products returned', type: [TopProductDto] })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  getTopProducts(@Query('limit') limit?: string) {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.getTopProducts] entry limit=', limit);
+    const lim = limit ? parseInt(limit, 10) : 5;
+    if (isNaN(lim) || lim < 1) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.getTopProducts] bad request invalid limit=', limit);
+      throw new BadRequestException('Limit must be a positive integer');
+    }
+    try {
+      const result = this.productsService.getTopProductsByRating(lim);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.getTopProducts] forwarded to service limit=', lim);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.getTopProducts] error', err);
+      throw err;
+    }
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get product by ID' })
   @ApiParam({ name: 'id', type: String, description: 'Product ID' })
@@ -417,31 +445,8 @@ export class ProductsController {
     }
   }
 
-  @Get('top-sales')
-  @ApiOperation({ summary: 'Get top-selling products' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, example: 5 })
-  @ApiResponse({ status: 200, description: 'Top products returned', type: [TopProductDto] })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  getTopProducts(@Query('limit') limit?: string) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.getTopProducts] entry limit=', limit);
-    const lim = limit ? parseInt(limit, 10) : 5;
-    if (isNaN(lim) || lim < 1) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.getTopProducts] bad request invalid limit=', limit);
-      throw new BadRequestException('Limit must be a positive integer');
-    }
-    try {
-      const result = this.productsService.getTopProductsByRating(lim);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.getTopProducts] forwarded to service limit=', lim);
-      return result;
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.getTopProducts] error', err);
-      throw err;
-    }
-  }
+
+
 
   @Get('exists/name/:name')
   @ApiOperation({ summary: 'Check if a product exists by name' })

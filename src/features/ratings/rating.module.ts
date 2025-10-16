@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
+import { ProductsModule } from 'src/features/products/products.module';
 import { getModelToken } from '@nestjs/mongoose';
 import { Rating, RatingSchema } from './entity/rating.entity';
 import { RatingController } from './rating.controller';
@@ -8,7 +9,11 @@ import { RatingService } from './rating.service';
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
 
 @Module({
-  imports: [GenericRepositoryModule.forFeature<Rating>(Rating.name, Rating, RatingSchema), forwardRef(() => PermissionsModule)],
+  imports: [
+    GenericRepositoryModule.forFeature<Rating>(Rating.name, Rating, RatingSchema),
+    forwardRef(() => PermissionsModule),
+    forwardRef(() => ProductsModule), // Add ProductsModule to provide ProductRepository
+  ],
   controllers: [RatingController],
   providers: [
     {
@@ -23,6 +28,6 @@ import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.
       useClass: RatingService,
     },
   ],
-  exports: ['IRatingService', 'RatingRepository'],
+  exports: ['IRatingService', 'RatingRepository']
 })
 export class RatingModule { }

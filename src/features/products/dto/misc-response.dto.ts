@@ -11,12 +11,12 @@ export class ExistsDto {
 }
 
 export class TopProductDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Product id' })
   id: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Product name' })
   name: string;
 
-  @ApiProperty()
-  sales: number;
+  @ApiProperty({ description: 'Average rating for the product' })
+  avgRating: number;
 }

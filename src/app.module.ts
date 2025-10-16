@@ -26,6 +26,7 @@ import { SchedulerModule } from './features/scheduler/scheduler.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CachingModule } from './infrastructure/caching/caching.module';
 import { RequestContextInterceptor } from './utils/interceptors/request-context.interceptor';
+import { RatingModule } from './features/ratings/rating.module';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { RequestContextInterceptor } from './utils/interceptors/request-context.
     CategoriesModule,
     ZibalModule,
     ImageUploadModule,
+    RatingModule
   ],
   controllers: [AppController, HealthController],
   providers: [

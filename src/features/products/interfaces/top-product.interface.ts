@@ -1,9 +1,9 @@
 export interface TopProduct {
-  _id: string;
+  id: string;
   name: string;
-  sales: number;
+  avgRating: number;
   company?: {
-    _id: string;
+    id: string;
     name: string;
   };
 }

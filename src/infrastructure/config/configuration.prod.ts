@@ -6,7 +6,7 @@ function parseNumber(val: string | undefined, fallback: number): number {
 }
 
 function parseBoolean(val: string | undefined, fallback: boolean): boolean {
-  if (val === undefined) {return fallback;}
+  if (val === undefined) { return fallback; }
   return val.toLowerCase() === 'true';
 }
 
@@ -42,4 +42,11 @@ export default registerAs('config', () => ({
     phone: process.env.SUPERADMIN_PHONE || '',
   },
   nodeEnv: process.env.NODE_ENV || 'production',
+  r2: {
+    endpoint: process.env.R2_ENDPOINT || '',
+    accessKey: process.env.R2_ACCESS_KEY || '',
+    secretKey: process.env.R2_SECRET_KEY || '',
+    bucket: process.env.R2_BUCKET || '',
+    publicBaseUrl: process.env.R2_PUBLIC_BASE_URL || '',
+  },
 }));
