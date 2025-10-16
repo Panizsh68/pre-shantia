@@ -756,6 +756,46 @@
         ]
       }
     },
+    "/api/companies/{id}/status": {
+      "patch": {
+        "operationId": "CompaniesController_changeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Company ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeCompanyStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change company's status",
+        "tags": [
+          "Companies"
+        ]
+      }
+    },
     "/api/companies/exists/name/{name}": {
       "get": {
         "operationId": "CompaniesController_existsByName",
@@ -4044,15 +4084,11 @@
             "description": "Address of the company",
             "example": "Tehran, Iran"
           },
-          "isActive": {
-            "type": "boolean",
-            "description": "Active status of the company",
-            "example": true
-          },
           "image": {
             "type": "string",
-            "description": "Company logo or image",
-            "format": "binary"
+            "description": "Active status of the company",
+            "format": "binary",
+            "example": true
           },
           "imageMeta": {
             "description": "File metadata to request presign url",
@@ -4061,6 +4097,11 @@
                 "$ref": "#/components/schemas/ImageMetaDto"
               }
             ]
+          },
+          "nationalId": {
+            "type": "string",
+            "description": "National ID (company national identifier)",
+            "example": "0123456789"
           }
         },
         "required": [
@@ -4084,6 +4125,23 @@
         },
         "required": [
           "id"
+        ]
+      },
+      "ChangeCompanyStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "active",
+              "suspended",
+              "rejected"
+            ]
+          }
+        },
+        "required": [
+          "status"
         ]
       },
       "CreatePresignDto": {

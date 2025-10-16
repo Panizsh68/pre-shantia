@@ -3,6 +3,7 @@ import { ICompanyRepository } from './repositories/company.repository';
 import { Company } from './entities/company.entity';
 import { ICompany } from './interfaces/company.interface';
 import { ICompanyService } from './interfaces/company.service.interface';
+import { CompanyStatus } from './enums/status.enum';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
@@ -29,6 +30,7 @@ export class CompaniesService implements ICompanyService {
       ...createCompanyDto,
       createdBy: new Types.ObjectId(userId),
       updatedBy: new Types.ObjectId(userId),
+      status: CompanyStatus.PENDING,
     };
 
     // Integration: if frontend provides image metadata to be presigned, request presigns and persist public URL
@@ -46,15 +48,40 @@ export class CompaniesService implements ICompanyService {
     return toPlain<ICompany>(companyDoc);
   }
 
+  async changeStatus(id: string, status: CompanyStatus, userId: string): Promise<ICompany> {
+    const existing = await this.companyRepository.findById(id);
+    if (!existing) { throw new NotFoundException(`Company with id ${id} not found`); }
+    // only creator can change status (business rule) — keep existing authorization
+    if (existing.createdBy.toString() !== userId) {
+      throw new ForbiddenException('You do not have permission to change company status');
+    }
+    const data: Partial<Company> = { status, updatedBy: new Types.ObjectId(userId) };
+    const updated = await this.companyRepository.updateById(id, data);
+    return toPlain<ICompany>(updated);
+  }
+
+  /**
+   * Add a user id to company's admins array if not already present
+   */
+  async addAdminToCompany(companyId: string, adminUserId: string): Promise<void> {
+    const company = await this.companyRepository.findById(companyId);
+    if (!company) { throw new NotFoundException(`Company with id ${companyId} not found`); }
+    const adminObjectId = new Types.ObjectId(adminUserId);
+    const currentAdmins = Array.isArray(company.admins) ? company.admins.map(a => a.toString()) : [];
+    if (!currentAdmins.includes(adminUserId)) {
+      company.admins = [...(company.admins || []), adminObjectId];
+      await this.companyRepository.updateById(companyId, { admins: company.admins });
+    }
+  }
+
   async update(
     id: string,
     updateCompanyDto: UpdateCompanyDto,
     userId: string,
   ): Promise<ICompany> {
     const existing = await this.companyRepository.findById(id);
-    if (!existing) {throw new NotFoundException(`Company with id ${id} not found`);}
-    if (existing.createdBy.toString() !== userId)
-      {throw new ForbiddenException('You do not have permission to update this company');}
+    if (!existing) { throw new NotFoundException(`Company with id ${id} not found`); }
+    if (existing.createdBy.toString() !== userId) { throw new ForbiddenException('You do not have permission to update this company'); }
     const data: Partial<Company> = {
       ...updateCompanyDto,
       updatedBy: new Types.ObjectId(userId),
@@ -65,15 +92,14 @@ export class CompaniesService implements ICompanyService {
 
   async remove(id: string, userId: string): Promise<void> {
     const existing = await this.companyRepository.findById(id);
-    if (!existing) {throw new NotFoundException(`Company with id ${id} not found`);}
-    if (existing.createdBy.toString() !== userId)
-      {throw new ForbiddenException('You do not have permission to delete this company');}
+    if (!existing) { throw new NotFoundException(`Company with id ${id} not found`); }
+    if (existing.createdBy.toString() !== userId) { throw new ForbiddenException('You do not have permission to delete this company'); }
     await this.companyRepository.deleteById(id);
   }
 
   async findOne(id: string): Promise<ICompany> {
     const companyDoc = await this.companyRepository.findById(id);
-    if (!companyDoc) {throw new NotFoundException(`Company with id ${id} not found`);}
+    if (!companyDoc) { throw new NotFoundException(`Company with id ${id} not found`); }
     return toPlain<ICompany>(companyDoc);
   }
 

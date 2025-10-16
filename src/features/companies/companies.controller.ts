@@ -31,6 +31,8 @@ import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { CreateCompanyDto } from './dto/create-company.dto';
+import { ChangeCompanyStatusDto } from './dto/change-company-status.dto';
+import { CompanyStatus } from './enums/status.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { TokenPayload } from '../auth/interfaces/token-payload.interface';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
@@ -80,6 +82,21 @@ export class CompaniesController {
     @CurrentUser() user: TokenPayload,
   ) {
     return this.companiesService.update(id, updateCompanyDto, user.userId);
+  }
+
+  @Patch(':id/status')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.COMPANIES, Action.UPDATE)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Change company's status" })
+  @ApiParam({ name: 'id', type: String, description: 'Company ID' })
+  @ApiBody({ type: ChangeCompanyStatusDto })
+  async changeStatus(
+    @Param('id') id: string,
+    @Body() body: ChangeCompanyStatusDto,
+    @CurrentUser() user: TokenPayload,
+  ) {
+    return this.companiesService.changeStatus(id, body.status as CompanyStatus, user.userId);
   }
 
   @Delete(':id')

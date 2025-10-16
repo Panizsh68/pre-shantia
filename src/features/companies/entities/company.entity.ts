@@ -18,8 +18,8 @@ export class Company extends Document {
   @Prop({ required: true, unique: true })
   registrationNumber: string;
 
-  @Prop({ default: true })
-  isActive: boolean;
+  @Prop({ enum: ['pending', 'active', 'suspended', 'rejected'], default: 'pending' })
+  status: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   createdBy: Types.ObjectId;
@@ -29,6 +29,9 @@ export class Company extends Document {
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
   admins?: Types.ObjectId[];
+
+  @Prop()
+  nationalId?: string;
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

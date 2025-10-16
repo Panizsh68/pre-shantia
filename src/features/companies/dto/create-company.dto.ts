@@ -54,8 +54,8 @@ export class CreateCompanyDto {
     description: 'Active status of the company',
     example: true,
   })
-  @IsOptional()
-  isActive?: boolean;
+  // status is managed by the system; created companies default to 'pending'
+  // clients should not set status on create
 
   @ApiPropertyOptional({
     description: 'Company logo or image',
@@ -68,4 +68,12 @@ export class CreateCompanyDto {
   @ApiPropertyOptional({ description: 'File metadata to request presign url', type: ImageMetaDto })
   @IsOptional()
   imageMeta?: ImageMetaDto;
+
+  @ApiPropertyOptional({
+    description: 'National ID (company national identifier)',
+    example: '0123456789',
+  })
+  @IsOptional()
+  @IsIdentityCard('IR')
+  nationalId?: string;
 }

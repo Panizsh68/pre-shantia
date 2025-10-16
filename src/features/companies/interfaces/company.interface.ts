@@ -6,9 +6,11 @@ export interface ICompany {
   phone?: string;
   email: string;
   registrationNumber: string;
-  isActive: boolean;
+  status: string;
+  nationalId?: string;
   createdAt?: Date;
   updatedAt?: Date;
   createdBy: Types.ObjectId;
   updatedBy: Types.ObjectId;
+  admins?: Types.ObjectId[];
 }
