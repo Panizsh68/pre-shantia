@@ -4403,24 +4403,6 @@
               "$ref": "#/components/schemas/ImageMetaDto"
             }
           },
-          "comments": {
-            "description": "User comments about the product",
-            "example": [
-              "Great quality!",
-              "Fast delivery"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "rating": {
-            "type": "number",
-            "description": "Average rating of the product (1 to 5)",
-            "example": 4.5,
-            "minimum": 1,
-            "maximum": 5
-          },
           "status": {
             "type": "string",
             "description": "Status of the product",
@@ -4499,15 +4481,6 @@
             "items": {
               "$ref": "#/components/schemas/ImageDto"
             }
-          },
-          "comments": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "rating": {
-            "type": "number"
           },
           "status": {
             "type": "string",
@@ -4603,6 +4576,18 @@
                 "$ref": "#/components/schemas/UpdateStockDto"
               }
             ]
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of the product",
+            "enum": [
+              "active",
+              "inactive",
+              "draft",
+              "archived",
+              "deleted"
+            ],
+            "example": "active"
           }
         }
       },

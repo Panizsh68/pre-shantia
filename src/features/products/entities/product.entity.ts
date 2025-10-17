@@ -108,12 +108,6 @@ export class Product extends Document {
   @Prop([String])
   tags?: string[];
 
-  @Prop([String])
-  comments?: string[];
-
-  @Prop({ min: 1, max: 5 })
-  rating?: number;
-
   // Denormalized rating fields for fast reads and atomic updates
   @Prop({ type: Number, default: 0 })
   avgRate?: number;

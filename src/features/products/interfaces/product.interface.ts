@@ -14,8 +14,6 @@ export interface IProduct {
   attributes?: Record<string, string>;
   images: { url: string }[];
   tags?: string[];
-  comments?: string[];
-  rating?: number;
   status: ProductStatus;
   deletedAt?: Date;
   finalPrice?: number;

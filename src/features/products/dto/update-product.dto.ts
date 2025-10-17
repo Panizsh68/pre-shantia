@@ -9,9 +9,11 @@ import {
   ValidateNested,
   IsMongoId,
   Min,
-  Max
+  Max,
+  IsEnum
 } from 'class-validator';
 import { CreateProductDto } from './create-product.dto';
+import { ProductStatus } from '../enums/product-status.enum';
 
 // Stock validation for update
 class UpdateStockDto {
@@ -40,4 +42,13 @@ export class UpdateProductDto extends PartialType(
   @ValidateNested()
   @Type(() => UpdateStockDto)
   stock?: UpdateStockDto;
+
+  @ApiPropertyOptional({
+    description: 'Status of the product',
+    enum: ProductStatus,
+    example: ProductStatus.ACTIVE,
+  })
+  @IsEnum(ProductStatus)
+  @IsOptional()
+  status?: ProductStatus;
 }

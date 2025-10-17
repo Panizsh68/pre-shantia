@@ -4,6 +4,7 @@ import { Inject } from '@nestjs/common';
 import { toPlain, toPlainArray } from 'src/libs/repository/utils/doc-mapper';
 import { IRatingRepository } from './repositories/rating.repository';
 import { IProductRepository } from 'src/features/products/repositories/product.repository';
+import { IProductRatingService } from 'src/features/products/interfaces/product-rating.service.interface';
 import { runInTransaction } from 'src/libs/repository/run-in-transaction';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { IRatingService } from './interfaces/rating.service.interface';
@@ -17,6 +18,8 @@ export class RatingService implements IRatingService {
     private readonly repo: IRatingRepository,
     @Inject('ProductRepository')
     private readonly productRepo: IProductRepository,
+    @Inject('IProductRatingService')
+    private readonly productRatingService: IProductRatingService,
   ) { }
 
   /**
@@ -37,13 +40,8 @@ export class RatingService implements IRatingService {
       const product = await this.productRepo.findById(dto.productId, { session });
       if (!product) throw new NotFoundException('Product not found');
 
-      // normalize denorm storage
-      const oldAvg = Number(product.avgRate ?? 0);
-      const oldCount = Number(product.totalRatings ?? 0);
-      const ratingsSummary: Record<string, number> = Object.assign({}, product.ratingsSummary ?? {});
-      // ensure keys 1..5 exist to avoid undefined
-      for (let r = 1; r <= 5; r++) ratingsSummary[String(r)] = Number(ratingsSummary[String(r)] ?? 0);
-      const denormComments = Array.isArray(product.denormComments) ? [...product.denormComments] : [];
+      let stats = await this.productRatingService.getProductRatingStats(dto.productId);
+      const { avgRate: oldAvg, totalRatings: oldCount, ratingsSummary } = stats;
 
       if (existing) {
         // UPDATE
@@ -54,23 +52,25 @@ export class RatingService implements IRatingService {
           // update rating doc inside session
           const updatedRating = await this.repo.updateRating(userId, dto.productId, dto.rating, dto.comment, session);
 
-          // compute new average (incremental) and round to 2 decimals
+          // compute new stats
           const newAvgUnrounded = oldCount > 0 ? ((oldAvg * oldCount - oldRate + dto.rating) / oldCount) : dto.rating;
           const newAvg = Math.round(newAvgUnrounded * 100) / 100;
 
-          // update summary
-          ratingsSummary[String(oldRate)] = Math.max(0, (ratingsSummary[String(oldRate)] ?? 1) - 1);
-          ratingsSummary[String(dto.rating)] = (ratingsSummary[String(dto.rating)] ?? 0) + 1;
+          // update summary counts
+          const newSummary = { ...ratingsSummary };
+          newSummary[String(oldRate)] = Math.max(0, (newSummary[String(oldRate)] ?? 1) - 1);
+          newSummary[String(dto.rating)] = (newSummary[String(dto.rating)] ?? 0) + 1;
 
-          // update denormComments if comment provided
+          // update via rating service
+          await this.productRatingService.updateProductRatingStats(dto.productId, {
+            avgRate: newAvg,
+            ratingsSummary: newSummary
+          });
+
+          // if comment changed, recalculate all stats to ensure consistency
           if (dto.comment !== undefined) {
-            const idx = denormComments.findIndex(c => String(c.userId) === String(userId));
-            const commentObj = { userId: toObjectId(userId), rating: dto.rating, comment: dto.comment, createdAt: new Date() };
-            if (idx >= 0) denormComments[idx] = commentObj as any; else denormComments.push(commentObj as any);
+            await this.productRatingService.recalculateProductRatings(dto.productId);
           }
-
-          // persist product denorm fields
-          await this.productRepo.updateById(dto.productId, { $set: { avgRate: newAvg, ratingsSummary, denormComments } } as any, session);
 
           return toPlain<IRating>(updatedRating as any);
         }
@@ -78,10 +78,7 @@ export class RatingService implements IRatingService {
         // rating value unchanged -> possibly update comment only
         if (dto.comment !== undefined && dto.comment !== existing.comment) {
           const updatedRating = await this.repo.updateRating(userId, dto.productId, dto.rating, dto.comment, session);
-          const idx = denormComments.findIndex(c => String(c.userId) === String(userId));
-          const commentObj = { userId: toObjectId(userId), rating: dto.rating, comment: dto.comment, createdAt: new Date() };
-          if (idx >= 0) denormComments[idx] = commentObj as any; else denormComments.push(commentObj as any);
-          await this.productRepo.updateById(dto.productId, { $set: { denormComments } } as any, session);
+          await this.productRatingService.recalculateProductRatings(dto.productId);
           return toPlain<IRating>(updatedRating as any);
         }
 
@@ -102,17 +99,25 @@ export class RatingService implements IRatingService {
         throw err;
       }
 
+      // Calculate new stats
       const newCount = oldCount + 1;
       const newAvgUnrounded = oldCount === 0 ? dto.rating : ((oldAvg * oldCount + dto.rating) / newCount);
       const newAvg = Math.round(newAvgUnrounded * 100) / 100;
 
-      ratingsSummary[String(dto.rating)] = (ratingsSummary[String(dto.rating)] ?? 0) + 1;
-      if (dto.comment) {
-        const commentObj = { userId: toObjectId(userId), rating: dto.rating, comment: dto.comment, createdAt: new Date() };
-        denormComments.push(commentObj as any);
-      }
+      const newSummary = { ...ratingsSummary };
+      newSummary[String(dto.rating)] = (newSummary[String(dto.rating)] ?? 0) + 1;
 
-      await this.productRepo.updateById(dto.productId, { $set: { avgRate: newAvg, ratingsSummary, denormComments }, $inc: { totalRatings: 1 } } as any, session);
+      // Update stats via rating service
+      await this.productRatingService.updateProductRatingStats(dto.productId, {
+        avgRate: newAvg,
+        totalRatings: newCount,
+        ratingsSummary: newSummary
+      });
+
+      // If comment provided, recalculate to ensure consistency
+      if (dto.comment) {
+        await this.productRatingService.recalculateProductRatings(dto.productId);
+      }
 
       return toPlain<IRating>(createdRating as any);
     });

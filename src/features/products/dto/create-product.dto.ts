@@ -199,27 +199,6 @@ export class CreateProductDto {
   imagesMeta?: ImageMetaDto[];
 
   @ApiPropertyOptional({
-    description: 'User comments about the product',
-    example: ['Great quality!', 'Fast delivery'],
-  })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  comments?: string[];
-
-  @ApiPropertyOptional({
-    description: 'Average rating of the product (1 to 5)',
-    example: 4.5,
-    minimum: 1,
-    maximum: 5,
-  })
-  @IsNumber()
-  @IsOptional()
-  @Min(1)
-  @Max(5)
-  rating?: number;
-
-  @ApiPropertyOptional({
     description: 'Status of the product',
     enum: ProductStatus,
     example: ProductStatus.DRAFT,

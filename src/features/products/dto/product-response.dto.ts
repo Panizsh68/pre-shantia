@@ -70,12 +70,6 @@ export class ProductResponseDto {
   @ApiPropertyOptional({ type: [ImageDto] })
   images?: ImageDto[];
 
-  @ApiPropertyOptional({ type: [String] })
-  comments?: string[];
-
-  @ApiPropertyOptional()
-  rating?: number;
-
   @ApiProperty({ enum: ProductStatus })
   status: ProductStatus;
 

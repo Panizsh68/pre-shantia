@@ -12,6 +12,8 @@ import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Product, ProductSchema } from './entities/product.entity';
 import { Model } from 'mongoose';
 import { IProductRepository, ProductRepository } from './repositories/product.repository';
+import { ProductRatingRepository } from './repositories/product-rating.repository';
+import { ProductRatingService } from './services/product-rating.service';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
 import {
@@ -38,14 +40,25 @@ import {
       inject: [getModelToken(Product.name), BASE_AGGREGATE_REPOSITORY, BASE_TRANSACTION_REPOSITORY],
     },
     {
+      provide: 'ProductRatingRepository',
+      useFactory: (productModel: Model<Product>) => {
+        return new ProductRatingRepository(productModel);
+      },
+      inject: [getModelToken(Product.name)],
+    },
+    {
       provide: 'IProductsService',
       useClass: ProductsService,
+    },
+    {
+      provide: 'IProductRatingService',
+      useClass: ProductRatingService,
     },
     AuthenticationGuard,
     JwtService,
     TokensService,
     CachingService,
   ],
-  exports: ['IProductsService', 'ProductRepository'],
+  exports: ['IProductsService', 'ProductRepository', 'IProductRatingService'],
 })
 export class ProductsModule { }
