@@ -29,22 +29,21 @@ export class OtpService implements IOtpService {
     this.logger.debug(`Generated OTP for ${phoneNumber}: ${otp}`);
 
     try {
-      // First try with VerifyLookup (template-based)
+      // Use template-based VerifyLookup only. Do not fallback to direct Send.
       const result = await this.smsProvider.sendWithTemplate(phoneNumber, otp);
       return result;
     } catch (templateError) {
-      this.logger.warn(`Template-based sending failed: ${templateError.message}. Falling back to direct send.`);
+      // Log structured error information for diagnostics
+      this.logger.error('Template-based SMS sending failed', {
+        message: templateError?.message,
+        status: templateError?.apiStatus ?? templateError?.status,
+      });
 
-      // Fallback to direct send if template-based fails
-      try {
-        const result = await this.smsProvider.sendDirectMessage(phoneNumber, otp);
-        return result;
-      } catch (directError) {
-        throw new HttpException(
-          `Failed to send SMS: ${directError.message}`,
-          HttpStatus.INTERNAL_SERVER_ERROR
-        );
-      }
+      // Surface a clear HTTP error to the caller. Keep message generic to avoid leaking provider internals.
+      throw new HttpException(
+        `Failed to send OTP via template: ${templateError?.message || 'unknown error'}`,
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
