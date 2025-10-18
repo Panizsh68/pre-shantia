@@ -70,7 +70,7 @@ export class AuthService {
       );
       if (!valid) { throw new BadRequestException('Phone and National ID mismatch'); }
 
-      const ttl = this.configService.get<number>('app.OTP_TTL') ?? 300;
+      const ttl = this.configService.get<number>('OTP_TTL') ?? 300;
       await this.cacheService.set(
         `signup:${createUserDto.phoneNumber}`,
         {

@@ -5,7 +5,6 @@ import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { ShahkarService } from 'src/utils/services/shahkar/shahkar.service';
 import { ShahkarModule } from 'src/utils/services/shahkar/shahkar.module';
 import { OtpModule } from 'src/utils/services/otp/otp.module';
-import { OtpService } from 'src/utils/services/otp/otp.service';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { JwtService } from '@nestjs/jwt';
 import { UsersModule } from '../users/users.module';
@@ -51,10 +50,9 @@ import { PermissionsModule } from 'src/features/permissions/permissions.module';
     },
     AuthService,
     ShahkarService,
-    OtpService,
     TokensService,
     JwtService,
-    CachingService,
   ],
+  exports: [AuthService],
 })
 export class AuthModule { }

@@ -26,6 +26,7 @@ import { SchedulerModule } from './features/scheduler/scheduler.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CachingModule } from './infrastructure/caching/caching.module';
 import { RequestContextInterceptor } from './utils/interceptors/request-context.interceptor';
+import configuration from './infrastructure/config/configuration';
 import { RatingModule } from './features/ratings/rating.module';
 
 @Module({
@@ -36,6 +37,7 @@ import { RatingModule } from './features/ratings/rating.module';
         `.env.${process.env.NODE_ENV}`,
         `.env`
       ],
+      load: [configuration],
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],

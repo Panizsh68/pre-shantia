@@ -9,7 +9,7 @@ export class ProductRatingService implements IProductRatingService {
   constructor(
     @Inject('ProductRatingRepository')
     private readonly ratingRepo: ProductRatingRepository,
-  ) {}
+  ) { }
 
   async recalculateProductRatings(productId: string): Promise<RatingStats> {
     return this.ratingRepo.recalculateRatingStats(

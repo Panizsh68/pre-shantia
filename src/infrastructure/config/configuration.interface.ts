@@ -4,10 +4,14 @@ export interface Config {
   ENCRYPTION_KEY?: string;
   JWT_ACCESS_SECRET?: string;
   JWT_REFRESH_SECRET?: string;
-  JWT_SECRECT_KEY?: string;
+  JWT_SECRET_KEY?: string;
   REDIS_HOST: string;
   REDIS_PORT: number;
+  REDIS_PASSWORD?: string;
   OTP_TTL: number;
+  KAVENEGAR_API_KEY?: string;
+  KAVENEGAR_TEMPLATE?: string;
+  KAVENEGAR_SENDER?: string;
   SUPERADMIN_PHONE?: string;
   SUPERADMIN_MELICODE?: string;
   ZIBAL_MERCHANT_ID?: string;

@@ -12,8 +12,8 @@ export class ProductRatingRepository extends BaseCrudRepository<Product> impleme
   }
 
   async updateRatingStats(
-    productId: string | Types.ObjectId, 
-    stats: Partial<RatingStats>, 
+    productId: string | Types.ObjectId,
+    stats: Partial<RatingStats>,
     session?: ClientSession
   ): Promise<void> {
     const update: Record<string, any> = {};
@@ -26,7 +26,7 @@ export class ProductRatingRepository extends BaseCrudRepository<Product> impleme
     if (stats.ratingsSummary !== undefined) {
       update.ratingsSummary = stats.ratingsSummary;
     }
-    
+
     await this.model.findByIdAndUpdate(
       productId,
       { $set: update },
@@ -41,15 +41,15 @@ export class ProductRatingRepository extends BaseCrudRepository<Product> impleme
   ): Promise<void> {
     await this.model.findByIdAndUpdate(
       productId,
-      { 
-        $push: { 
+      {
+        $push: {
           denormComments: {
             userId: comment.userId,
             rating: comment.rating,
             comment: comment.comment,
             createdAt: comment.createdAt
-          } 
-        } 
+          }
+        }
       },
       { session }
     );
@@ -78,7 +78,7 @@ export class ProductRatingRepository extends BaseCrudRepository<Product> impleme
     session?: ClientSession
   ): Promise<RatingStats> {
     // Execute aggregation to recalculate stats from ratings collection
-  const [result] = await this.model.aggregate([
+    const [result] = await this.model.aggregate([
       { $match: { _id: typeof productId === 'string' ? new Types.ObjectId(productId) : productId } },
       {
         $lookup: {
@@ -101,11 +101,16 @@ export class ProductRatingRepository extends BaseCrudRepository<Product> impleme
                   '$$value',
                   {
                     $arrayToObject: [[
-                      { k: { $toString: '$$this.rating' }, 
-                        v: { $add: [{ $getField: { 
-                          field: { $toString: '$$this.rating' }, 
-                          input: '$$value' 
-                        }}, 1] }
+                      {
+                        k: { $toString: '$$this.rating' },
+                        v: {
+                          $add: [{
+                            $getField: {
+                              field: { $toString: '$$this.rating' },
+                              input: '$$value'
+                            }
+                          }, 1]
+                        }
                       }
                     ]]
                   }
@@ -115,7 +120,7 @@ export class ProductRatingRepository extends BaseCrudRepository<Product> impleme
           }
         }
       }
-  ]).session(session ?? null);
+    ]).session(session ?? null);
 
     if (!result) {
       throw new Error(`Product ${productId} not found`);

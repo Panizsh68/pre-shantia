@@ -1,50 +1,66 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
+import { IOtpService } from './interfaces/otp-service.interface';
+import { OTP_GENERATOR, SMS_PROVIDER } from './constants';
 
 @Injectable()
-export class OtpService {
-  private readonly tabanSmsUrl: string;
-  private readonly tabanSmsKey: string;
-  private readonly ttl: number;
+export class OtpService implements IOtpService {
+  private readonly logger = new Logger(OtpService.name);
 
   constructor(
-    private cachingService: CachingService,
+    private readonly cachingService: CachingService,
     private readonly configService: ConfigService,
-  ) {
-    this.tabanSmsUrl = this.configService.get<string>('TABAN_SMS_URL', '');
-    this.tabanSmsKey = this.configService.get<string>('TABAN_SMS_key', '');
-  }
-
-  private generateOtp(): string {
-    return Math.floor(1000 + Math.random() * 9000).toString();
-  }
+    @Inject(OTP_GENERATOR) private readonly otpGenerator: any,
+    @Inject(SMS_PROVIDER) private readonly smsProvider: any,
+  ) { }
 
   async sendOtpToPhone(phoneNumber: string): Promise<string> {
-    const otp = this.generateOtp();
-    const ttl = this.configService.get<number>('app.OTP_TTL', 300);
-    const sent = await this.cachingService.set(phoneNumber, otp, ttl);
-    if (sent) {
-      console.log(`Mock SMS sent to ${phoneNumber}: otp: ${otp}`);
+    const otp = this.otpGenerator.generate();
+    const ttl = this.configService.get<number>('OTP_TTL', 300);
+
+    // Store OTP in cache
+    const stored = await this.cachingService.set(phoneNumber, otp, ttl);
+    if (!stored) {
+      throw new HttpException('Failed to store OTP', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    // Log OTP for testing purposes
+    this.logger.debug(`Generated OTP for ${phoneNumber}: ${otp}`);
+
     try {
-      return 'OTP sent successfully to phone';
-    } catch (err) {
-      throw new HttpException(`Failed to send SMS: ${err}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      // First try with VerifyLookup (template-based)
+      const result = await this.smsProvider.sendWithTemplate(phoneNumber, otp);
+      return result;
+    } catch (templateError) {
+      this.logger.warn(`Template-based sending failed: ${templateError.message}. Falling back to direct send.`);
+
+      // Fallback to direct send if template-based fails
+      try {
+        const result = await this.smsProvider.sendDirectMessage(phoneNumber, otp);
+        return result;
+      } catch (directError) {
+        throw new HttpException(
+          `Failed to send SMS: ${directError.message}`,
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
+      }
     }
   }
 
   async verifyOtp(identifier: string, otp: string): Promise<boolean> {
     const storedOtp = await this.cachingService.get(identifier);
 
-    console.log(storedOtp, otp);
     if (!storedOtp) {
-      throw new HttpException('otp not found', HttpStatus.BAD_REQUEST);
+      throw new HttpException('OTP not found or expired', HttpStatus.BAD_REQUEST);
     }
 
     if (storedOtp !== otp) {
-      throw new HttpException('otp not correct', HttpStatus.BAD_REQUEST);
+      throw new HttpException('Invalid OTP', HttpStatus.BAD_REQUEST);
     }
+
+    // Clear the used OTP
+    await this.cachingService.delete(identifier);
 
     return true;
   }

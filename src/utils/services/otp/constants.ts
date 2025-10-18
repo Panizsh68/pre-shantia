@@ -1,0 +1,2 @@
+export const OTP_GENERATOR = 'OTP_GENERATOR';
+export const SMS_PROVIDER = 'SMS_PROVIDER';
