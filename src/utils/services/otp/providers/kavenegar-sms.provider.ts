@@ -30,7 +30,7 @@ export class KavenegarSmsProvider implements ISmsProvider {
         token: otp,
         template: this.template
       }, (response: ISmsResponse, status: number) => {
-        if (status === 200 && response?.return?.status === 200) {
+        if (status === 200 || response?.return?.status === 200) {
           this.logger.debug(`Template SMS sent successfully: ${JSON.stringify(response.entries)}`);
           resolve('OTP sent successfully to phone');
         } else {
@@ -47,7 +47,7 @@ export class KavenegarSmsProvider implements ISmsProvider {
         sender: this.sender,
         receptor: phoneNumber
       }, (response: ISmsResponse, status: number) => {
-        if (status === 200 && response?.return?.status === 200) {
+        if (status === 200 || response?.return?.status === 200) {
           this.logger.debug(`Direct SMS sent successfully: ${JSON.stringify(response.entries)}`);
           resolve('OTP sent successfully to phone');
         } else {
