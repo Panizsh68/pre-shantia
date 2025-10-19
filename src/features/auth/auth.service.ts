@@ -353,9 +353,6 @@ export class AuthService {
 
   async adminSignUp(signUpDto: SignUpDto, context?: RequestContext): Promise<SignUpResponseDto> {
     try {
-      const exists = await this.usersService.findUserByPhoneNumber(signUpDto.phoneNumber);
-      if (exists) { throw new ConflictException('User already exists'); }
-
       // If admin provided a companyId, validate the company exists before creating profile
       if (signUpDto.companyId) {
         try {
@@ -368,7 +365,7 @@ export class AuthService {
 
 
       // create user but skip automatic profile creation so we can include companyId
-      const createInput: import('../users/dto/create-user.dto').CreateUserDto & { createdBy?: string } = { ...signUpDto };
+      const createInput: CreateUserDto & { createdBy?: string } = { ...signUpDto };
       if (context && context.user && context.user.userId) {
         createInput.createdBy = context.user.userId;
       }

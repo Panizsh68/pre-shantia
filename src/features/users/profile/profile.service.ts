@@ -45,9 +45,15 @@ export class ProfileService {
       nationalId: updateProfileDto.nationalId,
       firstName: updateProfileDto.firstName,
       lastName: updateProfileDto.lastName,
+      // include email when provided
+      email: updateProfileDto.email ?? undefined,
       address: updateProfileDto.address,
       cart: updateProfileDto.cart,
       walletId: updateProfileDto.walletId,
+      // include collections that may be updated
+      orders: updateProfileDto.orders ?? undefined,
+      transactions: updateProfileDto.transactions ?? undefined,
+      favorites: updateProfileDto.favorites ?? undefined,
       companyId: updateProfileDto.companyId ? new Types.ObjectId(updateProfileDto.companyId) : undefined,
     };
     const updatedProfileResult = await this.profileRepository.updateById(id, updatedProfile);

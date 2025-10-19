@@ -40,9 +40,11 @@ export class UsersController {
   ) {
     const perPage = Math.max(1, limit);
     const page = Math.floor(skip / perPage) + 1;
-    const conditions: FilterQuery<User> = { createdBy: { $exists: true } } as unknown as FilterQuery<User>;
-    const users: User[] = await this.usersService.findAll({ page, perPage, conditions });
-    // attach profile for each user
+
+    // Super admin should receive ALL users (no createdBy filter)
+    const users: User[] = await this.usersService.findAll({ page, perPage });
+
+    // attach profile for each user in parallel
     const results = await Promise.all(
       users.map(async (u: User) => {
         const profile = await this.profileService.getByUserId(u.id.toString());
@@ -56,6 +58,7 @@ export class UsersController {
             walletId: profile.walletId?.toString(),
           }
           : undefined;
+
         return {
           id: u.id.toString(),
           phoneNumber: u.phoneNumber,
@@ -65,6 +68,7 @@ export class UsersController {
         };
       }),
     );
+
     const response: UserListResponseDto = { items: results, total: results.length };
     return response;
   }
@@ -96,8 +100,11 @@ export class UsersController {
 
     const perPage = Math.max(1, limit);
     const page = Math.floor(skip / perPage) + 1;
+
+    // Only users created by the identified super-admin
     const conditions: FilterQuery<User> = { createdBy: superAdmin.id } as FilterQuery<User>;
     const users: User[] = await this.usersService.findAll({ page, perPage, conditions });
+
     const results = await Promise.all(
       users.map(async (u: User) => {
         const profile = await this.profileService.getByUserId(u.id.toString());
@@ -111,6 +118,7 @@ export class UsersController {
             walletId: profile.walletId?.toString(),
           }
           : undefined;
+
         return {
           id: u.id.toString(),
           phoneNumber: u.phoneNumber,
@@ -120,6 +128,7 @@ export class UsersController {
         };
       }),
     );
+
     const response: UserListResponseDto = { items: results, total: results.length };
     return response;
   }
@@ -132,12 +141,13 @@ export class UsersController {
   async getUser(@Param('id') id: string) {
     const user = await this.usersService.findOne(id);
     const profile = await this.profileService.getByUserId(id);
+
     return {
       id: user.id.toString(),
       phoneNumber: user.phoneNumber,
       nationalId: user.nationalId,
       permissions: user.permissions || [],
-      profile: profile || null,
+      profile: profile ?? null,
     };
   }
 }

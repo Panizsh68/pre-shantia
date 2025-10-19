@@ -255,6 +255,51 @@ export class ProductsService implements IProductService {
     }
   }
 
+  async getOffers(options: FindManyOptions = {}, session?: ClientSession): Promise<IProduct[]> {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.getOffers] entry options=', JSON.stringify(options));
+    try {
+      // Find products with discount greater than 0 and active status
+      const condition: any = { discount: { $gt: 0 }, status: 'active' };
+      // Delegate to repository's findManyByCondition which supports pagination/sort/populate
+      const products = await (this.repo as any).findManyByCondition(condition, { ...options, session });
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.getOffers] success count=', Array.isArray(products) ? products.length : 0);
+      return products as IProduct[];
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.getOffers] error', err);
+      throw err;
+    }
+  }
+
+  async updateStatus(id: string, status: import('./enums/product-status.enum').ProductStatus, userId: string, session?: ClientSession): Promise<IProduct> {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.updateStatus] entry id=', id, 'status=', status, 'userId=', userId);
+    try {
+      const updateData: Partial<Product> & { deletedAt?: Date | undefined } = {
+        status,
+        updatedBy: toObjectId(userId),
+      };
+
+      if (status === ProductStatus.DELETED) {
+        updateData.deletedAt = new Date();
+      } else {
+        // clear deletedAt when transitioning out of DELETED
+        updateData.deletedAt = undefined;
+      }
+
+      const updatedDoc = await this.repo.updateById(id, updateData, session);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.updateStatus] success id=', id);
+      return toPlain<IProduct>(updatedDoc);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.updateStatus] error', err);
+      throw err;
+    }
+  }
+
   async update(
     id: string,
     dto: UpdateProductDto,

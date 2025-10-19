@@ -28,6 +28,8 @@ import {
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
+import { UpdateProductStatusDto } from './dto/update-product-status.dto';
+import { ProductStatusResponseDto } from './dto/product-status-response.dto';
 import { CountDto, ExistsDto, TopProductDto } from './dto/misc-response.dto';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { IProductService } from './interfaces/product.service.interface';
@@ -348,6 +350,41 @@ export class ProductsController {
     }
   }
 
+  @Get('offers')
+  @ApiOperation({ summary: 'Get products that currently have a discount (offers)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiResponse({ status: 200, description: 'List of offer products returned' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getOffers(
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+  ) {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.getOffers] entry', { limit, page });
+    const options: FindManyOptions = {};
+    if (limit) {
+      const parsedLimit = parseInt(limit, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1) { throw new BadRequestException('Limit must be a positive integer'); }
+      options.perPage = parsedLimit;
+    }
+    if (page) {
+      const parsedPage = parseInt(page, 10);
+      if (isNaN(parsedPage) || parsedPage < 1) { throw new BadRequestException('Page must be a positive integer'); }
+      options.page = parsedPage;
+    }
+    try {
+      const result = await this.productsService.getOffers(options);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.getOffers] success count=', Array.isArray(result) ? result.length : 0);
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.getOffers] error', err);
+      throw err;
+    }
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get product by ID' })
   @ApiParam({ name: 'id', type: String, description: 'Product ID' })
@@ -394,6 +431,35 @@ export class ProductsController {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[ProductsController.update] error', err);
+      throw err;
+    }
+  }
+
+  @Patch(':id/status')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PRODUCT_STATUS, Action.UPDATE)
+  @ApiOperation({ summary: 'Update only the status of a product' })
+  @ApiParam({ name: 'id', type: String, description: 'Product ID' })
+  @ApiBody({ type: UpdateProductStatusDto })
+  @ApiResponse({ status: 200, description: 'Product status updated', type: ProductStatusResponseDto })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateProductStatusDto,
+    @CurrentUser() user: TokenPayload,
+  ) {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.updateStatus] entry id=', id, 'userId=', user?.userId, 'status=', dto?.status);
+    try {
+      const updated = await this.productsService.updateStatus(id, dto.status, user.userId);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.updateStatus] success id=', id, 'status=', dto.status);
+      return updated;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.updateStatus] error', err);
       throw err;
     }
   }

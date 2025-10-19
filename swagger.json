@@ -1453,6 +1453,48 @@
         ]
       }
     },
+    "/api/products/offers": {
+      "get": {
+        "operationId": "ProductsController_getOffers",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of offer products returned"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get products that currently have a discount (offers)",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
     "/api/products/{id}": {
       "get": {
         "operationId": "ProductsController_findOne",
@@ -1579,6 +1621,62 @@
           }
         ],
         "summary": "Delete product by ID",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/api/products/{id}/status": {
+      "patch": {
+        "operationId": "ProductsController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Product ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product status updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductStatusResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update only the status of a product",
         "tags": [
           "Products"
         ]
@@ -4590,6 +4688,57 @@
             "example": "active"
           }
         }
+      },
+      "UpdateProductStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "draft",
+              "archived",
+              "deleted"
+            ],
+            "description": "New status for the product"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "ProductStatusResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "draft",
+              "archived",
+              "deleted"
+            ]
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "updatedBy",
+          "updatedAt"
+        ]
       },
       "CountDto": {
         "type": "object",

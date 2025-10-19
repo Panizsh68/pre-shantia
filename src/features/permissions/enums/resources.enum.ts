@@ -13,6 +13,7 @@ export enum Resource {
   PAYMENT = 'payment',
   RATINGS = 'ratings',
   PROFILE = 'profile',
+  PRODUCT_STATUS = 'product_status',
   ALL = 'all',
 
 }

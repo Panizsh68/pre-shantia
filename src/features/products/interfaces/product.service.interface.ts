@@ -3,6 +3,7 @@ import { CreateProductDto } from '../dto/create-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
 import { IProduct } from './product.interface';
 import { ClientSession } from 'mongoose';
+import { ProductStatus } from '../enums/product-status.enum';
 import { TopProduct } from './top-product.interface';
 import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
 
@@ -56,4 +57,13 @@ export interface IProductService {
   count(session?: ClientSession): Promise<number>;
   searchProducts(query: string, options?: FindManyOptions): Promise<IProduct[]>;
   findByCompanyId(companyId: string, options?: FindManyOptions, session?: ClientSession): Promise<IProduct[]>;
+  /**
+   * Get products that currently have a discount (offers).
+   * Supports pagination and other FindManyOptions.
+   */
+  getOffers(options?: FindManyOptions, session?: ClientSession): Promise<IProduct[]>;
+  /**
+   * Update only the status of a product. Returns the updated product.
+   */
+  updateStatus(id: string, status: ProductStatus, userId: string, session?: ClientSession): Promise<IProduct>;
 }
