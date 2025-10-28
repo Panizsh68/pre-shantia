@@ -97,7 +97,29 @@ export class UsersService {
       }
     }
 
-    const updated = await this.usersRepository.updateById(targetId, { permissions });
+    // Merge incoming permissions with existing ones instead of replacing the whole array.
+    // This preserves unrelated permissions and updates/creates entries for matching resource+companyId.
+    const existingPermissions = Array.isArray(existing.permissions) ? [...existing.permissions] : [];
+
+    const normalizeKey = (perm: IPermission) => `${perm.resource}::${perm.companyId ?? ''}`;
+
+    const map = new Map<string, IPermission>();
+    // start with existing permissions
+    for (const ep of existingPermissions) {
+      map.set(normalizeKey(ep), { ...ep });
+    }
+    // apply incoming permissions (replace actions for matching resource+companyId or add new)
+    if (Array.isArray(permissions)) {
+      for (const p of permissions) {
+        const key = normalizeKey(p as IPermission);
+        // replace or add
+        map.set(key, { ...(map.get(key) || {} as IPermission), resource: p.resource, actions: p.actions, companyId: p.companyId });
+      }
+    }
+
+    const mergedPermissions: IPermission[] = Array.from(map.values());
+
+    const updated = await this.usersRepository.updateById(targetId, { permissions: mergedPermissions });
     if (!updated) {
       throw new NotFoundException(`User with ID ${targetId} doesn't exist`);
     }
