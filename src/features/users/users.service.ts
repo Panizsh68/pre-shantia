@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
 import { User } from './entities/user.entity';
 import { IUserRepository } from './repositories/user.repository';
@@ -68,6 +69,21 @@ export class UsersService {
   }
 
   async setPermissions(id: string, permissions: IPermission[]): Promise<User> {
+    // Accept either a Mongo ObjectId or a phone number as identifier.
+    let targetId = id;
+
+    // If id is not a valid ObjectId, try to resolve by phone number
+    if (!Types.ObjectId.isValid(id)) {
+      const byPhone = await this.findUserByPhoneNumber(id);
+      if (!byPhone) {
+        throw new NotFoundException(`User with identifier ${id} not found`);
+      }
+      targetId = byPhone.id.toString();
+    }
+
+    // Ensure user exists before attempting update (avoid accidental create elsewhere)
+    const existing = await this.findOne(targetId);
+
     // validate any scoped companyIds inside permissions before updating
     if (Array.isArray(permissions)) {
       for (const p of permissions) {
@@ -81,15 +97,18 @@ export class UsersService {
       }
     }
 
-    const updated = await this.usersRepository.updateById(id, { permissions });
-    if (!updated) {throw new NotFoundException(`User with ID ${id} doesn't exist`);}
+    const updated = await this.usersRepository.updateById(targetId, { permissions });
+    if (!updated) {
+      throw new NotFoundException(`User with ID ${targetId} doesn't exist`);
+    }
+
     // invalidate cached permissions
     try {
-      await this.cacheService.delete(`permissions:${id}`);
+      await this.cacheService.delete(`permissions:${existing.id}`);
     } catch (err) {
       // non-fatal: log and continue
-       
-      console.warn('Failed to clear permissions cache for user', id, err?.message || err);
+      // eslint-disable-next-line no-console
+      console.warn('Failed to clear permissions cache for user', existing.id, err?.message || err);
     }
     return updated;
   }
