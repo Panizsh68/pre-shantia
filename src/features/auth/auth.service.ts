@@ -364,32 +364,65 @@ export class AuthService {
       }
 
 
-      // create user but skip automatic profile creation so we can include companyId
-      const createInput: CreateUserDto & { createdBy?: string } = { ...signUpDto };
-      if (context && context.user && context.user.userId) {
-        createInput.createdBy = context.user.userId;
+      // If a user with this phone already exists, update permissions/profile instead of creating a duplicate
+      const existingUser = await this.usersService.findUserByPhoneNumber(signUpDto.phoneNumber);
+      let user: any;
+      if (existingUser) {
+        user = existingUser;
+        // Update permissions if provided
+        if (Array.isArray(signUpDto.permissions) && signUpDto.permissions.length > 0) {
+          await this.usersService.setPermissions(existingUser.id.toString(), signUpDto.permissions as any);
+          // reload user
+          user = await this.usersService.findOne(existingUser.id.toString());
+        }
+
+        // ensure profile exists; if not, create wallet and profile similar to new-user flow
+        const existingProfile = await this.profileService.getByUserId(existingUser.id.toString());
+        if (!existingProfile) {
+          const ownerType = determineOwnerTypeFromPermissions(user.permissions || []);
+          const wallet = await this.walletsService.createWallet({
+            ownerId: user.id.toString(),
+            ownerType,
+            balance: 0,
+            currency: 'IRR',
+          });
+          const profileDto: CreateProfileDto = {
+            phoneNumber: signUpDto.phoneNumber,
+            nationalId: signUpDto.nationalId,
+            walletId: wallet.id,
+            userId: user.id.toString(),
+            companyId: signUpDto.companyId,
+          } as CreateProfileDto;
+          await this.profileService.create(profileDto);
+        }
+      } else {
+        // create user but skip automatic profile creation so we can include companyId
+        const createInput: CreateUserDto & { createdBy?: string } = { ...signUpDto };
+        if (context && context.user && context.user.userId) {
+          createInput.createdBy = context.user.userId;
+        }
+        user = await this.usersService.create(createInput, undefined, { createProfile: false });
+
+        // create wallet similarly to verifyOtp flow and then create profile
+        const ownerType = determineOwnerTypeFromPermissions(user.permissions || []);
+
+        const wallet = await this.walletsService.createWallet({
+          ownerId: user.id.toString(),
+          ownerType,
+          balance: 0,
+          currency: 'IRR',
+        });
+
+        // create profile for the new user; include companyId if provided by admin
+        const profileDto: CreateProfileDto = {
+          phoneNumber: signUpDto.phoneNumber,
+          nationalId: signUpDto.nationalId,
+          walletId: wallet.id,
+          userId: user.id.toString(),
+          companyId: signUpDto.companyId,
+        } as CreateProfileDto;
+        await this.profileService.create(profileDto);
       }
-      const user = await this.usersService.create(createInput, undefined, { createProfile: false });
-
-      // create wallet similarly to verifyOtp flow and then create profile
-      const ownerType = determineOwnerTypeFromPermissions(user.permissions || []);
-
-      const wallet = await this.walletsService.createWallet({
-        ownerId: user.id.toString(),
-        ownerType,
-        balance: 0,
-        currency: 'IRR',
-      });
-
-      // create profile for the new user; include companyId if provided by admin
-      const profileDto: CreateProfileDto = {
-        phoneNumber: signUpDto.phoneNumber,
-        nationalId: signUpDto.nationalId,
-        walletId: wallet.id,
-        userId: user.id.toString(),
-        companyId: signUpDto.companyId,
-      } as CreateProfileDto;
-      await this.profileService.create(profileDto);
 
       // If this admin was created for a company, add them to the company's admins list
       if (signUpDto.companyId) {
