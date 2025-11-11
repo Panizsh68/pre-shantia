@@ -41,7 +41,7 @@ export class CartsService implements ICartsService {
         { path: 'items.companyId', select: 'name address' },
       ],
     };
-    const carts = this.cartRepository.findManyByCondition({ userId }, options);
+    const carts = await this.cartRepository.findManyByCondition({ userId }, options);
     return carts;
   }
 
@@ -61,7 +61,10 @@ export class CartsService implements ICartsService {
   }
 
   async createCart(dto: CreateCartDto): Promise<ICart> {
-    return this.cartRepository.createOne(dto);
+    // compute totalAmount from items if not provided
+    const total = dto.totalAmount ?? this.calculateTotal(dto.items as CartItemDto[]);
+    const payload = { ...dto, totalAmount: total };
+    return this.cartRepository.createOne(payload as any);
   }
 
   async addItemToCart(userId: string, item: CartItemDto): Promise<ICart> {
@@ -83,6 +86,8 @@ export class CartsService implements ICartsService {
       throw new BadRequestException('Product does not belong to the provided companyId');
     }
     cart.items.push(item);
+    // Recalculate total including discounts
+    cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
     return this.cartRepository.saveOne(cart);
   }
 
@@ -92,6 +97,7 @@ export class CartsService implements ICartsService {
       throw new NotFoundException('Active cart not found');
     }
     cart.items = cart.items.filter(i => i.productId !== productId);
+    cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
     return this.cartRepository.saveOne(cart);
   }
 
@@ -101,6 +107,7 @@ export class CartsService implements ICartsService {
       throw new NotFoundException('Active cart not found');
     }
     cart.items = [];
+    cart.totalAmount = 0;
     return this.cartRepository.saveOne(cart);
   }
 
@@ -109,6 +116,8 @@ export class CartsService implements ICartsService {
     if (!cart) {
       throw new NotFoundException('Active cart not found');
     }
+    // ensure totals are up-to-date before checkout
+    cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
     cart.status = CartStatus.CHECKED_OUT;
     await this.cartRepository.saveOne(cart, session);
     return { success: true, cartId: cart.id };
@@ -120,10 +129,42 @@ export class CartsService implements ICartsService {
       throw new NotFoundException('Active cart not found');
     }
     Object.assign(cart, cartData);
+    // Recalculate total if items changed or totalAmount not provided
+    cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
     return this.cartRepository.saveOne(cart);
   }
 
+  private validateDiscount(discount: { type: string; value: number } | undefined): void {
+    if (!discount) return;
+    const { type, value } = discount as any;
+    if (!type || (type !== 'percentage' && type !== 'fixed')) {
+      throw new BadRequestException('Invalid discount type');
+    }
+    if (typeof value !== 'number' || value < 0) {
+      throw new BadRequestException('Invalid discount value');
+    }
+    if (type === 'percentage' && value > 100) {
+      throw new BadRequestException('Percentage discount cannot exceed 100');
+    }
+  }
+
+  private calculateItemTotal(item: CartItemDto): number {
+    // validate and compute per-item total including discount
+    this.validateDiscount(item.discount as any);
+    const base = item.priceAtAdd * item.quantity;
+    if (!item.discount) return base;
+    const { type, value } = item.discount as any;
+    if (type === 'percentage') {
+      const discountAmount = (base * value) / 100;
+      return Math.max(0, base - discountAmount);
+    }
+    // fixed: interpret value as fixed amount per item
+    const discountAmount = value * item.quantity;
+    return Math.max(0, base - discountAmount);
+  }
+
   calculateTotal(items: CartItemDto[]): number {
-    return items.reduce((total, item) => total + item.priceAtAdd * item.quantity, 0);
+    if (!Array.isArray(items) || items.length === 0) return 0;
+    return items.reduce((total, item) => total + this.calculateItemTotal(item), 0);
   }
 }

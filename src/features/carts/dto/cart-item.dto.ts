@@ -1,14 +1,26 @@
 import {
   IsNotEmpty,
-  IsString,
   IsNumber,
   Min,
   IsOptional,
   IsObject,
   IsMongoId,
+  IsEnum,
+  ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DiscountType } from '../enums/discount-type.enum';
+import { Type } from 'class-transformer';
+
+export class DiscountDto {
+  @ApiProperty({ enum: DiscountType })
+  @IsEnum(DiscountType)
+  type: DiscountType;
+
+  @ApiProperty({ description: 'Value of discount (percentage 0-100 or fixed amount in IRR)', example: 10 })
+  @IsNumber()
+  value: number;
+}
 
 export class CartItemDto {
   @ApiProperty({
@@ -26,14 +38,6 @@ export class CartItemDto {
   @IsNotEmpty()
   @IsMongoId()
   companyId: string;
-
-  // @ApiProperty({
-  //   description: 'MongoDB ObjectId of the supplier company',
-  //   example: '507f1f77bcf86cd799439011',
-  // })
-  // @IsNotEmpty()
-  // @IsMongoId()
-  // companyId: string;
 
   @ApiProperty({
     description: 'Quantity of the product in the cart',
@@ -63,5 +67,13 @@ export class CartItemDto {
   @IsObject()
   variant?: { name: string; value: string };
 
-
+  @ApiPropertyOptional({
+    description: 'Optional discount applied to this cart item',
+    example: { type: DiscountType.PERCENTAGE, value: 10 },
+    type: DiscountDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DiscountDto)
+  discount?: DiscountDto;
 }

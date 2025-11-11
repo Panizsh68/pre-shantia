@@ -12,16 +12,15 @@ export const CartItemSchema = new Schema<ICartItem>(
       name: { type: String },
       value: { type: String },
     },
-    // notes: { type: String },
-    //   discount: {
-    //     type: new Schema(
-    //       {
-    //         type: { type: String, enum: Object.values(DiscountType), required: true },
-    //         value: { type: Number, required: true },
-    //       },
-    //       { _id: false },
-    //     ),
-    //   },
+    discount: {
+      type: new Schema(
+        {
+          type: { type: String, enum: Object.values(DiscountType), required: true },
+          value: { type: Number, required: true },
+        },
+        { _id: false },
+      ),
+    },
   },
   { _id: false },
 );

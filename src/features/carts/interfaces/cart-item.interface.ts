@@ -7,5 +7,5 @@ export interface ICartItem {
   priceAtAdd: number;
   variant?: { name: string; value: string };
   notes?: string;
-
+  discount?: { type: DiscountType; value: number };
 }
