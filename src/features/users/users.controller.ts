@@ -33,16 +33,37 @@ export class UsersController {
   @ApiOperation({ summary: 'List all users (super-admin only)' })
   @ApiQuery({ name: 'skip', required: false, example: 0 })
   @ApiQuery({ name: 'limit', required: false, example: 50 })
+  @ApiQuery({ name: 'q', required: false, description: 'Search by firstName, lastName, phoneNumber or nationalId' })
   @ApiResponse({ status: 200, description: 'List of users', type: UserListResponseDto })
   async listUsers(
     @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip = 0,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit = 50,
+    @Query('q') q?: string,
   ) {
     const perPage = Math.max(1, limit);
     const page = Math.floor(skip / perPage) + 1;
 
-    // Super admin should receive ALL users (no createdBy filter)
-    const users: User[] = await this.usersService.findAll({ page, perPage });
+    // Build search conditions when query provided
+    let conditions: FilterQuery<User> = {} as FilterQuery<User>;
+    if (q) {
+      // find profiles matching q to get linked userIds
+      const profiles = await this.profileService.searchProfiles(q);
+      const userIds = profiles.map((p: Profile) => p.userId).filter(Boolean);
+
+      const orConditions: FilterQuery<User>[] = [
+        { phoneNumber: { $regex: q, $options: 'i' } } as any,
+        { nationalId: { $regex: q, $options: 'i' } } as any,
+      ];
+
+      if (userIds.length > 0) {
+        orConditions.push({ _id: { $in: userIds } } as any);
+      }
+
+      conditions = { $or: orConditions } as FilterQuery<User>;
+    }
+
+    // Super admin should receive ALL users (no createdBy filter unless restricted)
+    const users: User[] = await this.usersService.findAll({ page, perPage, conditions });
 
     // attach profile for each user in parallel
     const results = await Promise.all(
@@ -79,10 +100,12 @@ export class UsersController {
   @ApiOperation({ summary: 'List users created by the super-admin' })
   @ApiQuery({ name: 'skip', required: false, example: 0 })
   @ApiQuery({ name: 'limit', required: false, example: 50 })
+  @ApiQuery({ name: 'q', required: false, description: 'Search by firstName, lastName, phoneNumber or nationalId' })
   @ApiResponse({ status: 200, description: 'List of users created by super-admin', type: UserListResponseDto })
   async listUsersCreatedBySuper(
     @Query('skip', new DefaultValuePipe(0), ParseIntPipe) skip = 0,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit = 50,
+    @Query('q') q?: string,
   ) {
     const superPhone = this.configService.get<string>('SUPERADMIN_PHONE');
     const superMelicode = this.configService.get<string>('SUPERADMIN_MELICODE');
@@ -101,8 +124,19 @@ export class UsersController {
     const perPage = Math.max(1, limit);
     const page = Math.floor(skip / perPage) + 1;
 
-    // Only users created by the identified super-admin
-    const conditions: FilterQuery<User> = { createdBy: superAdmin.id } as FilterQuery<User>;
+    // Only users created by the identified super-admin. If search query provided, combine createdBy + $or
+    let conditions: FilterQuery<User> = { createdBy: superAdmin.id } as FilterQuery<User>;
+    if (q) {
+      const profiles = await this.profileService.searchProfiles(q);
+      const userIds = profiles.map((p: Profile) => p.userId).filter(Boolean);
+      const orConditions: FilterQuery<User>[] = [
+        { phoneNumber: { $regex: q, $options: 'i' } } as any,
+        { nationalId: { $regex: q, $options: 'i' } } as any,
+      ];
+      if (userIds.length > 0) orConditions.push({ _id: { $in: userIds } } as any);
+      conditions = { createdBy: superAdmin.id, $or: orConditions } as FilterQuery<User>;
+    }
+
     const users: User[] = await this.usersService.findAll({ page, perPage, conditions });
 
     const results = await Promise.all(

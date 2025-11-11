@@ -8,6 +8,12 @@ export interface IProfileService {
 
   getByUserId(userId: string): Promise<Profile | null>;
 
+  /**
+   * Search profiles by free-text query matching firstName, lastName, phoneNumber or nationalId.
+   * Returns matching Profile documents (may be empty).
+   */
+  searchProfiles(query: string): Promise<Profile[]>;
+
   update(id: string, updateProfileDto: UpdateProfileDto): Promise<Profile>;
 
   deleteByUserId(userId: string): Promise<boolean>;

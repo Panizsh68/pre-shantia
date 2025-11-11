@@ -39,6 +39,32 @@ export class ProfileService {
     return this.profileRepository.findOneByCondition(condition);
   }
 
+  /**
+   * Search profiles using a free-text query across firstName, lastName, phoneNumber and nationalId.
+   * Uses a case-insensitive regex match. Escapes the query to avoid accidental regex metacharacters.
+   */
+  async searchProfiles(query: string): Promise<Profile[]> {
+    if (!query || typeof query !== 'string') return [];
+
+    // escape special regex characters in user input
+    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const q = escapeRegex(query.trim());
+    if (!q) return [];
+
+    const regex = { $regex: q, $options: 'i' } as any;
+
+    const condition: import('mongoose').FilterQuery<Profile> = {
+      $or: [
+        { firstName: regex },
+        { lastName: regex },
+        { phoneNumber: regex },
+        { nationalId: regex },
+      ],
+    };
+
+    return this.profileRepository.findManyByCondition(condition);
+  }
+
   async update(id: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {
     const updatedProfile: Partial<Profile> = {
       phoneNumber: updateProfileDto.phoneNumber,
