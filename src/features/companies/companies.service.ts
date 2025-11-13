@@ -82,10 +82,22 @@ export class CompaniesService implements ICompanyService {
     const existing = await this.companyRepository.findById(id);
     if (!existing) { throw new NotFoundException(`Company with id ${id} not found`); }
     if (existing.createdBy.toString() !== userId) { throw new ForbiddenException('You do not have permission to update this company'); }
+
     const data: Partial<Company> = {
       ...updateCompanyDto,
       updatedBy: new Types.ObjectId(userId),
     };
+
+    // Integration: handle image presign if provided in update
+    const imageMeta = (updateCompanyDto as UpdateCompanyDto).imageMeta;
+    if (imageMeta && this.imageUploadService) {
+      const presignPayload: CreatePresignDto = { type: 'company', files: [imageMeta] };
+      const presignResult: CreatePresignResponseDto = await this.imageUploadService.createPresignedUrls(presignPayload);
+      if (presignResult.items && presignResult.items.length > 0) {
+        data.image = presignResult.items[0].publicUrl;
+      }
+    }
+
     const updatedDoc = await this.companyRepository.updateById(id, data);
     return toPlain<ICompany>(updatedDoc);
   }

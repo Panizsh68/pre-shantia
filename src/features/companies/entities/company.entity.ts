@@ -32,6 +32,9 @@ export class Company extends Document {
 
   @Prop()
   nationalId?: string;
+
+  @Prop()
+  image?: string; // URL to company logo/image (presigned or public URL)
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

@@ -8,6 +8,7 @@ export interface ICompany {
   registrationNumber: string;
   status: string;
   nationalId?: string;
+  image?: string; // URL to company logo/image
   createdAt?: Date;
   updatedAt?: Date;
   createdBy: Types.ObjectId;

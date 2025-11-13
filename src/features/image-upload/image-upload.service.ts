@@ -1,4 +1,4 @@
-import { Inject, Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Inject, Injectable, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IMAGE_UPLOAD_TOKEN, DEFAULTS } from './constants/image-upload.constants';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -9,8 +9,13 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class ImageUploadService {
+  private readonly logger = new Logger(ImageUploadService.name);
   private bucket: string;
   private publicBaseUrl?: string;
+  private maxImageBytes: number;
+  private presignExpiresSeconds: number;
+  private maxProductImages: number;
+  private maxCompanyImages: number;
 
   constructor(
     @Inject(IMAGE_UPLOAD_TOKEN.S3_CLIENT) private readonly s3: S3Client | null,
@@ -19,14 +24,23 @@ export class ImageUploadService {
     const r2Config = this.configService.get('config.r2');
     this.bucket = r2Config?.bucket || '';
     this.publicBaseUrl = r2Config?.publicBaseUrl;
+    // Load configurable limits from env or use defaults
+    this.maxImageBytes = parseInt(process.env.MAX_IMAGE_BYTES || String(DEFAULTS.MAX_IMAGE_BYTES), 10);
+    this.presignExpiresSeconds = parseInt(process.env.PRESIGN_EXPIRES_SECONDS || String(DEFAULTS.PRESIGN_EXPIRES_SECONDS), 10);
+    this.maxProductImages = parseInt(process.env.MAX_PRODUCT_IMAGES || String(DEFAULTS.MAX_PRODUCT_IMAGES), 10);
+    this.maxCompanyImages = parseInt(process.env.MAX_COMPANY_IMAGES || String(DEFAULTS.MAX_COMPANY_IMAGES), 10);
     // do not throw here to allow app to boot in non-R2 environments; validate when used
   }
 
   async createPresignedUrls(dto: CreatePresignDto): Promise<CreatePresignResponseDto> {
+    this.logger.log(`[createPresignedUrls] type=${dto.type} fileCount=${dto.files?.length || 0}`);
+
     if (!this.s3) {
+      this.logger.error('[createPresignedUrls] R2 S3 client not configured');
       throw new InternalServerErrorException('R2 S3 client is not configured. Please set R2 endpoint and credentials.');
     }
     if (!this.bucket) {
+      this.logger.error('[createPresignedUrls] R2 bucket not configured');
       throw new InternalServerErrorException('R2 bucket is not configured (R2_BUCKET)');
     }
     this.validateDto(dto);
@@ -41,22 +55,26 @@ export class ImageUploadService {
       items.push({ filename: file.filename, contentType: file.contentType, presignedUrl, publicUrl });
     }
 
+    this.logger.log(`[createPresignedUrls] success itemCount=${items.length}`);
     return { items };
   }
 
   private validateDto(dto: CreatePresignDto) {
     const count = dto.files?.length || 0;
-    if (dto.type === 'product' && count > DEFAULTS.MAX_PRODUCT_IMAGES) {
-      throw new BadRequestException(`Product images cannot exceed ${DEFAULTS.MAX_PRODUCT_IMAGES}`);
+    if (dto.type === 'product' && count > this.maxProductImages) {
+      this.logger.warn(`[validateDto] product image count ${count} exceeds limit ${this.maxProductImages}`);
+      throw new BadRequestException(`Product images cannot exceed ${this.maxProductImages}`);
     }
-    if (dto.type === 'company' && count > DEFAULTS.MAX_COMPANY_IMAGES) {
-      throw new BadRequestException(`Company image must be at most ${DEFAULTS.MAX_COMPANY_IMAGES}`);
+    if (dto.type === 'company' && count > this.maxCompanyImages) {
+      this.logger.warn(`[validateDto] company image count ${count} exceeds limit ${this.maxCompanyImages}`);
+      throw new BadRequestException(`Company image must be at most ${this.maxCompanyImages}`);
     }
   }
 
   private validateFileSize(file: ImageMetaDto) {
-    if (file.size > DEFAULTS.MAX_IMAGE_BYTES) {
-      throw new BadRequestException(`File ${file.filename} exceeds maximum size of ${DEFAULTS.MAX_IMAGE_BYTES} bytes`);
+    if (file.size > this.maxImageBytes) {
+      this.logger.warn(`[validateFileSize] file ${file.filename} size ${file.size} exceeds limit ${this.maxImageBytes}`);
+      throw new BadRequestException(`File ${file.filename} exceeds maximum size of ${this.maxImageBytes} bytes`);
     }
   }
 
@@ -73,8 +91,11 @@ export class ImageUploadService {
     }
     // fallback to S3-style URL using endpoint if available
     // Note: endpoint might include protocol and host
-    const s3 = this.s3!; // asserted non-null by caller checks
-    const endpointCandidate = (s3.config && (s3.config as any).endpoint) || undefined;
+    if (!this.s3) {
+      this.logger.warn('[buildPublicUrl] s3 client is null, returning key only');
+      return key;
+    }
+    const endpointCandidate = (this.s3.config && (this.s3.config as any).endpoint) || undefined;
     let endpoint = '';
     if (endpointCandidate) {
       if (typeof endpointCandidate === 'string') { endpoint = endpointCandidate; }
@@ -91,11 +112,16 @@ export class ImageUploadService {
 
   private async getPresignedPutUrl(key: string, contentType: string) {
     try {
-      const s3 = this.s3!;
+      if (!this.s3) {
+        this.logger.error('[getPresignedPutUrl] s3 client is null');
+        throw new InternalServerErrorException('S3 client is not available');
+      }
       const command = new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType });
-      const url = await getSignedUrl(s3, command, { expiresIn: DEFAULTS.PRESIGN_EXPIRES_SECONDS });
+      const url = await getSignedUrl(this.s3, command, { expiresIn: this.presignExpiresSeconds });
+      this.logger.debug(`[getPresignedPutUrl] presigned url generated for key=${key}`);
       return url;
     } catch (err) {
+      this.logger.error(`[getPresignedPutUrl] failed to generate presigned URL: ${err instanceof Error ? err.message : String(err)}`);
       throw new InternalServerErrorException('Failed to generate presigned URL');
     }
   }

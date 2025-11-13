@@ -7,7 +7,6 @@ import {
   IsIdentityCard,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Express } from 'express';
 import { ImageMetaDto } from '../../image-upload/dto/create-presign.dto';
 
 export class CreateCompanyDto {
@@ -49,21 +48,6 @@ export class CreateCompanyDto {
   @IsOptional()
   @IsString()
   address?: string;
-
-  @ApiPropertyOptional({
-    description: 'Active status of the company',
-    example: true,
-  })
-  // status is managed by the system; created companies default to 'pending'
-  // clients should not set status on create
-
-  @ApiPropertyOptional({
-    description: 'Company logo or image',
-    type: 'string',
-    format: 'binary',
-  })
-  @IsOptional()
-  image?: Express.Multer.File;
 
   @ApiPropertyOptional({ description: 'File metadata to request presign url', type: ImageMetaDto })
   @IsOptional()
