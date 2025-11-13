@@ -1,5 +1,5 @@
 
-import { Inject, Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { Types, ClientSession, PipelineStage, FilterQuery } from 'mongoose';
 import { toPlain, toPlainArray } from 'src/libs/repository/utils/doc-mapper';
 import { Product } from './entities/product.entity';
@@ -27,6 +27,7 @@ import { SearchProductParams } from './interfaces/search-params.interface';
 
 @Injectable()
 export class ProductsService implements IProductService {
+  private readonly logger = new Logger(ProductsService.name);
   async searchByPriceAndCompany(
     params: SearchProductParams,
     options: FindManyOptions = {},
@@ -86,35 +87,33 @@ export class ProductsService implements IProductService {
     tokenPayload?: TokenPayload,
     session?: ClientSession,
   ): Promise<IProduct> {
-    // detailed logging around create flow
-    // eslint-disable-next-line no-console
-    console.log(`[ProductsService.create] entry userId=${userId} dtoKeys=${Object.keys(dto || {}).join(',')}`);
+    this.logger.log(`[create] ENTRY: userId=${userId}, name=${dto.name}, imagesMeta=${dto.imagesMeta ? dto.imagesMeta.length : 0}`);
     try {
       // Resolve user's profile and companyId
+      this.logger.debug(`[create] Resolving user profile...`);
       const profile = await this.profileService.getByUserId(userId);
       if (!profile) {
-        // eslint-disable-next-line no-console
-        console.error('[ProductsService.create] missing profile for userId=', userId);
+        this.logger.error(`[create] User profile not found for userId=${userId}`);
         throw new BadRequestException('User profile not found');
       }
       if (!profile.companyId) {
-        // eslint-disable-next-line no-console
-        console.error('[ProductsService.create] user has no company companyId missing userId=', userId);
+        this.logger.error(`[create] User has no company assigned, userId=${userId}`);
         throw new BadRequestException('User does not belong to any company');
       }
 
       const companyIdStr = profile.companyId.toString();
+      this.logger.log(`[create] User companyId=${companyIdStr}`);
 
       // Permission check: user must have CREATE on PRODUCTS for their company
-      // eslint-disable-next-line no-console
-      console.log(`[ProductsService.create] checking permissions for companyId=${companyIdStr}`);
+      this.logger.debug(`[create] Checking permissions for companyId=${companyIdStr}`);
       this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.CREATE, companyIdStr);
+
       // Ensure company exists
-      // eslint-disable-next-line no-console
-      console.log(`[ProductsService.create] validating company exists companyId=${companyIdStr}`);
+      this.logger.debug(`[create] Validating company exists, companyId=${companyIdStr}`);
       await this.companyService.findOne(companyIdStr);
 
       // Check for duplicates
+      this.logger.debug(`[create] Checking for duplicate name/slug/sku...`);
       const [nameExists, slugExists, skuExists] = await Promise.all([
         this.repo.existsByCondition({
           name: dto.name,
@@ -152,24 +151,30 @@ export class ProductsService implements IProductService {
       // Integration: if the DTO contains files metadata to presign (client wants to upload images)
       const imagesMeta = (dto as CreateProductDto).imagesMeta;
       if (imagesMeta && imagesMeta.length > 0 && this.imageUploadService) {
-        // eslint-disable-next-line no-console
-        console.log('[ProductsService.create] presigning images count=', imagesMeta.length);
-        const presignPayload: CreatePresignDto = { type: 'product', files: imagesMeta };
-        const presignResult: CreatePresignResponseDto = await this.imageUploadService.createPresignedUrls(presignPayload);
-        data.images = presignResult.items.map((it) => ({ url: it.publicUrl }));
+        this.logger.log(`[create] Image upload requested: ${imagesMeta.length} file(s)`);
+        try {
+          this.logger.debug(`[create] Images to presign: ${imagesMeta.map(m => m.filename).join(', ')}`);
+          const presignPayload: CreatePresignDto = { type: 'product', files: imagesMeta };
+          this.logger.debug(`[create] Calling imageUploadService.createPresignedUrls with type=product...`);
+          const presignResult: CreatePresignResponseDto = await this.imageUploadService.createPresignedUrls(presignPayload);
+          data.images = presignResult.items.map((it) => ({ url: it.publicUrl }));
+          this.logger.log(`[create] Images presigned and persisted: ${data.images.length} URL(s)`);
+        } catch (err) {
+          this.logger.error(`[create] Image presign failed: ${err instanceof Error ? err.message : String(err)}`);
+          throw err;
+        }
+      } else {
+        this.logger.debug(`[create] Image upload skipped: imagesMeta=${imagesMeta ? imagesMeta.length : 0} files, imageUploadService=${!this.imageUploadService}`);
       }
 
       // persist
-      // eslint-disable-next-line no-console
-      console.log('[ProductsService.create] creating product in repo');
+      this.logger.log(`[create] Saving product to repository...`);
       const productDoc = await this.repo.createOne(data, session);
       const result = toPlain<IProduct>(productDoc);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsService.create] success id=', (productDoc && (productDoc as any)._id) || 'unknown');
+      this.logger.log(`[create] SUCCESS: Product created with id=${(productDoc && (productDoc as any)._id) || 'unknown'}`);
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsService.create] error', err);
+      this.logger.error(`[create] FAILED: ${err instanceof Error ? err.message : String(err)}`);
       throw err;
     }
   }

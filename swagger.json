@@ -4226,12 +4226,6 @@
             "description": "Address of the company",
             "example": "Tehran, Iran"
           },
-          "image": {
-            "type": "string",
-            "description": "Active status of the company",
-            "format": "binary",
-            "example": true
-          },
           "imageMeta": {
             "description": "File metadata to request presign url",
             "allOf": [

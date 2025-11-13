@@ -78,5 +78,15 @@ export default () => {
       R2_BUCKET,
       R2_PUBLIC_BASE_URL,
     },
+    // Provide nested r2 config structure for image-upload module consistency
+    config: {
+      r2: {
+        endpoint: R2_ENDPOINT,
+        accessKey: R2_ACCESS_KEY,
+        secretKey: R2_SECRET_KEY,
+        bucket: R2_BUCKET,
+        publicBaseUrl: R2_PUBLIC_BASE_URL,
+      },
+    },
   };
 };

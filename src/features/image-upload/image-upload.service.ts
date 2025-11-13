@@ -22,40 +22,56 @@ export class ImageUploadService {
     private readonly configService: ConfigService,
   ) {
     const r2Config = this.configService.get('config.r2');
+    this.logger.log(`[constructor] Loading R2 config...`);
+    this.logger.debug(`[constructor] r2Config: ${r2Config ? 'found' : 'not found'}`);
+
     this.bucket = r2Config?.bucket || '';
     this.publicBaseUrl = r2Config?.publicBaseUrl;
+
+    this.logger.log(`[constructor] bucket=${this.bucket || 'EMPTY'}, publicBaseUrl=${this.publicBaseUrl || 'EMPTY'}`);
+    this.logger.log(`[constructor] s3Client available: ${this.s3 ? 'YES' : 'NO'}`);
+
     // Load configurable limits from env or use defaults
     this.maxImageBytes = parseInt(process.env.MAX_IMAGE_BYTES || String(DEFAULTS.MAX_IMAGE_BYTES), 10);
     this.presignExpiresSeconds = parseInt(process.env.PRESIGN_EXPIRES_SECONDS || String(DEFAULTS.PRESIGN_EXPIRES_SECONDS), 10);
     this.maxProductImages = parseInt(process.env.MAX_PRODUCT_IMAGES || String(DEFAULTS.MAX_PRODUCT_IMAGES), 10);
     this.maxCompanyImages = parseInt(process.env.MAX_COMPANY_IMAGES || String(DEFAULTS.MAX_COMPANY_IMAGES), 10);
+
+    this.logger.log(`[constructor] Limits: maxImageBytes=${this.maxImageBytes}, presignSeconds=${this.presignExpiresSeconds}, maxProduct=${this.maxProductImages}, maxCompany=${this.maxCompanyImages}`);
     // do not throw here to allow app to boot in non-R2 environments; validate when used
   }
 
   async createPresignedUrls(dto: CreatePresignDto): Promise<CreatePresignResponseDto> {
-    this.logger.log(`[createPresignedUrls] type=${dto.type} fileCount=${dto.files?.length || 0}`);
+    this.logger.log(`[createPresignedUrls] ENTRY: type=${dto.type} fileCount=${dto.files?.length || 0}`);
 
     if (!this.s3) {
-      this.logger.error('[createPresignedUrls] R2 S3 client not configured');
+      this.logger.error('[createPresignedUrls] FAIL: R2 S3 client is null - S3ClientProvider did not initialize client');
+      this.logger.error(`[createPresignedUrls] DIAGNOSTIC: bucket=${this.bucket || 'EMPTY'}, publicBaseUrl=${this.publicBaseUrl || 'EMPTY'}`);
       throw new InternalServerErrorException('R2 S3 client is not configured. Please set R2 endpoint and credentials.');
     }
+
     if (!this.bucket) {
-      this.logger.error('[createPresignedUrls] R2 bucket not configured');
+      this.logger.error('[createPresignedUrls] FAIL: R2 bucket is empty');
       throw new InternalServerErrorException('R2 bucket is not configured (R2_BUCKET)');
     }
+
+    this.logger.log(`[createPresignedUrls] S3 client ready, bucket=${this.bucket}`);
     this.validateDto(dto);
 
     const items: PresignItemDto[] = [];
 
     for (const file of dto.files) {
+      this.logger.log(`[createPresignedUrls] Processing file: ${file.filename} (${file.size} bytes, ${file.contentType})`);
       this.validateFileSize(file);
       const key = this.buildKey(dto.type, file.filename);
+      this.logger.debug(`[createPresignedUrls] Built key: ${key}`);
       const presignedUrl = await this.getPresignedPutUrl(key, file.contentType);
       const publicUrl = this.buildPublicUrl(key);
+      this.logger.debug(`[createPresignedUrls] Presigned URL generated, public URL: ${publicUrl}`);
       items.push({ filename: file.filename, contentType: file.contentType, presignedUrl, publicUrl });
     }
 
-    this.logger.log(`[createPresignedUrls] success itemCount=${items.length}`);
+    this.logger.log(`[createPresignedUrls] SUCCESS: Generated ${items.length} presigned URLs`);
     return { items };
   }
 

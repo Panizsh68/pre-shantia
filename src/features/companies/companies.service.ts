@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { ICompanyRepository } from './repositories/company.repository';
 import { Company } from './entities/company.entity';
 import { ICompany } from './interfaces/company.interface';
@@ -16,6 +16,8 @@ import { CreatePresignResponseDto } from '../image-upload/dto/presign-response.d
 
 @Injectable()
 export class CompaniesService implements ICompanyService {
+  private readonly logger = new Logger(CompaniesService.name);
+
   constructor(
     @Inject('CompanyRepository') private readonly companyRepository: ICompanyRepository,
     @Inject(IImageUploadServiceToken) private readonly imageUploadService?: IImageUploadService,
@@ -26,6 +28,9 @@ export class CompaniesService implements ICompanyService {
     userId: string,
     ctx: RequestContext,
   ): Promise<ICompany> {
+    this.logger.log(`[create] ENTRY: userId=${userId}, name=${createCompanyDto.name}`);
+    this.logger.debug(`[create] imageMeta provided: ${createCompanyDto.imageMeta ? 'YES' : 'NO'}`);
+
     const data: Partial<Company> = {
       ...createCompanyDto,
       createdBy: new Types.ObjectId(userId),
@@ -37,15 +42,31 @@ export class CompaniesService implements ICompanyService {
     // Expect createCompanyDto.imageMeta to be { filename, contentType, size }
     const imageMeta = (createCompanyDto as CreateCompanyDto).imageMeta;
     if (imageMeta && this.imageUploadService) {
-      const presignPayload: CreatePresignDto = { type: 'company', files: [imageMeta] };
-      const presignResult: CreatePresignResponseDto = await this.imageUploadService.createPresignedUrls(presignPayload);
-      if (presignResult.items && presignResult.items.length > 0) {
-        data['image'] = presignResult.items[0].publicUrl;
+      this.logger.log(`[create] Image upload requested: ${imageMeta.filename} (${imageMeta.size} bytes)`);
+      try {
+        const presignPayload: CreatePresignDto = { type: 'company', files: [imageMeta] };
+        this.logger.debug(`[create] Calling imageUploadService.createPresignedUrls...`);
+        const presignResult: CreatePresignResponseDto = await this.imageUploadService.createPresignedUrls(presignPayload);
+        if (presignResult.items && presignResult.items.length > 0) {
+          data['image'] = presignResult.items[0].publicUrl;
+          this.logger.log(`[create] Image URL persisted: ${data['image']}`);
+        }
+      } catch (err) {
+        this.logger.error(`[create] Image presign failed: ${err instanceof Error ? err.message : String(err)}`);
+        throw err;
       }
+    } else {
+      this.logger.log(`[create] Image upload skipped: imageMeta=${!imageMeta}, imageUploadService=${!this.imageUploadService}`);
     }
 
-    const companyDoc = await this.companyRepository.createOne(data);
-    return toPlain<ICompany>(companyDoc);
+    try {
+      const companyDoc = await this.companyRepository.createOne(data);
+      this.logger.log(`[create] SUCCESS: Company created with id=${companyDoc._id}`);
+      return toPlain<ICompany>(companyDoc);
+    } catch (err) {
+      this.logger.error(`[create] Repository save failed: ${err instanceof Error ? err.message : String(err)}`);
+      throw err;
+    }
   }
 
   async changeStatus(id: string, status: CompanyStatus, userId: string): Promise<ICompany> {
