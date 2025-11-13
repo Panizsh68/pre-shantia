@@ -194,4 +194,40 @@ export class PaymentService {
       }
     }
   }
+
+  /**
+   * Pay using internal wallet balance. This debits the user's wallet and credits the intermediary,
+   * then marks the order as paid. All operations run inside a single session to ensure atomicity.
+   */
+  async payWithWallet(userId: string, orderId: string, amount: number) {
+    // Validate order first
+    const order = await this.ordersService.findById(orderId);
+    if (!order) { throw new NotFoundException('Order not found'); }
+    if (order.status !== OrdersStatus.PENDING) { throw new BadRequestException('Order is not pending'); }
+    if (order.userId.toString() !== userId) { throw new BadRequestException('Unauthorized'); }
+
+    const session: ClientSession = await this.transactionService.startSession();
+    try {
+      // Debit user's wallet
+      await this.walletsService.debitWallet({ ownerId: userId, ownerType: WalletOwnerType.USER, amount }, session as any);
+
+      // Credit intermediary wallet
+      await this.walletsService.creditWallet({ ownerId: 'INTERMEDIARY_ID', ownerType: WalletOwnerType.INTERMEDIARY, amount }, session as any);
+
+      // Mark order as paid
+      await this.ordersService.markAsPaid(orderId, session as any);
+
+      await this.transactionService.commitSession(session);
+
+      return { success: true, method: 'WALLET', orderId };
+    } catch (error) {
+      await this.transactionService.abortSession(session);
+      this.logger.error('payWithWallet error', JSON.stringify({ userId, orderId, amount, err: String(error) }));
+      throw new BadRequestException('Wallet payment failed');
+    } finally {
+      if (session && typeof (session as any).endSession === 'function') {
+        try { await (session as any).endSession(); } catch (e) { this.logger.warn('endSession failed: ' + String(e)); }
+      }
+    }
+  }
 }

@@ -4,6 +4,9 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery } from '@nestjs/s
 import { PaymentService } from './payment.service';
 import { InitiatePaymentDto } from '../../utils/services/zibal/dtos/initiate.zibal.payment.dto';
 import { HandleCallbackResponseDto } from './handle-callback.dto';
+import { PayDto } from './dto/pay.dto';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { TokenPayload } from '../auth/interfaces/token-payload.interface';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -27,6 +30,20 @@ export class PaymentController {
   })
   async initiatePayment(@Body() dto: InitiatePaymentDto) {
     return this.paymentService.initiatePayment(dto.userId, dto.orderId, dto.amount);
+  }
+
+  @Post('pay')
+  @UseGuards(AuthenticationGuard)
+  @ApiOperation({ summary: 'Pay for an order using wallet or gateway', description: 'Choose method GATEWAY (external) or WALLET (internal).' })
+  @ApiBody({ type: PayDto })
+  @ApiResponse({ status: 200, description: 'Payment initiated or completed' })
+  async pay(@Body() dto: PayDto, @CurrentUser() user: TokenPayload) {
+    const method = dto.method ?? 'GATEWAY';
+    if (method === 'GATEWAY') {
+      return this.paymentService.initiatePayment(user.userId, dto.orderId, dto.amount);
+    }
+    // WALLET
+    return this.paymentService.payWithWallet(user.userId, dto.orderId, dto.amount);
   }
 
   @Get('callback')

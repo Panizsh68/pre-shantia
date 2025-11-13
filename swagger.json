@@ -34,6 +34,15 @@
         "operationId": "UsersController_listUsers",
         "parameters": [
           {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search by firstName, lastName, phoneNumber or nationalId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "limit",
             "required": false,
             "in": "query",
@@ -72,6 +81,15 @@
       "get": {
         "operationId": "UsersController_listUsersCreatedBySuper",
         "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search by firstName, lastName, phoneNumber or nationalId",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "limit",
             "required": false,
@@ -2917,6 +2935,32 @@
         ]
       }
     },
+    "/api/payment/pay": {
+      "post": {
+        "description": "Choose method GATEWAY (external) or WALLET (internal).",
+        "operationId": "PaymentController_pay",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment initiated or completed"
+          }
+        },
+        "summary": "Pay for an order using wallet or gateway",
+        "tags": [
+          "Payment"
+        ]
+      }
+    },
     "/api/payment/callback": {
       "get": {
         "description": "This route is open for default users.",
@@ -5295,6 +5339,29 @@
           "callbackUrl",
           "description",
           "userId",
+          "orderId"
+        ]
+      },
+      "PayDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GATEWAY",
+              "WALLET"
+            ],
+            "example": "GATEWAY"
+          }
+        },
+        "required": [
+          "amount",
           "orderId"
         ]
       },
