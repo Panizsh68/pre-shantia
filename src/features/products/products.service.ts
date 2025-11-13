@@ -96,12 +96,23 @@ export class ProductsService implements IProductService {
         this.logger.error(`[create] User profile not found for userId=${userId}`);
         throw new BadRequestException('User profile not found');
       }
-      if (!profile.companyId) {
-        this.logger.error(`[create] User has no company assigned, userId=${userId}`);
+
+      // Get companyId from profile, or fallback to extracting from permissions
+      let companyIdStr = profile.companyId?.toString();
+      if (!companyIdStr && tokenPayload?.permissions) {
+        this.logger.debug(`[create] Profile has no companyId, extracting from permissions...`);
+        const productPermission = tokenPayload.permissions.find(p => p.resource === Resource.PRODUCTS);
+        if (productPermission?.companyId) {
+          companyIdStr = productPermission.companyId;
+          this.logger.log(`[create] Extracted companyId from PRODUCTS permission: ${companyIdStr}`);
+        }
+      }
+
+      if (!companyIdStr) {
+        this.logger.error(`[create] User has no company assigned (profile and permissions), userId=${userId}`);
         throw new BadRequestException('User does not belong to any company');
       }
 
-      const companyIdStr = profile.companyId.toString();
       this.logger.log(`[create] User companyId=${companyIdStr}`);
 
       // Permission check: user must have CREATE on PRODUCTS for their company
