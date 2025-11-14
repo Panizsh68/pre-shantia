@@ -28,6 +28,7 @@ export interface IProductService {
     session?: ClientSession,
   ): Promise<IProduct>;
   findAll(options: FindManyOptions, session?: ClientSession): Promise<IProduct[]>;
+  findAllForAdmin(options: FindManyOptions, session?: ClientSession): Promise<IProduct[]>;
   findOne(id: string, session?: ClientSession): Promise<IProduct>;
   update(
     id: string,

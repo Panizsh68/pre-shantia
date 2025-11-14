@@ -218,6 +218,30 @@ export class ProductsService implements IProductService {
     }
   }
 
+  async findAllForAdmin(options: FindManyOptions = {}, session?: ClientSession): Promise<IProduct[]> {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsService.findAllForAdmin] entry - retrieving ALL products (all statuses) options=', JSON.stringify(options));
+    try {
+      const queryOptions: FindManyOptions = {
+        ...options,
+        conditions: {
+          ...options.conditions,
+          // No status filter - retrieve products in all statuses (ACTIVE, DRAFT, DELETED, etc.)
+        },
+        populate: options.populate || ['companyId', 'categories'],
+        session,
+      };
+      const products = await this.repo.findAll(queryOptions);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsService.findAllForAdmin] success count=', Array.isArray(products) ? products.length : 0);
+      return toPlainArray<IProduct>(products);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.findAllForAdmin] error', err);
+      throw err;
+    }
+  }
+
   async findOne(id: string, session?: ClientSession): Promise<IProduct> {
     // eslint-disable-next-line no-console
     console.log('[ProductsService.findOne] entry id=', id);

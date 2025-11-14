@@ -280,6 +280,71 @@ export class ProductsController {
     }
   }
 
+  @Get('admin/all-products')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.PRODUCTS, Action.CREATE)
+  @ApiOperation({ 
+    summary: 'Get all products (all statuses) for admin/editor', 
+    description: 'Retrieves all products including ACTIVE, DRAFT, DELETED, etc. Only accessible to users with CREATE or UPDATE permission on PRODUCTS.' 
+  })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'sort', required: false, type: String, example: 'createdAt:desc' })
+  @ApiResponse({ status: 200, description: 'List of all products returned (all statuses)' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  async findAllForAdmin(
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+    @Query('sort') sort?: string,
+    @CurrentUser() user?: TokenPayload,
+  ) {
+    // eslint-disable-next-line no-console
+    console.log('[ProductsController.findAllForAdmin] entry', { limit, page, sort, userId: user?.userId });
+    
+    // Additional permission check: user must have CREATE or UPDATE on PRODUCTS
+    const hasPermission = user?.permissions?.some(p => 
+      p.resource === Resource.PRODUCTS && 
+      (p.actions.includes(Action.CREATE) || p.actions.includes(Action.UPDATE))
+    );
+    if (!hasPermission) {
+      throw new Error('Forbidden: insufficient permissions');
+    }
+
+    const options: FindManyOptions = {};
+    if (limit) {
+      const parsedLimit = parseInt(limit, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1) {
+        throw new BadRequestException('Limit must be a positive integer');
+      }
+      options.perPage = parsedLimit;
+    }
+    if (page) {
+      const parsedPage = parseInt(page, 10);
+      if (isNaN(parsedPage) || parsedPage < 1) {
+        throw new BadRequestException('Page must be a positive integer');
+      }
+      options.page = parsedPage;
+    }
+    if (sort) {
+      const [field, order] = sort.split(':');
+      if (!field || !order || !['asc', 'desc'].includes(order.toLowerCase())) {
+        throw new BadRequestException('Sort must be in format field:asc|desc');
+      }
+      options.sort = [{ field, order: order.toLowerCase() === 'asc' ? SortOrder.ASC : SortOrder.DESC }];
+    }
+    try {
+      const result = await this.productsService.findAllForAdmin(options);
+      // eslint-disable-next-line no-console
+      console.log('[ProductsController.findAllForAdmin] forwarded to service');
+      return result;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsController.findAllForAdmin] error', err);
+      throw err;
+    }
+  }
+
   @Get('company/:companyId')
   @ApiOperation({ summary: 'Get products by company ID' })
   @ApiParam({ name: 'companyId', type: String })

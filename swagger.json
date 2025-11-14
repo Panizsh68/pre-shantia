@@ -1372,6 +1372,61 @@
         ]
       }
     },
+    "/api/products/admin/all-products": {
+      "get": {
+        "description": "Retrieves all products including ACTIVE, DRAFT, DELETED, etc. Only accessible to users with CREATE or UPDATE permission on PRODUCTS.",
+        "operationId": "ProductsController_findAllForAdmin",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "createdAt:desc",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all products returned (all statuses)"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all products (all statuses) for admin/editor",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
     "/api/products/company/{companyId}": {
       "get": {
         "operationId": "ProductsController_findByCompanyId",
