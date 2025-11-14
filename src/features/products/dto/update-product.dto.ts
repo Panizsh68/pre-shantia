@@ -27,13 +27,7 @@ class UpdateStockDto {
   quantity: number;
 }
 
-export class UpdateProductDto extends PartialType(
-  OmitType(CreateProductDto, [
-    'sku', // SKU should not be updatable
-    'slug', // Slug should not be updatable
-    'stock' // We'll use our custom stock DTO
-  ] as const),
-) {
+export class UpdateProductDto extends PartialType(CreateProductDto) {
   @ApiPropertyOptional({
     description: 'Stock update information',
     type: UpdateStockDto,
