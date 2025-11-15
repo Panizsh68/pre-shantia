@@ -283,9 +283,9 @@ export class ProductsController {
   @Get('admin/all-products')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.PRODUCTS, Action.CREATE)
-  @ApiOperation({ 
-    summary: 'Get all products (all statuses) for admin/editor', 
-    description: 'Retrieves all products including ACTIVE, DRAFT, DELETED, etc. Only accessible to users with CREATE or UPDATE permission on PRODUCTS.' 
+  @ApiOperation({
+    summary: 'Get all products (all statuses) for admin/editor',
+    description: 'Retrieves all products including ACTIVE, DRAFT, DELETED, etc. Only accessible to users with CREATE or UPDATE permission on PRODUCTS.'
   })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
@@ -301,10 +301,10 @@ export class ProductsController {
   ) {
     // eslint-disable-next-line no-console
     console.log('[ProductsController.findAllForAdmin] entry', { limit, page, sort, userId: user?.userId });
-    
+
     // Additional permission check: user must have CREATE or UPDATE on PRODUCTS
-    const hasPermission = user?.permissions?.some(p => 
-      p.resource === Resource.PRODUCTS && 
+    const hasPermission = user?.permissions?.some(p =>
+      p.resource === Resource.PRODUCTS &&
       (p.actions.includes(Action.CREATE) || p.actions.includes(Action.UPDATE))
     );
     if (!hasPermission) {

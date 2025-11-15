@@ -21,7 +21,7 @@ import { PaymentModule } from './features/payment/payment.module';
 import { CartsModule } from './features/carts/carts.module';
 import { CategoriesModule } from './features/categories/categories.module';
 import { ZibalModule } from './utils/services/zibal/zibal.module';
-import { HealthController } from './health/health.controller';
+import { HealthModule } from './health/health.module';
 import { SchedulerModule } from './features/scheduler/scheduler.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CachingModule } from './infrastructure/caching/caching.module';
@@ -89,9 +89,10 @@ import { RatingModule } from './features/ratings/rating.module';
     CategoriesModule,
     ZibalModule,
     ImageUploadModule,
-    RatingModule
+    RatingModule,
+    HealthModule,
   ],
-  controllers: [AppController, HealthController],
+  controllers: [AppController],
   providers: [
     AppService,
     {
