@@ -132,16 +132,32 @@ export class ImageUploadService {
         this.logger.error('[getPresignedPutUrl] s3 client is null');
         throw new InternalServerErrorException('S3 client is not available');
       }
-      // Create PutObjectCommand without ChecksumAlgorithm to prevent x-amz-checksum-crc32 in presigned URL
-      // This allows direct browser uploads without checksum validation issues
-      // Note: Do NOT set ChecksumAlgorithm at all - let SDK handle it naturally without flex checksums
+      // Create PutObjectCommand without ChecksumAlgorithm
       const command = new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
         ContentType: contentType,
       });
-      const url = await getSignedUrl(this.s3, command, { expiresIn: this.presignExpiresSeconds });
-      this.logger.debug(`[getPresignedPutUrl] presigned url generated for key=${key}`);
+      let url = await getSignedUrl(this.s3, command, { expiresIn: this.presignExpiresSeconds });
+
+      // Remove flexible checksum parameters from presigned URL
+      // These are added by AWS SDK but cause issues with Parspack/S3-compatible services
+      // Remove: x-amz-checksum-crc32, x-amz-sdk-checksum-algorithm
+      const checksumParams = [
+        'x-amz-checksum-crc32',
+        'x-amz-checksum-sha1',
+        'x-amz-checksum-sha256',
+        'x-amz-checksum-crc32c',
+        'x-amz-sdk-checksum-algorithm',
+      ];
+
+      for (const param of checksumParams) {
+        // Remove parameter from URL using regex
+        url = url.replace(new RegExp(`&${param}=[^&]*`, 'g'), '');
+        url = url.replace(new RegExp(`\\?${param}=[^&]*&`, 'g'), '?');
+      }
+
+      this.logger.debug(`[getPresignedPutUrl] presigned url generated for key=${key} (checksum params removed)`);
       return url;
     } catch (err) {
       this.logger.error(`[getPresignedPutUrl] failed to generate presigned URL: ${err instanceof Error ? err.message : String(err)}`);
