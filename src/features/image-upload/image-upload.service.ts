@@ -132,16 +132,16 @@ export class ImageUploadService {
         this.logger.error('[getPresignedPutUrl] s3 client is null');
         throw new InternalServerErrorException('S3 client is not available');
       }
-      // Disable flexible checksum algorithm to prevent x-amz-checksum-crc32 in presigned URL
-      // This allows direct browser uploads without checksum mismatch errors
+      // Create PutObjectCommand without ChecksumAlgorithm to prevent x-amz-checksum-crc32 in presigned URL
+      // This allows direct browser uploads without checksum validation issues
+      // Note: Do NOT set ChecksumAlgorithm at all - let SDK handle it naturally without flex checksums
       const command = new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
         ContentType: contentType,
-        ChecksumAlgorithm: 'NONE' as any, // Disable automatic checksum calculation
       });
       const url = await getSignedUrl(this.s3, command, { expiresIn: this.presignExpiresSeconds });
-      this.logger.debug(`[getPresignedPutUrl] presigned url generated for key=${key} (checksum disabled)`);
+      this.logger.debug(`[getPresignedPutUrl] presigned url generated for key=${key}`);
       return url;
     } catch (err) {
       this.logger.error(`[getPresignedPutUrl] failed to generate presigned URL: ${err instanceof Error ? err.message : String(err)}`);
