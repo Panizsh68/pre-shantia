@@ -49,7 +49,16 @@ export class CreateCompanyDto {
   @IsString()
   address?: string;
 
-  @ApiPropertyOptional({ description: 'File metadata to request presign url', type: ImageMetaDto })
+  @ApiPropertyOptional({
+    description:
+      'File metadata for requesting presigned URL (upload preparation stage). Send to /images/presign endpoint with type="company" to get presignedUrl, then PUT file to presignedUrl. Only 1 image per company.',
+    type: ImageMetaDto,
+    example: {
+      filename: 'company-logo.png',
+      contentType: 'image/png',
+      size: 256000,
+    },
+  })
   @IsOptional()
   imageMeta?: ImageMetaDto;
 

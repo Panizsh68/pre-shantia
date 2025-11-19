@@ -179,8 +179,13 @@ export class CreateProductDto {
   tags?: string[];
 
   @ApiPropertyOptional({
-    description: 'Images associated with the product',
+    description: 'Images associated with the product (after upload)',
     type: [ImageDto],
+    example: [
+      {
+        url: 'https://cdn.example.com/product/uuid_cement-bag.jpg',
+      },
+    ],
   })
   @IsArray()
   @ValidateNested({ each: true })
@@ -189,8 +194,16 @@ export class CreateProductDto {
   images?: ImageDto[];
 
   @ApiPropertyOptional({
-    description: 'Files metadata for presigning uploads',
+    description:
+      'File metadata for requesting presigned URLs (upload preparation stage). Send to /images/presign endpoint to get presignedUrl, then PUT file to presignedUrl. Max 5 images per product.',
     type: [ImageMetaDto],
+    example: [
+      {
+        filename: 'cement-bag.jpg',
+        contentType: 'image/jpeg',
+        size: 512000,
+      },
+    ],
   })
   @IsArray()
   @ValidateNested({ each: true })

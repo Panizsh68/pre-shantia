@@ -1,31 +1,50 @@
-import { IsIn, IsNotEmpty, IsString, IsArray, ArrayMaxSize, IsInt, Min, Max } from 'class-validator';
+import { IsIn, IsNotEmpty, IsString, IsArray, ArrayMaxSize, IsInt, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ImageMetaDto {
   @IsString()
   @IsNotEmpty()
-  @ApiProperty({ description: 'Original filename', example: 'photo.jpg' })
+  @ApiProperty({
+    description: 'Original filename (without path)',
+    example: 'product-photo.jpg',
+  })
   filename: string;
 
   @IsString()
   @IsNotEmpty()
-  @ApiProperty({ description: 'MIME content type', example: 'image/jpeg' })
+  @ApiProperty({
+    description: 'MIME content type of the file',
+    example: 'image/jpeg',
+    enum: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+  })
   contentType: string;
 
   @IsInt()
   @Min(1)
-  // size in bytes
-  @ApiProperty({ description: 'File size in bytes', example: 34567 })
+  @ApiProperty({
+    description: 'File size in bytes (must match actual file size)',
+    example: 512000,
+    minimum: 1,
+  })
   size: number;
 }
 
 export class CreatePresignDto {
   @IsIn(['product', 'company'])
-  @ApiProperty({ description: 'Type of upload target', enum: ['product', 'company'] })
+  @ApiProperty({
+    description: 'Upload target type (determines storage path and limits)',
+    enum: ['product', 'company'],
+    example: 'product',
+  })
   type: 'product' | 'company';
 
   @IsArray()
   @ArrayMaxSize(5)
-  @ApiProperty({ description: 'Files to presign', type: [ImageMetaDto] })
+  @ApiProperty({
+    type: [ImageMetaDto],
+    description:
+      'Array of files to presign. Max 5 for products, max 1 for companies. Max 10MB per file.',
+    maxItems: 5,
+  })
   files: ImageMetaDto[];
 }

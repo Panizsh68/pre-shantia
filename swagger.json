@@ -15,20 +15,6 @@
         ]
       }
     },
-    "/api/health": {
-      "get": {
-        "operationId": "HealthController_checkAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Health"
-        ]
-      }
-    },
     "/api/users": {
       "get": {
         "operationId": "UsersController_listUsers",
@@ -872,6 +858,7 @@
     },
     "/api/images/presign": {
       "post": {
+        "description": "\n      This endpoint generates presigned URLs that allow secure direct file uploads from the browser to cloud storage (R2/S3).\n      \n      **Workflow:**\n      1. Frontend calls this endpoint with file metadata (filename, contentType, size)\n      2. Backend generates presigned URLs valid for 5 minutes\n      3. Frontend uses presignedUrl with PUT request to upload file directly\n      4. After successful upload, use publicUrl to reference the file\n      \n      **Limits:**\n      - Product images: max 5 files per request\n      - Company images: max 1 file per request\n      - Max file size: 10 MB per file\n      \n      **Important:** ChecksumAlgorithm is disabled to prevent checksum mismatches on browser uploads.\n    ",
         "operationId": "ImageUploadController_presign",
         "parameters": [],
         "requestBody": {
@@ -880,13 +867,53 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreatePresignDto"
+              },
+              "examples": {
+                "product": {
+                  "summary": "Product image presign",
+                  "value": {
+                    "type": "product",
+                    "files": [
+                      {
+                        "filename": "product-photo.jpg",
+                        "contentType": "image/jpeg",
+                        "size": 512000
+                      }
+                    ]
+                  }
+                },
+                "company": {
+                  "summary": "Company logo presign",
+                  "value": {
+                    "type": "company",
+                    "files": [
+                      {
+                        "filename": "company-logo.png",
+                        "contentType": "image/png",
+                        "size": 256000
+                      }
+                    ]
+                  }
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Presigned URLs created",
+            "description": "Presigned URLs generated successfully",
+            "schema": {
+              "example": {
+                "items": [
+                  {
+                    "filename": "product-photo.jpg",
+                    "contentType": "image/jpeg",
+                    "presignedUrl": "https://storage.example.com/product/uuid_product-photo.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&...",
+                    "publicUrl": "https://cdn.example.com/product/uuid_product-photo.jpg"
+                  }
+                ]
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -894,9 +921,15 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad request - invalid file size, type mismatch, or limit exceeded"
+          },
+          "500": {
+            "description": "Internal server error - R2/S3 client not configured"
           }
         },
-        "summary": "Create presigned URLs for image uploads",
+        "summary": "Generate presigned URLs for direct file uploads to cloud storage",
         "tags": [
           "images"
         ]
@@ -3774,6 +3807,48 @@
           "Ratings"
         ]
       }
+    },
+    "/api/health/live": {
+      "get": {
+        "operationId": "HealthController_getLiveness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/health/ready": {
+      "get": {
+        "operationId": "HealthController_getReadiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "HealthController_getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
     }
   },
   "info": {
@@ -4233,18 +4308,25 @@
         "properties": {
           "filename": {
             "type": "string",
-            "description": "Original filename",
-            "example": "photo.jpg"
+            "description": "Original filename (without path)",
+            "example": "product-photo.jpg"
           },
           "contentType": {
             "type": "string",
-            "description": "MIME content type",
-            "example": "image/jpeg"
+            "description": "MIME content type of the file",
+            "example": "image/jpeg",
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "image/gif"
+            ]
           },
           "size": {
             "type": "number",
-            "description": "File size in bytes",
-            "example": 34567
+            "description": "File size in bytes (must match actual file size)",
+            "example": 512000,
+            "minimum": 1
           }
         },
         "required": [
@@ -4282,7 +4364,12 @@
             "example": "Tehran, Iran"
           },
           "imageMeta": {
-            "description": "File metadata to request presign url",
+            "description": "File metadata for requesting presigned URL (upload preparation stage). Send to /images/presign endpoint with type=\"company\" to get presignedUrl, then PUT file to presignedUrl. Only 1 image per company.",
+            "example": {
+              "filename": "company-logo.png",
+              "contentType": "image/png",
+              "size": 256000
+            },
             "allOf": [
               {
                 "$ref": "#/components/schemas/ImageMetaDto"
@@ -4340,14 +4427,16 @@
         "properties": {
           "type": {
             "type": "string",
-            "description": "Type of upload target",
+            "description": "Upload target type (determines storage path and limits)",
             "enum": [
               "product",
               "company"
-            ]
+            ],
+            "example": "product"
           },
           "files": {
-            "description": "Files to presign",
+            "description": "Array of files to presign. Max 5 for products, max 1 for companies. Max 10MB per file.",
+            "maxItems": 5,
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ImageMetaDto"
@@ -4364,19 +4453,23 @@
         "properties": {
           "filename": {
             "type": "string",
-            "description": "Original filename"
+            "description": "Original filename as provided in request",
+            "example": "product-photo.jpg"
           },
           "contentType": {
             "type": "string",
-            "description": "MIME content type"
+            "description": "MIME content type of the file",
+            "example": "image/jpeg"
           },
           "presignedUrl": {
             "type": "string",
-            "description": "Presigned URL to upload the file"
+            "description": "AWS presigned URL for direct PUT upload. Valid for 5 minutes. Include Content-Type header in PUT request.",
+            "example": "https://storage.example.com/product/uuid_product.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...&X-Amz-Date=...&X-Amz-Expires=300&X-Amz-Signature=...&X-Amz-SignedHeaders=host&x-id=PutObject"
           },
           "publicUrl": {
             "type": "string",
-            "description": "Public URL to access the uploaded file"
+            "description": "Public CDN URL to access the uploaded file after successful PUT upload. Use this in your application.",
+            "example": "https://cdn.example.com/product/uuid_product.jpg"
           }
         },
         "required": [
@@ -4390,6 +4483,7 @@
         "type": "object",
         "properties": {
           "items": {
+            "description": "Array of presigned URL items, one per requested file",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PresignItemDto"
@@ -4581,14 +4675,26 @@
             }
           },
           "images": {
-            "description": "Images associated with the product",
+            "description": "Images associated with the product (after upload)",
+            "example": [
+              {
+                "url": "https://cdn.example.com/product/uuid_cement-bag.jpg"
+              }
+            ],
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ImageDto"
             }
           },
           "imagesMeta": {
-            "description": "Files metadata for presigning uploads",
+            "description": "File metadata for requesting presigned URLs (upload preparation stage). Send to /images/presign endpoint to get presignedUrl, then PUT file to presignedUrl. Max 5 images per product.",
+            "example": [
+              {
+                "filename": "cement-bag.jpg",
+                "contentType": "image/jpeg",
+                "size": 512000
+              }
+            ],
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ImageMetaDto"
