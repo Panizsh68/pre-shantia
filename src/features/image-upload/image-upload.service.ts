@@ -164,4 +164,71 @@ export class ImageUploadService {
       throw new InternalServerErrorException('Failed to generate presigned URL');
     }
   }
+
+  async uploadFiles(files: Express.Multer.File[], type: 'product' | 'company'): Promise<CreatePresignResponseDto> {
+    this.logger.log(`[uploadFiles] ENTRY: type=${type} fileCount=${files.length}`);
+
+    if (!this.s3) {
+      this.logger.error('[uploadFiles] FAIL: R2 S3 client is null');
+      throw new InternalServerErrorException('R2 S3 client is not configured. Please set R2 endpoint and credentials.');
+    }
+
+    if (!this.bucket) {
+      this.logger.error('[uploadFiles] FAIL: R2 bucket is empty');
+      throw new InternalServerErrorException('R2 bucket is not configured (R2_BUCKET)');
+    }
+
+    // Validate file count
+    const maxImages = type === 'product' ? this.maxProductImages : this.maxCompanyImages;
+    if (files.length > maxImages) {
+      this.logger.warn(`[uploadFiles] file count ${files.length} exceeds limit ${maxImages}`);
+      throw new BadRequestException(`Maximum ${maxImages} file(s) allowed for ${type}`);
+    }
+
+    const items: PresignItemDto[] = [];
+
+    for (const file of files) {
+      this.logger.log(`[uploadFiles] Processing file: ${file.originalname} (${file.size} bytes, ${file.mimetype})`);
+
+      // Validate file size
+      if (file.size > this.maxImageBytes) {
+        this.logger.warn(`[uploadFiles] file ${file.originalname} size ${file.size} exceeds limit ${this.maxImageBytes}`);
+        throw new BadRequestException(`File ${file.originalname} exceeds maximum size of ${this.maxImageBytes} bytes`);
+      }
+
+      try {
+        // Build S3 key
+        const key = this.buildKey(type, file.originalname);
+        this.logger.debug(`[uploadFiles] Built key: ${key}`);
+
+        // Upload to S3
+        const command = new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+        });
+
+        await this.s3.send(command);
+        this.logger.log(`[uploadFiles] File uploaded to S3: ${key}`);
+
+        // Build public URL
+        const publicUrl = this.buildPublicUrl(key);
+        this.logger.debug(`[uploadFiles] Public URL: ${publicUrl}`);
+
+        items.push({
+          filename: file.originalname,
+          contentType: file.mimetype,
+          publicUrl,
+          presignedUrl: '', // Not applicable for direct uploads
+        });
+      } catch (err) {
+        this.logger.error(`[uploadFiles] Upload failed for ${file.originalname}: ${err instanceof Error ? err.message : String(err)}`);
+        throw new InternalServerErrorException(`Failed to upload file ${file.originalname}`);
+      }
+    }
+
+    this.logger.log(`[uploadFiles] SUCCESS: Uploaded ${items.length} file(s)`);
+    return { items };
+  }
 }
