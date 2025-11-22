@@ -935,6 +935,72 @@
         ]
       }
     },
+    "/api/images/upload": {
+      "post": {
+        "description": "\n      Direct file upload endpoint that handles CORS automatically.\n      Use this instead of presign if you encounter CORS issues.\n      \n      **Workflow:**\n      1. Frontend POSTs multipart/form-data with files\n      2. Backend uploads directly to S3/R2\n      3. Backend returns public URLs\n      \n      **Limits:**\n      - Product images: max 5 files per request\n      - Company images: max 1 file per request\n      - Max file size: 10 MB per file\n    ",
+        "operationId": "ImageUploadController_upload",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "product",
+                      "company"
+                    ],
+                    "description": "Upload target type"
+                  },
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    "description": "Files to upload (max 5 for product, max 1 for company)"
+                  }
+                },
+                "required": [
+                  "type",
+                  "files"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Files uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "items": [
+                      {
+                        "filename": "product-photo.jpg",
+                        "contentType": "image/jpeg",
+                        "publicUrl": "https://cdn.example.com/product/uuid_product-photo.jpg"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid file size, type mismatch, or limit exceeded"
+          }
+        },
+        "summary": "Upload files directly to cloud storage (no presign needed)",
+        "tags": [
+          "images"
+        ]
+      }
+    },
     "/api/wallets": {
       "get": {
         "description": "This route is open for default users.",
