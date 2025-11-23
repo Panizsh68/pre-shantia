@@ -52,7 +52,7 @@ export const S3ClientProvider: Provider = {
         accessKeyId,
         secretAccessKey,
       },
-      forcePathStyle: false,
+      forcePathStyle: true,
     });
   },
 };
