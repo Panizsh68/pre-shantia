@@ -51,7 +51,7 @@ export class CreateCompanyDto {
 
   @ApiPropertyOptional({
     description:
-      'File metadata for requesting presigned URL (upload preparation stage). Send to /images/presign endpoint with type="company" to get presignedUrl, then PUT file to presignedUrl. Only 1 image per company.',
+      'File metadata for requesting a presigned URL. Call `POST /images/presign` with `type: "company"` and this object in the `files` array to receive `presignedUrl` and `publicUrl`. After receiving the presignedUrl, perform a `PUT` using the same `contentType`. Only 1 image per company. If `presignedUrl` is `null`, the backend uploaded the file server-side and you should use the returned `publicUrl`.',
     type: ImageMetaDto,
     example: {
       filename: 'company-logo.png',

@@ -68,8 +68,9 @@ export class ImageUploadController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Presigned URLs generated successfully',
     type: CreatePresignResponseDto,
+    description:
+      'Returns an array of items. Each item contains `filename`, `contentType`, and `publicUrl`. `presignedUrl` is provided when browser direct upload is available; it may be `null` when the backend performed the upload (server-side) or presigning is disabled.',
     schema: {
       example: {
         items: [
@@ -137,18 +138,9 @@ export class ImageUploadController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Files uploaded successfully',
-    schema: {
-      example: {
-        items: [
-          {
-            filename: 'product-photo.jpg',
-            contentType: 'image/jpeg',
-            publicUrl: 'https://cdn.example.com/product/uuid_product-photo.jpg',
-          },
-        ],
-      },
-    },
+    type: CreatePresignResponseDto,
+    description:
+      'Returns uploaded items with `filename`, `contentType` and `publicUrl`. `presignedUrl` will be null for server-side uploads.',
   })
   @ApiResponse({
     status: 400,

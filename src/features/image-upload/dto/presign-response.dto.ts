@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PresignItemDto {
   @ApiProperty({
@@ -13,13 +13,14 @@ export class PresignItemDto {
   })
   contentType: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description:
-      'AWS presigned URL for direct PUT upload. Valid for 5 minutes. Include Content-Type header in PUT request.',
+      'Presigned URL for direct browser PUT. If null the backend performed the upload (server-side) or presigning is not available.',
     example:
       'https://storage.example.com/product/uuid_product.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...&X-Amz-Date=...&X-Amz-Expires=300&X-Amz-Signature=...&X-Amz-SignedHeaders=host&x-id=PutObject',
+    nullable: true,
   })
-  presignedUrl: string;
+  presignedUrl?: string | null;
 
   @ApiProperty({
     description:

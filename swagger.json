@@ -901,7 +901,7 @@
         },
         "responses": {
           "200": {
-            "description": "Presigned URLs generated successfully",
+            "description": "Returns an array of items. Each item contains `filename`, `contentType`, and `publicUrl`. `presignedUrl` is provided when browser direct upload is available; it may be `null` when the backend performed the upload (server-side) or presigning is disabled.",
             "schema": {
               "example": {
                 "items": [
@@ -974,19 +974,11 @@
         },
         "responses": {
           "200": {
-            "description": "Files uploaded successfully",
+            "description": "Returns uploaded items with `filename`, `contentType` and `publicUrl`. `presignedUrl` will be null for server-side uploads.",
             "content": {
               "application/json": {
                 "schema": {
-                  "example": {
-                    "items": [
-                      {
-                        "filename": "product-photo.jpg",
-                        "contentType": "image/jpeg",
-                        "publicUrl": "https://cdn.example.com/product/uuid_product-photo.jpg"
-                      }
-                    ]
-                  }
+                  "$ref": "#/components/schemas/CreatePresignResponseDto"
                 }
               }
             }
@@ -4430,7 +4422,7 @@
             "example": "Tehran, Iran"
           },
           "imageMeta": {
-            "description": "File metadata for requesting presigned URL (upload preparation stage). Send to /images/presign endpoint with type=\"company\" to get presignedUrl, then PUT file to presignedUrl. Only 1 image per company.",
+            "description": "File metadata for requesting a presigned URL. Call `POST /images/presign` with `type: \"company\"` and this object in the `files` array to receive `presignedUrl` and `publicUrl`. After receiving the presignedUrl, perform a `PUT` using the same `contentType`. Only 1 image per company. If `presignedUrl` is `null`, the backend uploaded the file server-side and you should use the returned `publicUrl`.",
             "example": {
               "filename": "company-logo.png",
               "contentType": "image/png",
@@ -4528,9 +4520,10 @@
             "example": "image/jpeg"
           },
           "presignedUrl": {
-            "type": "string",
-            "description": "AWS presigned URL for direct PUT upload. Valid for 5 minutes. Include Content-Type header in PUT request.",
-            "example": "https://storage.example.com/product/uuid_product.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...&X-Amz-Date=...&X-Amz-Expires=300&X-Amz-Signature=...&X-Amz-SignedHeaders=host&x-id=PutObject"
+            "type": "object",
+            "description": "Presigned URL for direct browser PUT. If null the backend performed the upload (server-side) or presigning is not available.",
+            "example": "https://storage.example.com/product/uuid_product.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...&X-Amz-Date=...&X-Amz-Expires=300&X-Amz-Signature=...&X-Amz-SignedHeaders=host&x-id=PutObject",
+            "nullable": true
           },
           "publicUrl": {
             "type": "string",
@@ -4541,7 +4534,6 @@
         "required": [
           "filename",
           "contentType",
-          "presignedUrl",
           "publicUrl"
         ]
       },
@@ -4753,7 +4745,7 @@
             }
           },
           "imagesMeta": {
-            "description": "File metadata for requesting presigned URLs (upload preparation stage). Send to /images/presign endpoint to get presignedUrl, then PUT file to presignedUrl. Max 5 images per product.",
+            "description": "File metadata for requesting presigned URLs (upload preparation stage). Send this array to `POST /images/presign` to receive `presignedUrl` and `publicUrl` for each item. After receiving a presignedUrl, perform a `PUT` to the returned URL using the same `contentType`. Max 5 images per product — if the returned `presignedUrl` is `null` the server performed the upload and you can use the returned `publicUrl` directly.",
             "example": [
               {
                 "filename": "cement-bag.jpg",

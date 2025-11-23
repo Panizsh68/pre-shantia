@@ -195,7 +195,7 @@ export class CreateProductDto {
 
   @ApiPropertyOptional({
     description:
-      'File metadata for requesting presigned URLs (upload preparation stage). Send to /images/presign endpoint to get presignedUrl, then PUT file to presignedUrl. Max 5 images per product.',
+      'File metadata for requesting presigned URLs (upload preparation stage). Send this array to `POST /images/presign` to receive `presignedUrl` and `publicUrl` for each item. After receiving a presignedUrl, perform a `PUT` to the returned URL using the same `contentType`. Max 5 images per product — if the returned `presignedUrl` is `null` the server performed the upload and you can use the returned `publicUrl` directly.',
     type: [ImageMetaDto],
     example: [
       {
