@@ -36,7 +36,7 @@ export const S3ClientProvider: Provider = {
     const secretAccessKey = r2Config?.secretKey;
     const bucket = r2Config?.bucket;
 
-    logger.log(`[S3ClientProvider] R2 Config: endpoint=${endpoint ? '***configured***' : 'MISSING'}, accessKey=${accessKeyId ? '***configured***' : 'MISSING'}, secretKey=${secretAccessKey ? '***configured***' : 'MISSING'}, bucket=${bucket || 'MISSING'}`);
+    logger.log(`[S3ClientProvider] R2 Config: endpoint=${endpoint ? '***configured***' : 'MISSING'}, accessKey=${accessKeyId ? `***${accessKeyId.slice(-4)}` : 'MISSING'}, secretKey=${secretAccessKey ? '***' : 'MISSING'}, bucket=${bucket || 'MISSING'}`);
 
     if (!endpoint || !accessKeyId || !secretAccessKey) {
       logger.warn('[S3ClientProvider] S3 client initialization skipped: missing credentials');

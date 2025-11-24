@@ -178,6 +178,8 @@ export class ImageUploadService {
       throw new InternalServerErrorException('R2 bucket is not configured (R2_BUCKET)');
     }
 
+    this.logger.log(`[uploadFiles] S3 client ready, bucket=${this.bucket}`);
+
     // Validate file count
     const maxImages = type === 'product' ? this.maxProductImages : this.maxCompanyImages;
     if (files.length > maxImages) {
@@ -209,6 +211,7 @@ export class ImageUploadService {
           ContentType: file.mimetype,
         });
 
+        this.logger.debug(`[uploadFiles] Sending PutObjectCommand to S3: bucket=${this.bucket}, key=${key}, size=${file.buffer.length}`);
         await this.s3.send(command);
         this.logger.log(`[uploadFiles] File uploaded to S3: ${key}`);
 
@@ -224,6 +227,7 @@ export class ImageUploadService {
         });
       } catch (err) {
         this.logger.error(`[uploadFiles] Upload failed for ${file.originalname}: ${err instanceof Error ? err.message : String(err)}`);
+        this.logger.debug(`[uploadFiles] Error details: ${JSON.stringify(err, null, 2)}`);
         throw new InternalServerErrorException(`Failed to upload file ${file.originalname}`);
       }
     }
