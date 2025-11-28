@@ -9,14 +9,3 @@ export class ExistsDto {
   @ApiProperty({ example: true })
   exists: boolean;
 }
-
-export class TopProductDto {
-  @ApiProperty({ description: 'Product id' })
-  id: string;
-
-  @ApiProperty({ description: 'Product name' })
-  name: string;
-
-  @ApiProperty({ description: 'Average rating for the product' })
-  avgRating: number;
-}

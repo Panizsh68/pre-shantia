@@ -1596,7 +1596,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/TopProductDto"
+                    "$ref": "#/components/schemas/ProductResponseDto"
                   }
                 }
               }
@@ -1611,7 +1611,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get top-selling products",
+        "summary": "Get top-rated products",
         "tags": [
           "Products"
         ]
@@ -4631,6 +4631,16 @@
             "items": {
               "$ref": "#/components/schemas/VariantOptionDto"
             }
+          },
+          "id": {
+            "type": "string",
+            "description": "Existing variant id (ignored on save, kept for compatibility with persisted documents)",
+            "example": "67480664cb8c0c1c1a9d5a7d"
+          },
+          "_id": {
+            "type": "string",
+            "description": "Existing variant Mongo _id (ignored on save, kept for compatibility with persisted documents)",
+            "example": "67480664cb8c0c1c1a9d5a7d"
           }
         },
         "required": [
@@ -4893,28 +4903,6 @@
           "updatedBy",
           "createdAt",
           "updatedAt"
-        ]
-      },
-      "TopProductDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Product id"
-          },
-          "name": {
-            "type": "string",
-            "description": "Product name"
-          },
-          "avgRating": {
-            "type": "number",
-            "description": "Average rating for the product"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "avgRating"
         ]
       },
       "UpdateStockDto": {

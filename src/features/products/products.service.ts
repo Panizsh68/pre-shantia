@@ -9,7 +9,6 @@ import { IProductService } from './interfaces/product.service.interface';
 import { IProductRepository } from './repositories/product.repository';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { IProduct } from './interfaces/product.interface';
-import { TopProduct } from './interfaces/top-product.interface';
 import { RequestContext } from 'src/common/types/request-context.interface';
 import { ProductStatus } from './enums/product-status.enum';
 import { AdvancedSearchParams } from './types/advanced-search-params.type';
@@ -477,18 +476,12 @@ export class ProductsService implements IProductService {
     }
   }
 
-  async getTopProductsByRating(limit = 5, session?: ClientSession): Promise<TopProduct[]> {
+  async getTopProductsByRating(limit = 5, session?: ClientSession): Promise<IProduct[]> {
     // eslint-disable-next-line no-console
     console.log('[ProductsService.getTopProductsByRating] entry limit=', limit);
     try {
-      const raw = await this.repo.getTopProductsByRating(limit, session);
-      // raw items come from aggregation with fields: _id, name, avgRating, company?
-      const mapped: TopProduct[] = (raw || []).map((it: any) => ({
-        id: String(it._id ?? it.id ?? ''),
-        name: it.name ?? '',
-        avgRating: typeof it.avgRating === 'number' ? it.avgRating : 0,
-        company: it.company ? { id: String(it.company._id ?? it.company.id ?? ''), name: it.company.name } : undefined,
-      }));
+      const products = await this.repo.getTopProductsByRating(limit, session);
+      const mapped = toPlainArray<IProduct>(products);
       // eslint-disable-next-line no-console
       console.log('[ProductsService.getTopProductsByRating] success count=', mapped.length);
       return mapped;

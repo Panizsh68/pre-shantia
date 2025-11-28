@@ -2,7 +2,6 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ClientSession, PipelineStage, Types, FilterQuery } from 'mongoose';
 import { Product } from '../entities/product.entity';
-import { TopProduct } from '../interfaces/top-product.interface';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 import {
   IBaseCrudRepository,
@@ -13,7 +12,7 @@ import { FindManyOptions, SortOption } from 'src/libs/repository/interfaces/base
 
 export interface IProductRepository extends IBaseCrudRepository<Product>, IBaseAggregateRepository<Product>, IBaseTransactionRepository<Product> {
   bulkDecrementStock(items: { productId: Types.ObjectId; qty: number }[], session?: ClientSession): Promise<number>;
-  getTopProductsByRating(limit?: number, session?: ClientSession): Promise<TopProduct[]>;
+  getTopProductsByRating(limit?: number, session?: ClientSession): Promise<Product[]>;
   findByCompanyId(companyId: string | Types.ObjectId, options?: { page?: number; limit?: number; sort?: { field: string; order: 'asc' | 'desc' }[] }, session?: ClientSession): Promise<Product[]>;
   advancedSearchAggregate(
     params: {
@@ -66,7 +65,7 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
     const res = await (this.model as any).bulkWrite(bulkOps, { session });
     return res.modifiedCount || 0;
   }
-  async getTopProductsByRating(limit = 5, session?: ClientSession): Promise<TopProduct[]> {
+  async getTopProductsByRating(limit = 5, session?: ClientSession): Promise<Product[]> {
     const pipeline: PipelineStage[] = [
       { $match: { status: 'active' } },
       {
@@ -79,21 +78,19 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
       },
       {
         $addFields: {
-          avgRating: { $avg: '$ratings.rating' },
+          avgRate: { $ifNull: [{ $avg: '$ratings.rating' }, 0] },
+          totalRatings: { $size: '$ratings' },
         },
       },
-      { $sort: { avgRating: -1 } },
+      { $sort: { avgRate: -1, totalRatings: -1, _id: 1 } },
       { $limit: limit },
       {
         $project: {
-          _id: 1,
-          name: 1,
-          avgRating: 1,
-          company: 1,
+          ratings: 0,
         },
       },
     ];
-    return this.aggregate<TopProduct>(pipeline, session);
+    return this.aggregate<Product>(pipeline, session);
   }
   async advancedSearchAggregate(
     params: {

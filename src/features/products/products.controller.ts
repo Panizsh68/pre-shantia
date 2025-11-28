@@ -30,7 +30,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { UpdateProductStatusDto } from './dto/update-product-status.dto';
 import { ProductStatusResponseDto } from './dto/product-status-response.dto';
-import { CountDto, ExistsDto, TopProductDto } from './dto/misc-response.dto';
+import { CountDto, ExistsDto } from './dto/misc-response.dto';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { IProductService } from './interfaces/product.service.interface';
 import { AuthenticationGuard } from 'src/features/auth/guards/auth.guard';
@@ -390,11 +390,11 @@ export class ProductsController {
 
 
   @Get('top-sales')
-  @ApiOperation({ summary: 'Get top-selling products' })
+  @ApiOperation({ summary: 'Get top-rated products' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 5 })
-  @ApiResponse({ status: 200, description: 'Top products returned', type: [TopProductDto] })
+  @ApiResponse({ status: 200, description: 'Top products returned', type: [ProductResponseDto] })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  getTopProducts(@Query('limit') limit?: string) {
+  async getTopProducts(@Query('limit') limit?: string) {
     // eslint-disable-next-line no-console
     console.log('[ProductsController.getTopProducts] entry limit=', limit);
     const lim = limit ? parseInt(limit, 10) : 5;
@@ -404,7 +404,7 @@ export class ProductsController {
       throw new BadRequestException('Limit must be a positive integer');
     }
     try {
-      const result = this.productsService.getTopProductsByRating(lim);
+      const result = await this.productsService.getTopProductsByRating(lim);
       // eslint-disable-next-line no-console
       console.log('[ProductsController.getTopProducts] forwarded to service limit=', lim);
       return result;

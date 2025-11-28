@@ -4,7 +4,6 @@ import { UpdateProductDto } from '../dto/update-product.dto';
 import { IProduct } from './product.interface';
 import { ClientSession } from 'mongoose';
 import { ProductStatus } from '../enums/product-status.enum';
-import { TopProduct } from './top-product.interface';
 import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
 
 export interface IProductService {
@@ -40,7 +39,7 @@ export interface IProductService {
   remove(id: string, userId: string, tokenPayload?: TokenPayload, session?: ClientSession): Promise<void>;
   existsByCompany(companyId: string, session?: ClientSession): Promise<boolean>;
   countByCategory(categoryId: string, session?: ClientSession): Promise<number>;
-  getTopProductsByRating(limit: number, session?: ClientSession): Promise<TopProduct[]>;
+  getTopProductsByRating(limit?: number, session?: ClientSession): Promise<IProduct[]>;
   transactionalCreate(
     createProductDto: CreateProductDto,
     userId: string,
