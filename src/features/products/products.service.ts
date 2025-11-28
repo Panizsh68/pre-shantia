@@ -386,14 +386,17 @@ export class ProductsService implements IProductService {
         updatedBy: toObjectId(userId),
       };
 
-      // Handle new image presigns on update if requested
-      if (imagesMeta && imagesMeta.length > 0 && this.imageUploadService) {
+      // Handle new image presigns on update if requested and no images already provided
+      const hasImagesInDto = Array.isArray(rest.images) && rest.images.length > 0;
+      if (!hasImagesInDto && imagesMeta && imagesMeta.length > 0 && this.imageUploadService) {
         this.logger.log(`[update] Image upload requested: ${imagesMeta.length} file(s)`);
         this.logger.debug(`[update] Images to presign: ${imagesMeta.map(m => m.filename).join(', ')}`);
         const presignPayload: CreatePresignDto = { type: 'product', files: imagesMeta };
         const presignResult: CreatePresignResponseDto = await this.imageUploadService.createPresignedUrls(presignPayload);
         data.images = presignResult.items.map((it) => ({ url: it.publicUrl }));
         this.logger.log(`[update] Images presigned and persisted: ${data.images.length} URL(s)`);
+      } else if (hasImagesInDto) {
+        this.logger.debug('[update] Skipping presign because images array was provided in DTO');
       }
 
       // eslint-disable-next-line no-console
