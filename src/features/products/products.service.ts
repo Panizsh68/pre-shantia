@@ -16,7 +16,7 @@ import { AdvancedSearchParams } from './types/advanced-search-params.type';
 import { IProfileService } from '../users/profile/interfaces/profile.service.interface';
 import { ICompanyService } from '../companies/interfaces/company.service.interface';
 import { IImageUploadServiceToken, IImageUploadService } from '../image-upload/interfaces/image-upload.service.interface';
-import { CreatePresignDto } from '../image-upload/dto/create-presign.dto';
+import { CreatePresignDto, ImageMetaDto } from '../image-upload/dto/create-presign.dto';
 import { CreatePresignResponseDto } from '../image-upload/dto/presign-response.dto';
 import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
 import { Resource } from 'src/features/permissions/enums/resources.enum';
@@ -365,7 +365,7 @@ export class ProductsService implements IProductService {
         this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.UPDATE, existingCompanyId);
       }
 
-      const { categories, ...rest } = dto as UpdateProductDto;
+      const { categories, imagesMeta, ...rest } = dto as UpdateProductDto & { imagesMeta?: ImageMetaDto[] };
       // Check name uniqueness if being updated
       if (dto.name && dto.name !== existing.name) {
         const nameExists = await this.repo.existsByCondition({
@@ -385,6 +385,17 @@ export class ProductsService implements IProductService {
         categories: categories ? toObjectIdArray(categories) : [],
         updatedBy: toObjectId(userId),
       };
+
+      // Handle new image presigns on update if requested
+      if (imagesMeta && imagesMeta.length > 0 && this.imageUploadService) {
+        this.logger.log(`[update] Image upload requested: ${imagesMeta.length} file(s)`);
+        this.logger.debug(`[update] Images to presign: ${imagesMeta.map(m => m.filename).join(', ')}`);
+        const presignPayload: CreatePresignDto = { type: 'product', files: imagesMeta };
+        const presignResult: CreatePresignResponseDto = await this.imageUploadService.createPresignedUrls(presignPayload);
+        data.images = presignResult.items.map((it) => ({ url: it.publicUrl }));
+        this.logger.log(`[update] Images presigned and persisted: ${data.images.length} URL(s)`);
+      }
+
       // eslint-disable-next-line no-console
       console.log('[ProductsService.update] updating repo id=', id);
       const updatedDoc = await this.repo.updateById(id, data, session);

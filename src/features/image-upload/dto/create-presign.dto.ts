@@ -20,11 +20,11 @@ export class ImageMetaDto {
   contentType: string;
 
   @IsInt()
-  @Min(1)
+  @Min(0)
   @ApiProperty({
-    description: 'File size in bytes (must match actual file size)',
+    description: 'File size in bytes (0 allowed when size is unknown)',
     example: 512000,
-    minimum: 1,
+    minimum: 0,
   })
   size: number;
 }

@@ -74,6 +74,22 @@ class ImageDto {
   })
   @IsUrl()
   url: string;
+
+  @ApiPropertyOptional({
+    description: 'Existing image id (ignored on save, kept for compatibility with persisted documents)',
+    example: '67480664cb8c0c1c1a9d5a7d',
+  })
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @ApiPropertyOptional({
+    description: 'Existing Mongo _id (ignored on save, kept for compatibility with persisted documents)',
+    example: '67480664cb8c0c1c1a9d5a7d',
+  })
+  @IsOptional()
+  @IsString()
+  _id?: string;
 }
 
 export class CreateProductDto {

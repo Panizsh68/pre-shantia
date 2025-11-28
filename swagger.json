@@ -4382,9 +4382,9 @@
           },
           "size": {
             "type": "number",
-            "description": "File size in bytes (must match actual file size)",
+            "description": "File size in bytes (0 allowed when size is unknown)",
             "example": 512000,
-            "minimum": 1
+            "minimum": 0
           }
         },
         "required": [
@@ -4645,6 +4645,16 @@
             "type": "string",
             "description": "URL of the product image",
             "example": "https://example.com/cement-bag.jpg"
+          },
+          "id": {
+            "type": "string",
+            "description": "Existing image id (ignored on save, kept for compatibility with persisted documents)",
+            "example": "67480664cb8c0c1c1a9d5a7d"
+          },
+          "_id": {
+            "type": "string",
+            "description": "Existing Mongo _id (ignored on save, kept for compatibility with persisted documents)",
+            "example": "67480664cb8c0c1c1a9d5a7d"
           }
         },
         "required": [

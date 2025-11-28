@@ -28,6 +28,10 @@ async function bootstrap(): Promise<void> {
 
   expressApp.set('trust proxy', 1);
 
+  // Configure body size limits for file uploads (10MB)
+  expressApp.use(express.json({ limit: '10mb' }));
+  expressApp.use(express.urlencoded({ limit: '10mb', extended: true }));
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
