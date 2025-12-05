@@ -47,16 +47,69 @@ import { RequestContext as IRequestContext } from 'src/common/types/request-cont
 @ApiBearerAuth()
 @Controller('products')
 export class ProductsController {
+  
+
+  constructor(
+    @Inject('IProductsService')
+    private readonly productsService: IProductService,
+  ) { }
+
   @Get('advanced-search')
-  @ApiOperation({ summary: 'Advanced search for products with multiple filters', description: 'This route is open for default users.' })
-  @ApiQuery({ name: 'query', required: false, type: String })
-  @ApiQuery({ name: 'maxPrice', required: false, type: Number })
-  @ApiQuery({ name: 'companyName', required: false, type: String })
-  @ApiQuery({ name: 'categoryIds', required: false, type: [String] })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'sort', required: false, type: String })
-  @ApiResponse({ status: 200, description: 'Advanced search results returned' })
+  @ApiOperation({
+    summary: 'Advanced search for products with multiple filters',
+    description: 'Returns ACTIVE products. All filters are query params (no request body).',
+  })
+  @ApiQuery({
+    name: 'query',
+    required: false,
+    type: String,
+    description: 'Case-insensitive search on product name.',
+    example: 'laptop',
+  })
+  @ApiQuery({
+    name: 'maxPrice',
+    required: false,
+    type: Number,
+    description: 'Maximum basePrice (>= 0).',
+    example: 1500,
+  })
+  @ApiQuery({
+    name: 'companyName',
+    required: false,
+    type: String,
+    description: 'Case-insensitive match on company name.',
+    example: 'Apple',
+  })
+  @ApiQuery({
+    name: 'categoryIds',
+    required: false,
+    type: String,
+    isArray: true,
+    description: 'Array of Category ObjectId strings. Send as repeated query params: ?categoryIds=...&categoryIds=...',
+    example: ['66cf2f0c4f1a9b1234567890', '66cf2f0c4f1a9b1234567891'],
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (>= 1). Defaults to 1.',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (>= 1). Defaults to 10.',
+    example: 20,
+  })
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+    type: String,
+    description: 'Sort format: field:asc|desc. Defaults to createdAt:desc when omitted.',
+    example: 'basePrice:asc',
+  })
+  @ApiResponse({ status: 200, description: 'Advanced search results returned', type: ProductResponseDto, isArray: true })
   async advancedSearch(
     @Query('query') query?: string,
     @Query('maxPrice') maxPrice?: string,
@@ -99,12 +152,7 @@ export class ProductsController {
       throw err;
     }
   }
-
-  constructor(
-    @Inject('IProductsService')
-    private readonly productsService: IProductService,
-  ) { }
-
+  
   @Get('search-by-price-company')
   @ApiOperation({ summary: 'Search products by max price and company name' })
   @ApiQuery({ name: 'maxPrice', required: false, type: Number, example: 500000 })
