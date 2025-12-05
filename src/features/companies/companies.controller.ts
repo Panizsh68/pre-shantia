@@ -116,27 +116,22 @@ export class CompaniesController {
   }
 
   @Get(':id')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.COMPANIES, Action.READ)
+
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get company by ID' })
   @ApiParam({ name: 'id', type: String, description: 'Company ID' })
   @ApiResponse({ status: 200, description: 'Company found', type: Company })
   @ApiResponse({ status: 404, description: 'Company not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   findOne(@Param('id') id: string) {
     return this.companiesService.findOne(id);
   }
 
   @Get()
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.COMPANIES, Action.READ)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all companies' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiResponse({ status: 200, description: 'List of all companies', type: [Company] })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   findAll(
     @Query('limit') limit?: string,
     @Query('page') page?: string,
