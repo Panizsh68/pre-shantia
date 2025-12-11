@@ -613,9 +613,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
         "security": [
@@ -741,9 +738,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized"
           },
           "404": {
             "description": "Company not found"
@@ -1179,14 +1173,16 @@
     },
     "/api/products/advanced-search": {
       "get": {
-        "description": "This route is open for default users.",
+        "description": "Returns ACTIVE products. All filters are query params (no request body).",
         "operationId": "ProductsController_advancedSearch",
         "parameters": [
           {
             "name": "query",
             "required": false,
             "in": "query",
+            "description": "Case-insensitive search on product name.",
             "schema": {
+              "example": "laptop",
               "type": "string"
             }
           },
@@ -1194,7 +1190,9 @@
             "name": "maxPrice",
             "required": false,
             "in": "query",
+            "description": "Maximum basePrice (>= 0).",
             "schema": {
+              "example": 1500,
               "type": "number"
             }
           },
@@ -1202,7 +1200,9 @@
             "name": "companyName",
             "required": false,
             "in": "query",
+            "description": "Case-insensitive match on company name.",
             "schema": {
+              "example": "Apple",
               "type": "string"
             }
           },
@@ -1210,7 +1210,12 @@
             "name": "categoryIds",
             "required": false,
             "in": "query",
+            "description": "Array of Category ObjectId strings. Send as repeated query params: ?categoryIds=...&categoryIds=...",
             "schema": {
+              "example": [
+                "66cf2f0c4f1a9b1234567890",
+                "66cf2f0c4f1a9b1234567891"
+              ],
               "type": "array",
               "items": {
                 "type": "string"
@@ -1221,7 +1226,9 @@
             "name": "page",
             "required": false,
             "in": "query",
+            "description": "Page number (>= 1). Defaults to 1.",
             "schema": {
+              "example": 1,
               "type": "number"
             }
           },
@@ -1229,7 +1236,9 @@
             "name": "limit",
             "required": false,
             "in": "query",
+            "description": "Items per page (>= 1). Defaults to 10.",
             "schema": {
+              "example": 20,
               "type": "number"
             }
           },
@@ -1237,14 +1246,26 @@
             "name": "sort",
             "required": false,
             "in": "query",
+            "description": "Sort format: field:asc|desc. Defaults to createdAt:desc when omitted.",
             "schema": {
+              "example": "basePrice:asc",
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Advanced search results returned"
+            "description": "Advanced search results returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4589,9 +4610,7 @@
         "properties": {
           "quantity": {
             "type": "number",
-            "description": "Quantity of product in stock",
-            "example": 500,
-            "minimum": 0
+            "example": 500
           }
         },
         "required": [
@@ -4602,15 +4621,10 @@
         "type": "object",
         "properties": {
           "value": {
-            "type": "string",
-            "description": "Value of the variant option",
-            "example": "50 kg"
+            "type": "string"
           },
           "priceModifier": {
-            "type": "number",
-            "description": "Price modifier for this option (in IRR). Cannot be negative.",
-            "example": 0,
-            "minimum": 0
+            "type": "number"
           }
         },
         "required": [
@@ -4621,26 +4635,13 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "description": "Name of the variant",
-            "example": "Packaging"
+            "type": "string"
           },
           "options": {
-            "description": "List of variant options",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/VariantOptionDto"
             }
-          },
-          "id": {
-            "type": "string",
-            "description": "Existing variant id (ignored on save, kept for compatibility with persisted documents)",
-            "example": "67480664cb8c0c1c1a9d5a7d"
-          },
-          "_id": {
-            "type": "string",
-            "description": "Existing variant Mongo _id (ignored on save, kept for compatibility with persisted documents)",
-            "example": "67480664cb8c0c1c1a9d5a7d"
           }
         },
         "required": [
@@ -4652,23 +4653,117 @@
         "type": "object",
         "properties": {
           "url": {
-            "type": "string",
-            "description": "URL of the product image",
-            "example": "https://example.com/cement-bag.jpg"
-          },
-          "id": {
-            "type": "string",
-            "description": "Existing image id (ignored on save, kept for compatibility with persisted documents)",
-            "example": "67480664cb8c0c1c1a9d5a7d"
-          },
-          "_id": {
-            "type": "string",
-            "description": "Existing Mongo _id (ignored on save, kept for compatibility with persisted documents)",
-            "example": "67480664cb8c0c1c1a9d5a7d"
+            "type": "string"
           }
         },
         "required": [
           "url"
+        ]
+      },
+      "ProductResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "basePrice": {
+            "type": "number"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "companyId": {
+            "type": "string"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          },
+          "stock": {
+            "$ref": "#/components/schemas/StockDto"
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VariantDto"
+            }
+          },
+          "attributes": {
+            "type": "object"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageDto"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "draft",
+              "archived",
+              "deleted"
+            ]
+          },
+          "deletedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "updatedBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "finalPrice": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "sku",
+          "basePrice",
+          "companyId",
+          "categories",
+          "stock",
+          "status",
+          "createdBy",
+          "updatedBy",
+          "createdAt",
+          "updatedAt"
         ]
       },
       "CreateProductDto": {
@@ -4797,112 +4892,6 @@
           "sku",
           "basePrice",
           "stock"
-        ]
-      },
-      "ProductResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "507f1f77bcf86cd799439011"
-          },
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "sku": {
-            "type": "string"
-          },
-          "basePrice": {
-            "type": "number"
-          },
-          "discount": {
-            "type": "number"
-          },
-          "companyId": {
-            "type": "string"
-          },
-          "categories": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "description": {
-            "type": "string"
-          },
-          "stock": {
-            "$ref": "#/components/schemas/StockDto"
-          },
-          "variants": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/VariantDto"
-            }
-          },
-          "attributes": {
-            "type": "object"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "images": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ImageDto"
-            }
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "active",
-              "inactive",
-              "draft",
-              "archived",
-              "deleted"
-            ]
-          },
-          "deletedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "createdBy": {
-            "type": "string"
-          },
-          "updatedBy": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "finalPrice": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "slug",
-          "sku",
-          "basePrice",
-          "companyId",
-          "categories",
-          "stock",
-          "status",
-          "createdBy",
-          "updatedBy",
-          "createdAt",
-          "updatedAt"
         ]
       },
       "UpdateStockDto": {

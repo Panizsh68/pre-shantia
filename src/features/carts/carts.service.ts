@@ -26,7 +26,7 @@ export class CartsService implements ICartsService {
   async getPopulatedCartsForUserById(userId: string): Promise<Cart[]> {
     const options: FindManyOptions = {
       populate: [
-        { path: 'items.product', select: 'name basePrice description' },
+        { path: 'items.productId', select: 'name basePrice description' },
         { path: 'items.companyId', select: 'name address' },
       ],
     };
@@ -37,7 +37,7 @@ export class CartsService implements ICartsService {
   async getPopulatedCartsForUser(userId: string): Promise<Cart[]> {
     const options: FindManyOptions = {
       populate: [
-        { path: 'items.product', select: 'name basePrice description' },
+        { path: 'items.productId', select: 'name basePrice description' },
         { path: 'items.companyId', select: 'name address' },
       ],
     };
