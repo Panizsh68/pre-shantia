@@ -68,10 +68,7 @@ export class CartsService implements ICartsService {
   }
 
   async addItemToCart(userId: string, item: CartItemDto): Promise<ICart> {
-    const cart = await this.cartRepository.findActiveCartByUserId(userId);
-    if (!cart) {
-      throw new NotFoundException('Active cart not found');
-    }
+    const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
     // validate companyId presence and format
     if (!item.companyId) {
       throw new NotFoundException('companyId is required for cart items');
@@ -85,53 +82,64 @@ export class CartsService implements ICartsService {
     if (product.companyId?.toString() !== item.companyId) {
       throw new BadRequestException('Product does not belong to the provided companyId');
     }
-    cart.items.push(item);
+    // Check if item with same productId and companyId already exists
+    const existingItemIndex = cart.items.findIndex(
+      i => i.productId === item.productId && i.companyId === item.companyId
+    );
+    if (existingItemIndex >= 0) {
+      // Update existing item quantity and price
+      cart.items[existingItemIndex].quantity += item.quantity;
+      cart.items[existingItemIndex].priceAtAdd = item.priceAtAdd;
+      if (item.variant) cart.items[existingItemIndex].variant = item.variant;
+      if (item.discount) cart.items[existingItemIndex].discount = item.discount;
+    } else {
+      // Add new item
+      cart.items.push(item);
+    }
     // Recalculate total including discounts
     cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
-    return this.cartRepository.saveOne(cart);
+    const savedCart = await cart.save();
+    return savedCart;
   }
 
   async removeItemFromCart(userId: string, productId: string): Promise<ICart> {
-    const cart = await this.cartRepository.findActiveCartByUserId(userId);
-    if (!cart) {
-      throw new NotFoundException('Active cart not found');
+    const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
+    // Check if item exists
+    const itemIndex = cart.items.findIndex(i => i.productId === productId);
+    if (itemIndex < 0) {
+      throw new NotFoundException(`Product with id ${productId} not found in cart`);
     }
-    cart.items = cart.items.filter(i => i.productId !== productId);
+    // Remove the item
+    cart.items.splice(itemIndex, 1);
     cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
-    return this.cartRepository.saveOne(cart);
+    const savedCart = await cart.save();
+    return savedCart;
   }
 
   async clearCart(userId: string): Promise<ICart> {
-    const cart = await this.cartRepository.findActiveCartByUserId(userId);
-    if (!cart) {
-      throw new NotFoundException('Active cart not found');
-    }
+    const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
     cart.items = [];
     cart.totalAmount = 0;
-    return this.cartRepository.saveOne(cart);
+    const savedCart = await cart.save();
+    return savedCart;
   }
 
   async checkout(userId: string, session?: ClientSession): Promise<{ success: boolean; cartId: string }> {
-    const cart = await this.cartRepository.findActiveCartByUserId(userId, session);
-    if (!cart) {
-      throw new NotFoundException('Active cart not found');
-    }
+    const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
     // ensure totals are up-to-date before checkout
     cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
     cart.status = CartStatus.CHECKED_OUT;
-    await this.cartRepository.saveOne(cart, session);
-    return { success: true, cartId: cart.id };
+    const savedCart = await cart.save({ session });
+    return { success: true, cartId: savedCart.id };
   }
 
   async updateCart(userId: string, cartData: Partial<Cart>): Promise<ICart> {
-    const cart = await this.cartRepository.findActiveCartByUserId(userId);
-    if (!cart) {
-      throw new NotFoundException('Active cart not found');
-    }
+    const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
     Object.assign(cart, cartData);
     // Recalculate total if items changed or totalAmount not provided
     cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
-    return this.cartRepository.saveOne(cart);
+    const savedCart = await cart.save();
+    return savedCart;
   }
 
   private validateDiscount(discount: { type: string; value: number } | undefined): void {
