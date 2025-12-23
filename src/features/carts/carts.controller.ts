@@ -44,8 +44,7 @@ export class CartsController {
   ) { }
 
   @Get('active')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.CARTS, Action.READ)
+  @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: 'Get the active cart for current user' })
   @ApiResponse({ status: 200, description: 'User active cart returned', type: Cart })
   @HttpCode(HttpStatus.OK)
@@ -55,7 +54,6 @@ export class CartsController {
 
   @Get('populated')
   @UseGuards(AuthenticationGuard)
-  @Permission(Resource.CARTS, Action.READ)
   @ApiOperation({ summary: 'Get carts with populated related data for current user' })
   @ApiResponse({ status: 200, description: 'Populated carts list returned', type: [Cart] })
   @HttpCode(HttpStatus.OK)
@@ -65,7 +63,6 @@ export class CartsController {
 
   @Get('summary')
   @UseGuards(AuthenticationGuard)
-  @Permission(Resource.CARTS, Action.READ)
   @ApiOperation({ summary: 'Get summary of user carts' })
   @ApiResponse({ status: 200, description: 'Cart summary returned', type: Object })
   @HttpCode(HttpStatus.OK)

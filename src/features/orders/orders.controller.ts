@@ -10,6 +10,7 @@ import {
   HttpStatus,
   Inject,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -17,10 +18,13 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { IOrdersService } from './interfaces/order.service.interface';
 import { Order } from './entities/order.entity';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { TokenPayload } from '../auth/interfaces/token-payload.interface';
 import { Permission } from '../permissions/decorators/permissions.decorators';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
+import { hasPermission, isSuperAdmin } from 'src/common/utils/auth-helpers';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -39,23 +43,40 @@ export class OrdersController {
   }
 
   @Get(':id')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.ORDERS, Action.READ)
-  @ApiOperation({ summary: 'Get order by ID', description: 'This route is open for default users.' })
+  @UseGuards(AuthenticationGuard)
+  @ApiOperation({ summary: 'Get order by ID', description: 'Regular users can only access their own orders.' })
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, description: 'Order found', type: Order })
-  async getById(@Param('id') id: string) {
-    return await this.ordersService.findById(id);
+  @ApiResponse({ status: 403, description: 'Forbidden - cannot access another user\'s order' })
+  async getById(@CurrentUser() user: TokenPayload, @Param('id') id: string) {
+    const order = await this.ordersService.findById(id);
+    
+    // Owner check: user can only see their own orders unless they're superadmin
+    if (order.userId !== user.userId && !isSuperAdmin(user)) {
+      throw new ForbiddenException('Cannot access another user\'s order');
+    }
+    
+    return order;
   }
 
   @Get()
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.ORDERS, Action.READ)
-  @ApiOperation({ summary: 'Find orders by userId or companyId' })
+  @UseGuards(AuthenticationGuard)
+  @ApiOperation({ 
+    summary: 'Find orders by userId or companyId',
+    description: 'Regular users see only their own orders. Admins see all.'
+  })
   @ApiQuery({ name: 'userId', required: false, type: String })
   @ApiQuery({ name: 'companyId', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Orders found', type: [Order] })
-  async find(@Query('userId') userId?: string, @Query('companyId') companyId?: string) {
+  async find(@CurrentUser() user: TokenPayload, @Query('userId') userId?: string, @Query('companyId') companyId?: string) {
+    const isAdmin = hasPermission(user, Resource.ORDERS, Action.READ);
+    
+    // Regular users can only see their own orders
+    if (!isAdmin) {
+      return await this.ordersService.findByUserId(user.userId);
+    }
+    
+    // Admins can filter by userId or companyId
     if (userId) {
       return await this.ordersService.findByUserId(userId);
     }

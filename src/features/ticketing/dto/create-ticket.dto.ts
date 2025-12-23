@@ -39,26 +39,15 @@ export class CreateTicketDto {
   priority?: TicketPriority = TicketPriority.Low;
 
   @ApiPropertyOptional({
-    description: 'ID of the user who created the ticket',
-    example: '507f1f77bcf86cd799439011',
-  })
-  @IsOptional()
-  @IsString()
-  createdBy?: string;
-
-  @ApiPropertyOptional({
-    description: 'ID of the user assigned to the ticket',
-    example: '507f1f77bcf86cd799439012',
-  })
-  @IsOptional()
-  @IsString()
-  assignedTo?: string;
-
-  @ApiPropertyOptional({
     description: 'Order id if this ticket is related to an order',
     example: '507f1f77bcf86cd799439099',
   })
   @IsOptional()
   @IsString()
   orderId?: string;
+
+  // Internal fields (set by controller, not exposed to API)
+  createdBy?: string;
+  assignedTo?: string;
 }
+

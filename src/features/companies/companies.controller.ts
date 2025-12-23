@@ -12,6 +12,7 @@ import {
   Inject,
   UseGuards,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -38,6 +39,7 @@ import { TokenPayload } from '../auth/interfaces/token-payload.interface';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { RequestContext } from 'src/common/decorators/request-context.decorator';
 import { RequestContext as IRequestContext } from 'src/common/types/request-context.interface';
+import { isSuperAdmin } from 'src/common/utils/auth-helpers';
 
 @ApiTags('Companies')
 @ApiBearerAuth()
@@ -69,18 +71,29 @@ export class CompaniesController {
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.COMPANIES, Action.UPDATE)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update a company by ID' })
+  @ApiOperation({ 
+    summary: 'Update a company by ID',
+    description: 'Company admins can update their own company. Superadmins can update any company.'
+  })
   @ApiParam({ name: 'id', type: String, description: 'Company ID' })
   @ApiBody({ type: UpdateCompanyDto })
   @ApiResponse({ status: 200, description: 'Company updated successfully', type: Company })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  update(
+  @ApiResponse({ status: 403, description: 'Forbidden - not admin of this company' })
+  async update(
     @Param('id') id: string,
     @Body() updateCompanyDto: UpdateCompanyDto,
     @CurrentUser() user: TokenPayload,
   ) {
+    // Superadmins can update any company
+    if (!isSuperAdmin(user)) {
+      // Check if user is admin of this company
+      const isCompanyAdmin = await this.companiesService.isUserAdmin(id, user.userId);
+      if (!isCompanyAdmin) {
+        throw new ForbiddenException('You are not an admin of this company');
+      }
+    }
     return this.companiesService.update(id, updateCompanyDto, user.userId);
   }
 
@@ -88,14 +101,27 @@ export class CompaniesController {
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.COMPANIES, Action.UPDATE)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Change company's status" })
+  @ApiOperation({ 
+    summary: "Change company's status",
+    description: 'Company admins can change their own company status. Superadmins can change any company status.'
+  })
   @ApiParam({ name: 'id', type: String, description: 'Company ID' })
   @ApiBody({ type: ChangeCompanyStatusDto })
+  @ApiResponse({ status: 200, description: 'Company status changed successfully', type: Company })
+  @ApiResponse({ status: 403, description: 'Forbidden - not admin of this company' })
   async changeStatus(
     @Param('id') id: string,
     @Body() body: ChangeCompanyStatusDto,
     @CurrentUser() user: TokenPayload,
   ) {
+    // Superadmins can change any company status
+    if (!isSuperAdmin(user)) {
+      // Check if user is admin of this company
+      const isCompanyAdmin = await this.companiesService.isUserAdmin(id, user.userId);
+      if (!isCompanyAdmin) {
+        throw new ForbiddenException('You are not an admin of this company');
+      }
+    }
     return this.companiesService.changeStatus(id, body.status as CompanyStatus, user.userId);
   }
 
@@ -103,15 +129,26 @@ export class CompaniesController {
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.COMPANIES, Action.DELETE)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete company by ID' })
+  @ApiOperation({ 
+    summary: 'Delete company by ID',
+    description: 'Company admins can delete their own company. Superadmins can delete any company.'
+  })
   @ApiParam({ name: 'id', type: String, description: 'Company ID' })
   @ApiResponse({ status: 204, description: 'Company deleted' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 403, description: 'Forbidden - not admin of this company' })
   async remove(
     @Param('id') id: string,
     @CurrentUser() user: TokenPayload,
   ) {
+    // Superadmins can delete any company
+    if (!isSuperAdmin(user)) {
+      // Check if user is admin of this company
+      const isCompanyAdmin = await this.companiesService.isUserAdmin(id, user.userId);
+      if (!isCompanyAdmin) {
+        throw new ForbiddenException('You are not an admin of this company');
+      }
+    }
     await this.companiesService.remove(id, user.userId);
   }
 

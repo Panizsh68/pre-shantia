@@ -15,4 +15,5 @@ export interface ICompanyService {
   findAll(options?: FindManyOptions): Promise<ICompany[]>;
   existsByName(name: string): Promise<boolean>;
   count(): Promise<number>;
+  isUserAdmin(companyId: string, userId: string): Promise<boolean>;
 }

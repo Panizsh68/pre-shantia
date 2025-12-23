@@ -152,4 +152,17 @@ export class CompaniesService implements ICompanyService {
   async count(): Promise<number> {
     return this.companyRepository.countByCondition({});
   }
+
+  async isUserAdmin(companyId: string, userId: string): Promise<boolean> {
+    try {
+      const company = await this.companyRepository.findById(companyId);
+      if (!company) return false;
+      
+      // Check if user is the creator/admin of this company
+      return company.createdBy?.toString() === userId;
+    } catch (error) {
+      this.logger.error(`[isUserAdmin] Error checking admin status: ${error.message}`);
+      return false;
+    }
+  }
 }

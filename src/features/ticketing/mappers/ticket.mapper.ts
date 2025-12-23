@@ -11,7 +11,15 @@ export function ticketToResponseDto(t: Ticket): TicketResponseDto {
     createdBy: t.createdBy,
     assignedTo: t.assignedTo,
     orderId: t.orderId,
+    comments: (t.comments || []).map(c => ({
+      id: c.id?.toString() || '',
+      userId: c.userId,
+      content: c.content,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+    })),
     createdAt: (t.createdAt as Date | undefined),
     updatedAt: (t.updatedAt as Date | undefined),
   };
 }
+

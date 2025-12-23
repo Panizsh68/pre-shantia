@@ -1,6 +1,6 @@
 import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ClientSession, UpdateQuery } from 'mongoose';
-import { Ticket } from './entities/ticketing.entity';
+import { Ticket, TicketComment } from './entities/ticketing.entity';
 import { ITicketingService } from './interfaces/ticketing.service.interface';
 import { ITicketRepository } from './repository/ticket.repository';
 import { CreateTicketDto } from './dto/create-ticket.dto';
@@ -68,6 +68,7 @@ export class TicketingService implements ITicketingService {
     if (createTicketDto.orderId) {
       order = await this.orderRepository.findById(createTicketDto.orderId);
       if (!order) { throw new NotFoundException('Order not found'); }
+      // createdBy is set by controller before calling create
       if (!createTicketDto.createdBy || order.userId.toString() !== createTicketDto.createdBy) {
         throw new BadRequestException('Cannot create a ticket for an order you do not own');
       }
@@ -170,5 +171,26 @@ export class TicketingService implements ITicketingService {
 
   async autoEscalateTickets(): Promise<void> {
     return this.ticketRepository.autoEscalateTickets();
+  }
+
+  async addComment(ticketId: string, userId: string, content: string): Promise<Ticket | null> {
+    if (!content || content.trim().length === 0) {
+      throw new BadRequestException('Comment content cannot be empty');
+    }
+
+    const updated = await this.ticketRepository.addComment(ticketId, userId, content);
+    if (updated) {
+      // Update cache with new comment
+      await this.cacheService.set(`ticket:${ticketId}`, updated, 3000);
+    }
+    return updated;
+  }
+
+  async getComments(ticketId: string): Promise<TicketComment[]> {
+    const ticket = await this.findOne(ticketId);
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+    return ticket.comments || [];
   }
 }

@@ -13,6 +13,7 @@ import { ITicketRepository, TicketRepository } from './repository/ticket.reposit
 import { OrdersModule } from '../orders/orders.module';
 import { WalletsModule } from '../wallets/wallets.module';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PermissionsModule } from 'src/features/permissions/permissions.module';
     ScheduleModule.forRoot(),
     OrdersModule, // Added OrdersModule to imports
     WalletsModule, // Added WalletsModule to imports
+    UsersModule, // Added UsersModule to get UsersService
     forwardRef(() => PermissionsModule),
   ],
   controllers: [TicketingController],

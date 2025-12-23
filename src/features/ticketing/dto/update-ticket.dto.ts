@@ -40,19 +40,6 @@ export class UpdateTicketDto {
   @IsEnum(TicketPriority)
   priority?: TicketPriority;
 
-  @ApiPropertyOptional({
-    description: 'ID of the user assigned to the ticket',
-    example: '507f1f77bcf86cd799439012',
-  })
-  @IsOptional()
-  @IsString()
-  assignedTo?: string;
-
-  @ApiPropertyOptional({
-    description: 'Order id if this ticket is related to an order',
-    example: '507f1f77bcf86cd799439099',
-  })
-  @IsOptional()
-  @IsString()
-  orderId?: string;
+  // Note: createdBy and assignedTo are immutable - set at creation time only
 }
+

@@ -1,4 +1,4 @@
-import { Ticket } from '../entities/ticketing.entity';
+import { Ticket, TicketComment } from '../entities/ticketing.entity';
 import { TicketStatus } from '../enums/ticket-status.enum';
 import { UpdateTicketDto } from '../dto/update-ticket.dto';
 import { CreateTicketDto } from '../dto/create-ticket.dto';
@@ -15,4 +15,6 @@ export interface ITicketingService {
   remove(id: string): Promise<boolean>;
   escalateTicket(ticketId: string): Promise<Ticket>;
   autoEscalateTickets(): Promise<void>;
+  addComment(ticketId: string, userId: string, content: string): Promise<Ticket | null>;
+  getComments(ticketId: string): Promise<TicketComment[]>;
 }

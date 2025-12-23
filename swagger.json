@@ -628,6 +628,7 @@
     },
     "/api/companies/{id}": {
       "patch": {
+        "description": "Company admins can update their own company. Superadmins can update any company.",
         "operationId": "CompaniesController_update",
         "parameters": [
           {
@@ -668,7 +669,7 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden - not admin of this company"
           }
         },
         "security": [
@@ -682,6 +683,7 @@
         ]
       },
       "delete": {
+        "description": "Company admins can delete their own company. Superadmins can delete any company.",
         "operationId": "CompaniesController_remove",
         "parameters": [
           {
@@ -702,7 +704,7 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "description": "Forbidden - not admin of this company"
           }
         },
         "security": [
@@ -756,6 +758,7 @@
     },
     "/api/companies/{id}/status": {
       "patch": {
+        "description": "Company admins can change their own company status. Superadmins can change any company status.",
         "operationId": "CompaniesController_changeStatus",
         "parameters": [
           {
@@ -780,7 +783,17 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Company status changed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Company"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - not admin of this company"
           }
         },
         "security": [
@@ -1148,11 +1161,12 @@
     },
     "/api/transaction": {
       "get": {
+        "description": "Regular users see only their own transactions. Superadmins see all.",
         "operationId": "TransactionController_getTransactionHistory",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "List of user transactions returned successfully",
+            "description": "List of transactions returned successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -1165,7 +1179,7 @@
             }
           }
         },
-        "summary": "Get transaction history for current user",
+        "summary": "Get transaction history",
         "tags": [
           "Transaction"
         ]
@@ -1979,6 +1993,7 @@
     },
     "/api/tickets": {
       "post": {
+        "description": "Creates a new support ticket. Ticket is automatically assigned to superadmin.",
         "operationId": "TicketingController_create",
         "parameters": [],
         "requestBody": {
@@ -2003,13 +2018,18 @@
             }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Create a new ticket",
         "tags": [
           "Tickets"
         ]
       },
       "get": {
-        "description": "This route is open for default users.",
+        "description": "Regular users see only their own tickets. Superadmin/staff with TICKETING.READ permission see all tickets.",
         "operationId": "TicketingController_findAll",
         "parameters": [],
         "responses": {
@@ -2027,7 +2047,12 @@
             }
           }
         },
-        "summary": "Get all tickets (with optional filters)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get tickets",
         "tags": [
           "Tickets"
         ]
@@ -2035,6 +2060,7 @@
     },
     "/api/tickets/{id}": {
       "get": {
+        "description": "Users can only see tickets they created. Admins can see any ticket.",
         "operationId": "TicketingController_findOne",
         "parameters": [
           {
@@ -2057,16 +2083,25 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden - ticket belongs to another user"
+          },
           "404": {
             "description": "Ticket not found"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Get a ticket by ID",
         "tags": [
           "Tickets"
         ]
       },
       "patch": {
+        "description": "Admins/staff can update ticket details. Regular users can add replies.",
         "operationId": "TicketingController_update",
         "parameters": [
           {
@@ -2098,14 +2133,26 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden - insufficient permissions"
+          },
+          "404": {
+            "description": "Ticket not found"
           }
         },
-        "summary": "Patch ticket by ID",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update a ticket",
         "tags": [
           "Tickets"
         ]
       },
       "delete": {
+        "description": "Only admins/staff can delete tickets.",
         "operationId": "TicketingController_delete",
         "parameters": [
           {
@@ -2119,10 +2166,28 @@
         ],
         "responses": {
           "200": {
-            "description": "Ticket deleted successfully"
+            "description": "Ticket deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - only admins can delete tickets"
+          },
+          "404": {
+            "description": "Ticket not found"
           }
         },
-        "summary": "Delete ticket by ID",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a ticket",
         "tags": [
           "Tickets"
         ]
@@ -2130,6 +2195,7 @@
     },
     "/api/tickets/{id}/status": {
       "get": {
+        "description": "Users can only check status of their own tickets.",
         "operationId": "TicketingController_findStatus",
         "parameters": [
           {
@@ -2152,16 +2218,25 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden - ticket belongs to another user"
+          },
           "404": {
             "description": "Ticket not found"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Get status of a ticket by ID",
         "tags": [
           "Tickets"
         ]
       },
       "patch": {
+        "description": "Only admins/staff can update ticket status.",
         "operationId": "TicketingController_updateStatus",
         "parameters": [
           {
@@ -2211,9 +2286,20 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden - only admins can update status"
+          },
+          "404": {
+            "description": "Ticket not found"
           }
         },
-        "summary": "Patch ticket status",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update ticket status",
         "tags": [
           "Tickets"
         ]
@@ -2221,6 +2307,7 @@
     },
     "/api/tickets/{id}/escalate": {
       "post": {
+        "description": "Only admins/staff can escalate tickets.",
         "operationId": "TicketingController_escalateTicket",
         "parameters": [
           {
@@ -2234,10 +2321,28 @@
         ],
         "responses": {
           "200": {
-            "description": "Ticket escalated"
+            "description": "Ticket escalated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - only admins can escalate tickets"
+          },
+          "404": {
+            "description": "Ticket not found"
           }
         },
-        "summary": "Escalate a ticket to a higher level",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Escalate a ticket to higher priority",
         "tags": [
           "Tickets"
         ]
@@ -2245,6 +2350,7 @@
     },
     "/api/tickets/{id}/resolve": {
       "patch": {
+        "description": "Admins handle refunds/releases for order-related tickets.",
         "operationId": "TicketingController_adminResolve",
         "parameters": [
           {
@@ -2274,10 +2380,125 @@
         },
         "responses": {
           "200": {
-            "description": "Ticket resolved"
+            "description": "Ticket resolved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - only admins can resolve tickets"
+          },
+          "404": {
+            "description": "Ticket not found"
           }
         },
-        "summary": "Admin resolve a ticket (refund or release funds)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resolve a ticket",
+        "tags": [
+          "Tickets"
+        ]
+      }
+    },
+    "/api/tickets/{id}/comments": {
+      "post": {
+        "description": "Both users and admins can add comments. Creates a two-way conversation thread.",
+        "operationId": "TicketingController_addComment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTicketCommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comment added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - can only comment on own tickets (unless admin)"
+          },
+          "404": {
+            "description": "Ticket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a comment/reply to a ticket",
+        "tags": [
+          "Tickets"
+        ]
+      },
+      "get": {
+        "description": "Users can view comments on their own tickets. Admins can view any ticket comments.",
+        "operationId": "TicketingController_getComments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comments retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TicketCommentDto"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - can only view own ticket comments (unless admin)"
+          },
+          "404": {
+            "description": "Ticket not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all comments on a ticket",
         "tags": [
           "Tickets"
         ]
@@ -2316,6 +2537,7 @@
         ]
       },
       "get": {
+        "description": "Regular users see only their own orders. Admins see all.",
         "operationId": "OrdersController_find",
         "parameters": [
           {
@@ -2358,7 +2580,7 @@
     },
     "/api/orders/{id}": {
       "get": {
-        "description": "This route is open for default users.",
+        "description": "Regular users can only access their own orders.",
         "operationId": "OrdersController_getById",
         "parameters": [
           {
@@ -2381,6 +2603,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Forbidden - cannot access another user's order"
           }
         },
         "summary": "Get order by ID",
@@ -5045,16 +5270,6 @@
             ],
             "default": "low"
           },
-          "createdBy": {
-            "type": "string",
-            "description": "ID of the user who created the ticket",
-            "example": "507f1f77bcf86cd799439011"
-          },
-          "assignedTo": {
-            "type": "string",
-            "description": "ID of the user assigned to the ticket",
-            "example": "507f1f77bcf86cd799439012"
-          },
           "orderId": {
             "type": "string",
             "description": "Order id if this ticket is related to an order",
@@ -5064,6 +5279,41 @@
         "required": [
           "title",
           "description"
+        ]
+      },
+      "TicketCommentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Comment ID",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "userId": {
+            "type": "string",
+            "description": "User ID who made the comment",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "content": {
+            "type": "string",
+            "description": "Content of the comment",
+            "example": "This is a reply to the ticket..."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Comment created timestamp"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Comment updated timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "content"
         ]
       },
       "TicketResponseDto": {
@@ -5112,11 +5362,18 @@
           },
           "assignedTo": {
             "type": "string",
-            "description": "ID of the user assigned to the ticket"
+            "description": "ID of the superadmin assigned to this ticket"
           },
           "orderId": {
             "type": "string",
             "description": "Order id if this ticket is related to an order"
+          },
+          "comments": {
+            "description": "Comments and replies on this ticket",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TicketCommentDto"
+            }
           },
           "createdAt": {
             "format": "date-time",
@@ -5134,7 +5391,9 @@
           "title",
           "description",
           "status",
-          "priority"
+          "priority",
+          "createdBy",
+          "assignedTo"
         ]
       },
       "TicketStatusResponseDto": {
@@ -5193,18 +5452,21 @@
               "urgent"
             ],
             "example": "high"
-          },
-          "assignedTo": {
-            "type": "string",
-            "description": "ID of the user assigned to the ticket",
-            "example": "507f1f77bcf86cd799439012"
-          },
-          "orderId": {
-            "type": "string",
-            "description": "Order id if this ticket is related to an order",
-            "example": "507f1f77bcf86cd799439099"
           }
         }
+      },
+      "CreateTicketCommentDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Content of the comment/reply",
+            "example": "I have reviewed your issue and here is the solution..."
+          }
+        },
+        "required": [
+          "content"
+        ]
       },
       "OrderItemDto": {
         "type": "object",
