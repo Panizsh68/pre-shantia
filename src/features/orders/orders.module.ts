@@ -18,7 +18,7 @@ import { PermissionsModule } from 'src/features/permissions/permissions.module';
     GenericRepositoryModule.forFeature<Order>(Order.name, Order, OrderSchema),
     ProductsModule,
     WalletsModule,
-    CartsModule,
+    forwardRef(() => CartsModule),
     forwardRef(() => PermissionsModule),
   ],
   controllers: [OrdersController],

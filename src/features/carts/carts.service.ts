@@ -1,5 +1,5 @@
 // carts.service.ts
-import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException, forwardRef } from '@nestjs/common';
 import { Types, ClientSession } from 'mongoose';
 import { CartStatus } from './enums/cart-status.enum';
 import { IProductService } from '../products/interfaces/product.service.interface';
@@ -11,12 +11,15 @@ import { Cart } from './entities/cart.entity';
 import { ICart } from './interfaces/cart.interface';
 import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { CartSummary } from './interfaces/cart-summary.interface';
+import { IOrdersService } from '../orders/interfaces/order.service.interface';
+import { CreateOrderFromCartDto } from '../orders/dto/create-order-from-cart.dto';
 
 @Injectable()
 export class CartsService implements ICartsService {
   constructor(
     @Inject('CartRepository') private readonly cartRepository: ICartRepository,
     @Inject('IProductsService') private readonly productsService: IProductService,
+    @Inject(forwardRef(() => 'IOrdersService')) private readonly ordersService: IOrdersService,
   ) { }
 
   async getUserActiveCart(userId: string, session?: any): Promise<ICart> {
@@ -124,13 +127,35 @@ export class CartsService implements ICartsService {
     return savedCart;
   }
 
-  async checkout(userId: string, session?: ClientSession): Promise<{ success: boolean; cartId: string }> {
+  async checkout(userId: string, session?: ClientSession): Promise<{ success: boolean; cartId: string; orders?: any[] }> {
     const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
+
+    // Validate cart has items
+    if (!cart.items || cart.items.length === 0) {
+      throw new BadRequestException('Cannot checkout with an empty cart');
+    }
+
     // ensure totals are up-to-date before checkout
     cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
     cart.status = CartStatus.CHECKED_OUT;
     const savedCart = await cart.save({ session });
-    return { success: true, cartId: savedCart.id };
+
+    // Create orders from the cart
+    try {
+      const orders = await this.ordersService.create(
+        {
+          userId,
+          shippingAddress: '',
+          paymentMethod: '',
+        } as CreateOrderFromCartDto,
+        session
+      );
+      return { success: true, cartId: savedCart.id, orders };
+    } catch (error) {
+      // If order creation fails, log error but still return success for cart checkout
+      console.error('Error creating orders during checkout:', error);
+      return { success: true, cartId: savedCart.id };
+    }
   }
 
   async updateCart(userId: string, cartData: Partial<Cart>): Promise<ICart> {

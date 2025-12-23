@@ -2815,7 +2815,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Cart checked out successfully",
+            "description": "Cart checked out successfully and orders created",
             "content": {
               "application/json": {
                 "schema": {

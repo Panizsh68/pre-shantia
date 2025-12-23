@@ -12,9 +12,10 @@ import {
 } from 'src/libs/repository/constants/tokens.constants';
 import { CartRepository, ICartRepository } from './repositories/carts.repository';
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
+import { OrdersModule } from '../orders/orders.module';
 
 @Module({
-  imports: [GenericRepositoryModule.forFeature<Cart>(Cart.name, Cart, CartSchema), ProductsModule, forwardRef(() => PermissionsModule)],
+  imports: [GenericRepositoryModule.forFeature<Cart>(Cart.name, Cart, CartSchema), ProductsModule, forwardRef(() => PermissionsModule), forwardRef(() => OrdersModule)],
   controllers: [CartsController],
   providers: [
     {

@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import { IOrderRepository } from './repositories/order.repository';
 import { IOrdersService } from './interfaces/order.service.interface';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -19,7 +19,7 @@ import { CartItemDto } from '../carts/dto/cart-item.dto';
 @Injectable()
 export class OrdersService implements IOrdersService {
   constructor(
-    @Inject('ICartsService') private readonly cartsService: ICartsService,
+    @Inject(forwardRef(() => 'ICartsService')) private readonly cartsService: ICartsService,
     @Inject('IWalletsService') private readonly walletsService: IWalletService,
     @Inject('OrderRepository') private readonly orderRepository: IOrderRepository,
     @Inject('IProductsService') private readonly productsService: IProductService,

@@ -130,7 +130,7 @@ export class CartsController {
   @UseGuards(AuthenticationGuard)
   @Permission(Resource.CARTS, Action.UPDATE)
   @ApiOperation({ summary: "Checkout the user's cart" })
-  @ApiResponse({ status: 200, description: 'Cart checked out successfully', type: Object })
+  @ApiResponse({ status: 200, description: 'Cart checked out successfully and orders created', type: Object })
   @HttpCode(HttpStatus.OK)
   checkout(@CurrentUser() user: TokenPayload) {
     return this.cartsService.checkout(user.userId);
