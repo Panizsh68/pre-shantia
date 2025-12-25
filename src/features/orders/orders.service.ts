@@ -15,6 +15,7 @@ import { OrderFactoryService } from './order-factory.service';
 import { ICartsService } from '../carts/interfaces/carts-service.interface';
 import { CreateOrderFromCartDto } from './dto/create-order-from-cart.dto';
 import { CartItemDto } from '../carts/dto/cart-item.dto';
+import { getIntermediaryWalletId } from 'src/utils/intermediary-wallet.util';
 
 @Injectable()
 export class OrdersService implements IOrdersService {
@@ -340,22 +341,19 @@ export class OrdersService implements IOrdersService {
       if (order.status !== OrdersStatus.DELIVERED) {
         throw new BadRequestException('Order is not delivered');
       }
+      if (order.ticketId) {
+        throw new BadRequestException('Order has an open ticket and cannot be confirmed');
+      }
 
       const updateData = { status: OrdersStatus.COMPLETED, confirmedAt: new Date() };
       const updatedOrder = await this.orderRepository.updateById(orderId, updateData, orderSession);
 
-
-      // خواندن شناسه واسطه از env
-      const intermediaryId = process.env.INTERMEDIARY_WALLET_ID || 'default_intermediary_id';
-      // بررسی موجودی کیف پول واسطه قبل از انتقال وجه
-      const intermediaryWallet = await this.walletsService.getWallet({ ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY }, orderSession);
-      if (!intermediaryWallet || intermediaryWallet.balance < order.totalPrice) {
-        throw new BadRequestException('Insufficient intermediary wallet balance');
-      }
-      await this.walletsService.transfer(
+      const intermediaryId = getIntermediaryWalletId();
+      await this.walletsService.releaseBlockedAmount(
         { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY },
         { ownerId: order.companyId.toString(), ownerType: WalletOwnerType.COMPANY },
         order.totalPrice,
+        { orderId: order.id.toString(), type: 'TRANSFER', reason: 'delivery_confirmed' },
         orderSession,
       );
 

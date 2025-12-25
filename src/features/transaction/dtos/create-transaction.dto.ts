@@ -15,6 +15,7 @@ export class CreateTransactionDto {
   type?: TransactionType;
   currency?: string;
   createdAt?: Date;
+  verifiedAt?: Date;
   fromWalletId?: string;
   toWalletId?: string;
   counterpartyOwnerId?: string;

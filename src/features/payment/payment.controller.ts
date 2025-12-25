@@ -1,14 +1,15 @@
 import { Body, Controller, Get, Inject, Post, Query, UseGuards, Req, BadRequestException } from '@nestjs/common';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentService } from './payment.service';
-import { InitiatePaymentDto } from '../../utils/services/zibal/dtos/initiate.zibal.payment.dto';
 import { HandleCallbackResponseDto } from './handle-callback.dto';
 import { PayDto } from './dto/pay.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { TokenPayload } from '../auth/interfaces/token-payload.interface';
+import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 
 @ApiTags('Payment')
+@ApiBearerAuth()
 @Controller('payment')
 export class PaymentController {
   constructor(@Inject('IPaymentService') private readonly paymentService: PaymentService) { }
@@ -24,12 +25,13 @@ export class PaymentController {
       type: 'object',
       properties: {
         transactionId: { type: 'string', example: 'tx1' },
+        localId: { type: 'string', example: '6b16f2f3-89de-4c8d-ae3a-49a5e38f9b90' },
         paymentUrl: { type: 'string', example: 'https://sandbox.zibal.ir/pg/StartPay/1533727744287' },
       },
     },
   })
-  async initiatePayment(@Body() dto: InitiatePaymentDto) {
-    return this.paymentService.initiatePayment(dto.userId, dto.orderId, dto.amount);
+  async initiatePayment(@Body() dto: InitiatePaymentDto, @CurrentUser() user: TokenPayload) {
+    return this.paymentService.initiatePayment(user.userId, dto.orderId, dto.amount);
   }
 
   @Post('pay')

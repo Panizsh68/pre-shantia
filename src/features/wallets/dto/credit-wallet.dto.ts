@@ -22,3 +22,10 @@ export class CreditWalletDto {
   @IsString()
   ownerType: WalletOwnerType;
 }
+
+export class CreditWalletRequestDto {
+  @ApiProperty({ description: 'Amount to credit (IRR)', example: 100000, minimum: 0 })
+  @IsNumber()
+  @Min(0)
+  amount: number;
+}

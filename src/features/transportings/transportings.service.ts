@@ -7,12 +7,14 @@ import { Types } from 'mongoose';
 import { CreateTransportingDto } from './dto/create-transporting.dto';
 import { UpdateTransportingDto } from './dto/update-transporting.dto';
 import { runInTransaction } from 'src/libs/repository/run-in-transaction';
+import { IOrdersService } from '../orders/interfaces/order.service.interface';
 
 @Injectable()
 export class TransportingsService implements ITransportingsService {
   constructor(
     @Inject('TransportingRepository')
     private readonly transportingRepository: ITransportingRepository,
+    @Inject('IOrdersService') private readonly ordersService: IOrdersService,
   ) { }
 
   async create(dto: CreateTransportingDto): Promise<ITransporting> {
@@ -128,6 +130,7 @@ export class TransportingsService implements ITransportingsService {
         transporting.estimatedDelivery = new Date(estimatedDelivery);
       }
       const updatedTransporting = await this.transportingRepository.saveOne(transporting, session);
+      await this.ordersService.markAsDelivered(transporting.orderId, session);
       return updatedTransporting;
     }).catch(error => {
       throw new BadRequestException(`Failed to mark transporting as delivered. Error: ${(error as Error).message}`);

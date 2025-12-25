@@ -14,6 +14,7 @@ import { InitiateZibalPaymentType } from 'src/utils/services/zibal/types/initiat
 import { VerifyZibalPaymentResponseType } from 'src/utils/services/zibal/types/verify.zibal.payment.type';
 import { UpdateTransactionDto } from '../transaction/dtos/update-transaction.dto';
 import { ClientSession } from 'mongoose';
+import { getIntermediaryWalletId } from 'src/utils/intermediary-wallet.util';
 
 // Local tokens to avoid brittle string literals inside this file. These map to providers configured in modules.
 export const TRANSACTIONS_SERVICE = 'ITransactionsService';
@@ -37,6 +38,10 @@ export class PaymentService {
     if (!order) { throw new NotFoundException('Order not found'); }
     if (order.status !== OrdersStatus.PENDING) { throw new BadRequestException('Order is not pending'); }
     if (order.userId.toString() !== userId) { throw new BadRequestException('Unauthorized'); }
+    const payableAmount = Math.round(Number(order.totalPrice || 0));
+    if (Math.round(Number(amount || 0)) !== payableAmount) {
+      throw new BadRequestException('Amount mismatch');
+    }
 
     // Ensure callback URL is configured (fail-fast)
     const callbackUrl = this.configService.get<string>('ZIBAL_CALLBACK_URL');
@@ -50,7 +55,7 @@ export class PaymentService {
     const txCreatePayload: CreateTransactionDto = {
       localId,
       trackId: null,
-      amount,
+      amount: payableAmount,
       description: `Payment for order ${order.id}`,
       status: TransactionStatus.PENDING,
       currency: 'IRR',
@@ -64,7 +69,7 @@ export class PaymentService {
 
     try {
       const paymentRequest: InitiateZibalPaymentType = {
-        amount,
+        amount: payableAmount,
         callbackUrl,
         description: txCreatePayload.description,
         userId,
@@ -92,6 +97,7 @@ export class PaymentService {
 
   async handleCallback(trackId: string, success: string) {
     const session: ClientSession = await this.transactionService.startSession();
+    let committed = false;
     try {
       // Validate trackId
       if (!trackId || typeof trackId !== 'string') {
@@ -107,12 +113,21 @@ export class PaymentService {
       }
 
       if (success !== '1' && success !== 'OK') {
-        // پرداخت ناموفق: سفارش failed شود
-        if (!transaction.orderId) {
-          this.logger.error('Transaction missing orderId for failed payment', JSON.stringify({ trackId, transactionId: transaction.id }));
-          throw new BadRequestException('Payment failed');
+        if (transaction.orderId) {
+          await this.ordersService.update({ id: transaction.orderId, status: OrdersStatus.FAILED }, session);
         }
-        await this.ordersService.update({ id: transaction.orderId, status: OrdersStatus.FAILED }, session);
+        if (typeof this.transactionService.updateIfStatus === 'function') {
+          await this.transactionService.updateIfStatus(
+            trackId,
+            TransactionStatus.PENDING,
+            { status: TransactionStatus.FAILED, verifiedAt: new Date() },
+            session,
+          );
+        } else {
+          await this.transactionService.update(trackId, { status: TransactionStatus.FAILED, verifiedAt: new Date() }, session);
+        }
+        await this.transactionService.commitSession(session);
+        committed = true;
         throw new BadRequestException('Payment failed');
       }
 
@@ -125,15 +140,38 @@ export class PaymentService {
         if (transaction.orderId) {
           await this.ordersService.update({ id: transaction.orderId, status: OrdersStatus.FAILED }, session);
         }
+        if (typeof this.transactionService.updateIfStatus === 'function') {
+          await this.transactionService.updateIfStatus(
+            trackId,
+            TransactionStatus.PENDING,
+            { status: TransactionStatus.FAILED, verifiedAt: new Date() },
+            session,
+          );
+        } else {
+          await this.transactionService.update(trackId, { status: TransactionStatus.FAILED, verifiedAt: new Date() }, session);
+        }
+        await this.transactionService.commitSession(session);
+        committed = true;
         throw new BadRequestException('Verification failed');
       }
 
       const statusCode = (verificationResult.result ?? verificationResult.status)?.toString();
       if (statusCode !== '100' && statusCode !== '1') {
-        // پرداخت تایید نشد: سفارش failed شود
         if (transaction.orderId) {
           await this.ordersService.update({ id: transaction.orderId, status: OrdersStatus.FAILED }, session);
         }
+        if (typeof this.transactionService.updateIfStatus === 'function') {
+          await this.transactionService.updateIfStatus(
+            trackId,
+            TransactionStatus.PENDING,
+            { status: TransactionStatus.FAILED, verifiedAt: new Date() },
+            session,
+          );
+        } else {
+          await this.transactionService.update(trackId, { status: TransactionStatus.FAILED, verifiedAt: new Date() }, session);
+        }
+        await this.transactionService.commitSession(session);
+        committed = true;
         throw new BadRequestException('Verification failed');
       }
 
@@ -167,12 +205,19 @@ export class PaymentService {
 
       // For external gateway payments we only credit the platform/intermediary wallet.
       // Do NOT debit the user's internal wallet (that would double-deduct).
+      const intermediaryId = getIntermediaryWalletId();
       await this.walletsService.creditWallet(
         {
-          ownerId: 'INTERMEDIARY_ID',
+          ownerId: intermediaryId,
           ownerType: WalletOwnerType.INTERMEDIARY,
           amount: transaction.amount,
         },
+        session,
+      );
+      await this.walletsService.blockAmount(
+        { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY },
+        transaction.amount,
+        { orderId: transaction.orderId ?? undefined, reason: 'order_hold' },
         session,
       );
 
@@ -183,10 +228,16 @@ export class PaymentService {
       await this.ordersService.markAsPaid(transaction.orderId, session);
 
       await this.transactionService.commitSession(session);
+      committed = true;
       return updatedTransaction;
     } catch (error) {
-      await this.transactionService.abortSession(session);
+      if (!committed) {
+        await this.transactionService.abortSession(session);
+      }
       this.logger.error('handleCallback error', JSON.stringify({ trackId, err: String(error) }));
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
       throw new BadRequestException('Payment processing failed');
     } finally {
       if (session && typeof (session as any).endSession === 'function') {
@@ -205,14 +256,28 @@ export class PaymentService {
     if (!order) { throw new NotFoundException('Order not found'); }
     if (order.status !== OrdersStatus.PENDING) { throw new BadRequestException('Order is not pending'); }
     if (order.userId.toString() !== userId) { throw new BadRequestException('Unauthorized'); }
+    const payableAmount = Math.round(Number(order.totalPrice || 0));
+    if (Math.round(Number(amount || 0)) !== payableAmount) {
+      throw new BadRequestException('Amount mismatch');
+    }
 
     const session: ClientSession = await this.transactionService.startSession();
     try {
       // Debit user's wallet
-      await this.walletsService.debitWallet({ ownerId: userId, ownerType: WalletOwnerType.USER, amount }, session as any);
+      await this.walletsService.debitWallet({ ownerId: userId, ownerType: WalletOwnerType.USER, amount: payableAmount }, session as any);
 
       // Credit intermediary wallet
-      await this.walletsService.creditWallet({ ownerId: 'INTERMEDIARY_ID', ownerType: WalletOwnerType.INTERMEDIARY, amount }, session as any);
+      const intermediaryId = getIntermediaryWalletId();
+      await this.walletsService.creditWallet(
+        { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY, amount: payableAmount },
+        session as any,
+      );
+      await this.walletsService.blockAmount(
+        { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY },
+        payableAmount,
+        { orderId, reason: 'order_hold' },
+        session as any,
+      );
 
       // Mark order as paid
       await this.ordersService.markAsPaid(orderId, session as any);

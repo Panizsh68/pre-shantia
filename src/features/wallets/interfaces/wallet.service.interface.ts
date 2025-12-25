@@ -15,5 +15,18 @@ export interface IWalletService {
     amount: number,
     session?: ClientSession,
   );
+  blockAmount(
+    owner: { ownerId: string; ownerType: WalletOwnerType },
+    amount: number,
+    meta?: { orderId?: string; ticketId?: string; reason?: string },
+    session?: ClientSession,
+  );
+  releaseBlockedAmount(
+    from: { ownerId: string; ownerType: WalletOwnerType },
+    to: { ownerId: string; ownerType: WalletOwnerType },
+    amount: number,
+    meta?: { orderId?: string; ticketId?: string; reason?: string; type?: 'REFUND' | 'TRANSFER' },
+    session?: ClientSession,
+  );
   getWallet(getWalletDto: GetWalletDto, session?: ClientSession);
 }

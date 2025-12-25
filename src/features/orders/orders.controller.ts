@@ -151,16 +151,8 @@ export class OrdersController {
   @Permission(Resource.ORDERS, Action.UPDATE)
   @ApiOperation({ summary: 'User confirms delivery of order' })
   @ApiParam({ name: 'id', description: 'Order ID' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        userId: { type: 'string', example: 'user_123' },
-      },
-    },
-  })
   @ApiResponse({ status: 200, description: 'Order delivery confirmed by user' })
-  async confirmDelivery(@Param('id') id: string, @Body('userId') userId: string) {
-    return await this.ordersService.confirmDelivery(id, userId);
+  async confirmDelivery(@Param('id') id: string, @CurrentUser() user: TokenPayload) {
+    return await this.ordersService.confirmDelivery(id, user.userId);
   }
 }

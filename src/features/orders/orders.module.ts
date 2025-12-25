@@ -12,6 +12,7 @@ import { OrderFactoryService } from './order-factory.service';
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
 import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/tokens.constants';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
+import { OrderCronService } from './orders.cron.service';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { PermissionsModule } from 'src/features/permissions/permissions.module';
       provide: 'IOrdersService',
       useClass: OrdersService,
     },
+    OrderCronService,
     OrderFactoryService,
   ],
   exports: ['IOrdersService', 'OrderRepository', GenericRepositoryModule], // Added GenericRepositoryModule to exports

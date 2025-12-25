@@ -1,17 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { OrdersService } from './orders.service';
-import { WalletsService } from '../wallets/wallets.service';
+import { IOrdersService } from './interfaces/order.service.interface';
+import { IWalletService } from '../wallets/interfaces/wallet.service.interface';
 import { OrdersStatus } from './enums/orders.status.enum';
 import { WalletOwnerType } from '../wallets/enums/wallet-ownertype.enum';
 import { IOrderRepository } from './repositories/order.repository';
+import { getIntermediaryWalletId } from 'src/utils/intermediary-wallet.util';
 
 @Injectable()
 export class OrderCronService {
   constructor(
     @Inject('OrderRepository') private readonly orderRepository: IOrderRepository,
-    private readonly ordersService: OrdersService,
-    private readonly walletsService: WalletsService,
+    @Inject('IOrdersService') private readonly ordersService: IOrdersService,
+    @Inject('IWalletsService') private readonly walletsService: IWalletService,
   ) { }
 
   @Cron('0 0 */1 * * *')
@@ -35,10 +36,12 @@ export class OrderCronService {
         const updateData = { status: OrdersStatus.COMPLETED, confirmedAt: new Date() };
         await this.ordersService.update({ id: order.id, ...updateData }, session);
 
-        await this.walletsService.transfer(
-          { ownerId: 'INTERMEDIARY_ID', ownerType: WalletOwnerType.INTERMEDIARY },
+        const intermediaryId = getIntermediaryWalletId();
+        await this.walletsService.releaseBlockedAmount(
+          { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY },
           { ownerId: order.companyId.toString(), ownerType: WalletOwnerType.COMPANY },
           order.totalPrice,
+          { orderId: order.id.toString(), type: 'TRANSFER', reason: 'auto_release_after_3_days' },
           session,
         );
 

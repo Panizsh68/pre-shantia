@@ -15,6 +15,7 @@ import { OrdersService } from '../../features/orders/orders.service';
 import { WalletsService } from '../../features/wallets/wallets.service';
 import { runInTransaction } from 'src/libs/repository/run-in-transaction';
 import { IOrderRepository } from '../../features/orders/repositories/order.repository';
+import { getIntermediaryWalletId } from 'src/utils/intermediary-wallet.util';
 
 @Injectable()
 export class TicketingService implements ITicketingService {
@@ -40,8 +41,9 @@ export class TicketingService implements ITicketingService {
     await runInTransaction(this.orderRepository, async (tx) => {
       if (refund) {
         await this.ordersService.refund(order.id, tx);
+        const intermediaryId = getIntermediaryWalletId();
         await this.walletsService.releaseBlockedAmount(
-          { ownerId: 'INTERMEDIARY_ID', ownerType: WalletOwnerType.INTERMEDIARY },
+          { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY },
           { ownerId: order.userId, ownerType: WalletOwnerType.USER },
           order.totalPrice,
           { orderId: order.id.toString(), ticketId, type: 'REFUND', reason: 'ticket_refund' },
@@ -49,8 +51,9 @@ export class TicketingService implements ITicketingService {
         );
       } else {
         await this.ordersService.update({ id: order.id, status: OrdersStatus.COMPLETED, ticketId: null }, tx);
+        const intermediaryId = getIntermediaryWalletId();
         await this.walletsService.releaseBlockedAmount(
-          { ownerId: 'INTERMEDIARY_ID', ownerType: WalletOwnerType.INTERMEDIARY },
+          { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY },
           { ownerId: order.companyId, ownerType: WalletOwnerType.COMPANY },
           order.totalPrice,
           { orderId: order.id.toString(), ticketId, type: 'TRANSFER', reason: 'ticket_resolution' },
@@ -75,6 +78,9 @@ export class TicketingService implements ITicketingService {
       if (order.status !== OrdersStatus.DELIVERED) {
         throw new BadRequestException('Order is not delivered; cannot open order-related ticket');
       }
+      if (order.ticketId) {
+        throw new BadRequestException('Order already has an open ticket');
+      }
       const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
       const deliveredAt = order.deliveredAt as Date | undefined;
       if (!deliveredAt || deliveredAt < threeDaysAgo) {
@@ -82,21 +88,12 @@ export class TicketingService implements ITicketingService {
       }
     }
 
-    // If urgent and related to an order, create ticket and set order.ticketId in a transaction
-    if (createTicketDto.orderId && createTicketDto.priority === 'urgent') {
+    // If related to an order, create ticket and set order.ticketId in a transaction
+    if (createTicketDto.orderId) {
       if (!order) { throw new BadRequestException('Order not found'); }
       const orderId = order.id.toString();
       return runInTransaction(this.orderRepository, async (tx) => {
         const ticket = await this.ticketRepository.createOne(createTicketDto, tx);
-        // block intermediary funds for this order in the same transaction
-        if (order) {
-          await this.walletsService.blockAmount(
-            { ownerId: 'INTERMEDIARY_ID', ownerType: WalletOwnerType.INTERMEDIARY },
-            order.totalPrice,
-            { orderId: order.id.toString(), ticketId: ticket.id.toString(), reason: 'urgent_ticket_hold' },
-            tx,
-          );
-        }
         await this.orderRepository.updateById(orderId, { ticketId: ticket.id.toString() }, tx);
         if (ticket) { await this.cacheService.set(`ticket:${ticket.id}`, ticket, 3000); }
         return ticket;

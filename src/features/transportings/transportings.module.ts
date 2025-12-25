@@ -11,6 +11,7 @@ import {
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
 import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/tokens.constants';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
+import { OrdersModule } from '../orders/orders.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { PermissionsModule } from 'src/features/permissions/permissions.module';
       Transporting,
       TransportingSchema,
     ),
+    OrdersModule,
     forwardRef(() => PermissionsModule),
   ],
   controllers: [TransportingsController],

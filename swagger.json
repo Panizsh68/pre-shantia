@@ -1033,6 +1033,7 @@
     },
     "/api/wallets/credit": {
       "post": {
+        "description": "Credits the authenticated owner wallet; owner is derived from permissions.",
         "operationId": "WalletsController_creditWallet",
         "parameters": [],
         "requestBody": {
@@ -1040,7 +1041,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreditWalletDto"
+                "$ref": "#/components/schemas/CreditWalletRequestDto"
               }
             }
           }
@@ -1076,6 +1077,7 @@
     },
     "/api/wallets/debit": {
       "post": {
+        "description": "Debits the authenticated owner wallet. ownerId/ownerType must match the token-derived owner.",
         "operationId": "WalletsController_debitWallet",
         "parameters": [],
         "requestBody": {
@@ -1083,7 +1085,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DebitWalletDto"
+                "$ref": "#/components/schemas/DebitWalletRequestDto"
               }
             }
           }
@@ -1119,6 +1121,7 @@
     },
     "/api/wallets/transfer": {
       "post": {
+        "description": "Users can only transfer to intermediary wallets. For users, toOwnerType defaults to intermediary.",
         "operationId": "WalletsController_transfer",
         "parameters": [],
         "requestBody": {
@@ -1126,13 +1129,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "example": {
-                  "to": {
-                    "ownerId": "userId2",
-                    "ownerType": "user"
-                  },
-                  "amount": 1000
-                }
+                "$ref": "#/components/schemas/TransferWalletRequestDto"
               }
             }
           }
@@ -1153,7 +1150,7 @@
             "bearer": []
           }
         ],
-        "summary": "Transfer funds between wallets - User can only transfer to intermediary companies",
+        "summary": "Transfer funds between wallets",
         "tags": [
           "Wallets"
         ]
@@ -2744,22 +2741,6 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "userId": {
-                    "type": "string",
-                    "example": "user_123"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Order delivery confirmed by user"
@@ -3311,6 +3292,10 @@
                       "type": "string",
                       "example": "tx1"
                     },
+                    "localId": {
+                      "type": "string",
+                      "example": "6b16f2f3-89de-4c8d-ae3a-49a5e38f9b90"
+                    },
                     "paymentUrl": {
                       "type": "string",
                       "example": "https://sandbox.zibal.ir/pg/StartPay/1533727744287"
@@ -3321,6 +3306,11 @@
             }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Initiate a payment via Zibal",
         "tags": [
           "Payment"
@@ -3347,6 +3337,11 @@
             "description": "Payment initiated or completed"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Pay for an order using wallet or gateway",
         "tags": [
           "Payment"
@@ -3401,6 +3396,11 @@
             }
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "Handle Zibal callback after payment",
         "tags": [
           "Payment"
@@ -4802,29 +4802,61 @@
         "type": "object",
         "properties": {}
       },
-      "CreditWalletDto": {
+      "CreditWalletRequestDto": {
         "type": "object",
         "properties": {
-          "ownerId": {
-            "type": "string",
-            "description": "MongoDB ObjectId of the wallet owner",
-            "example": "507f1f77bcf86cd799439011"
-          },
           "amount": {
             "type": "number",
-            "description": "Amount to credit to the wallet (in IRR)",
+            "description": "Amount to credit (IRR)",
             "example": 100000,
             "minimum": 0
           }
         },
         "required": [
-          "ownerId",
           "amount"
         ]
       },
-      "DebitWalletDto": {
+      "DebitWalletRequestDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "amount": {
+            "type": "number",
+            "description": "Amount to debit (IRR)",
+            "example": 50000
+          }
+        },
+        "required": [
+          "amount"
+        ]
+      },
+      "TransferWalletRequestDto": {
+        "type": "object",
+        "properties": {
+          "toOwnerId": {
+            "type": "string",
+            "description": "Destination ownerId (users can only send to intermediary)",
+            "example": "507f1f77bcf86cd799439012"
+          },
+          "toOwnerType": {
+            "type": "string",
+            "description": "Destination ownerType; optional for users (defaults to intermediary)",
+            "enum": [
+              "user",
+              "company",
+              "intermediary"
+            ],
+            "example": "intermediary"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Amount to transfer (IRR)",
+            "example": 1000
+          }
+        },
+        "required": [
+          "toOwnerId",
+          "amount"
+        ]
       },
       "Transaction": {
         "type": "object",
@@ -5774,34 +5806,18 @@
       "InitiatePaymentDto": {
         "type": "object",
         "properties": {
-          "amount": {
-            "type": "number"
-          },
-          "callbackUrl": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "mobile": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string"
-          },
           "orderId": {
-            "type": "string"
+            "type": "string",
+            "description": "Order id to pay for"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Expected order total amount (IRR)"
           }
         },
         "required": [
-          "amount",
-          "callbackUrl",
-          "description",
-          "userId",
-          "orderId"
+          "orderId",
+          "amount"
         ]
       },
       "PayDto": {

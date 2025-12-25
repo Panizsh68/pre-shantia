@@ -25,8 +25,8 @@ import { Action } from '../permissions/enums/actions.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
 import { GetWalletDto } from './dto/get-wallet.dto';
-import { CreditWalletDto } from './dto/credit-wallet.dto';
-import { DebitWalletDto } from './dto/debit-wallet.dto';
+import { CreditWalletDto, CreditWalletRequestDto } from './dto/credit-wallet.dto';
+import { DebitWalletDto, DebitWalletRequestDto, TransferWalletRequestDto } from './dto/debit-wallet.dto';
 import { plainToInstance } from 'class-transformer';
 import { TokenPayload } from '../auth/interfaces/token-payload.interface';
 import { AuthenticatedRequest } from './interfaces/authentication-request.interface';
@@ -59,75 +59,69 @@ export class WalletsController {
   @Post('credit')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.WALLETS, Action.UPDATE)
-  @ApiOperation({ summary: 'Credit wallet' })
-  @ApiBody({ type: CreditWalletDto })
+  @ApiOperation({
+    summary: 'Credit wallet',
+    description: 'Credits the authenticated owner wallet; owner is derived from permissions.',
+  })
+  @ApiBody({ type: CreditWalletRequestDto })
   @ApiResponse({ status: 200, description: 'Wallet credited', type: Wallet })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async creditWallet(
-    @Body() dto: CreditWalletDto,
+    @Body() dto: CreditWalletRequestDto,
     @CurrentUser() user: TokenPayload,
   ): Promise<Wallet> {
     const ownerType = determineOwnerTypeFromPermissions(user.permissions);
     const ownerId = user.userId;
-    if (dto.ownerId && dto.ownerId !== ownerId) {
-      throw new BadRequestException('ownerId mismatch with authenticated user');
-    }
-    if (dto.ownerType && dto.ownerType !== ownerType) {
-      throw new BadRequestException('ownerType mismatch with authenticated user');
-    }
-    const input = { ...dto, ownerId, ownerType };
-    return await this.walletsService.creditWallet(input);
+    const input: CreditWalletDto = { ...dto, ownerId, ownerType };
+    return this.walletsService.creditWallet(input);
   }
 
   @Post('debit')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.WALLETS, Action.UPDATE)
-  @ApiOperation({ summary: 'Debit wallet' })
-  @ApiBody({ type: DebitWalletDto })
+  @ApiOperation({
+    summary: 'Debit wallet',
+    description: 'Debits the authenticated owner wallet. ownerId/ownerType must match the token-derived owner.',
+  })
+  @ApiBody({ type: DebitWalletRequestDto })
   @ApiResponse({ status: 200, description: 'Wallet debited', type: Wallet })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async debitWallet(
-    @Body() dto: DebitWalletDto,
+    @Body() dto: DebitWalletRequestDto,
     @CurrentUser() user: TokenPayload,
   ): Promise<Wallet> {
     const ownerType = determineOwnerTypeFromPermissions(user.permissions);
     const ownerId = user.userId;
-    if (dto.ownerId && dto.ownerId !== ownerId) {
-      throw new BadRequestException('ownerId mismatch with authenticated user');
-    }
-    if (dto.ownerType && dto.ownerType !== ownerType) {
-      throw new BadRequestException('ownerType mismatch with authenticated user');
-    }
-    const input = { ...dto, ownerId, ownerType };
-    return await this.walletsService.debitWallet(input);
+    const input: DebitWalletDto = { ...dto, ownerId, ownerType };
+    return this.walletsService.debitWallet(input);
   }
 
   @Post('transfer')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.WALLETS, Action.deposit_intermediary)
-  @ApiOperation({ summary: 'Transfer funds between wallets - User can only transfer to intermediary companies' })
-  @ApiBody({
-    schema: {
-      example: {
-        to: { ownerId: 'userId2', ownerType: WalletOwnerType.USER },
-        amount: 1000
-      }
-    }
+  @ApiOperation({
+    summary: 'Transfer funds between wallets',
+    description: 'Users can only transfer to intermediary wallets. For users, toOwnerType defaults to intermediary.',
   })
+  @ApiBody({ type: TransferWalletRequestDto })
   @ApiResponse({ status: 200, description: 'Transfer successful' })
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @HttpCode(HttpStatus.OK)
   async transfer(
-    @Body() body: { to: { ownerId: string; ownerType: WalletOwnerType }, amount: number },
+    @Body() body: TransferWalletRequestDto,
     @CurrentUser() user: TokenPayload,
   ): Promise<{ success: boolean }> {
     const ownerType = determineOwnerTypeFromPermissions(user.permissions);
     const ownerId = user.userId;
     const from = { ownerId, ownerType };
-    const to = { ownerId: body.to.ownerId, ownerType: body.to.ownerType };
+    const toOwnerType = body.toOwnerType ?? (from.ownerType === WalletOwnerType.USER ? WalletOwnerType.INTERMEDIARY : body.toOwnerType);
+    if (!toOwnerType) {
+      throw new BadRequestException('toOwnerType is required');
+    }
+    const to = { ownerId: body.toOwnerId, ownerType: toOwnerType };
     if (from.ownerId === to.ownerId && from.ownerType === to.ownerType) {
       throw new BadRequestException('Self-transfer is not allowed');
     }
