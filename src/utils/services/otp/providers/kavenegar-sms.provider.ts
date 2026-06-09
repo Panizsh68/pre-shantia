@@ -9,11 +9,17 @@ export class KavenegarSmsProvider implements ISmsProvider {
   private readonly kavenegarApi: any;
   private readonly template: string;
   private readonly sender: string;
+  private readonly enabled: boolean;
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('KAVENEGAR_API_KEY');
     if (!apiKey) {
-      throw new Error('KAVENEGAR_API_KEY is not configured');
+      this.logger.warn('KAVENEGAR_API_KEY is not configured; KavenegarSmsProvider disabled');
+      this.kavenegarApi = null;
+      this.template = this.configService.get<string>('KAVENEGAR_TEMPLATE', 'verify');
+      this.sender = this.configService.get<string>('KAVENEGAR_SENDER', '10004346');
+      this.enabled = false;
+      return;
     }
 
     this.kavenegarApi = Kavenegar.KavenegarApi({
@@ -21,9 +27,15 @@ export class KavenegarSmsProvider implements ISmsProvider {
     });
     this.template = this.configService.get<string>('KAVENEGAR_TEMPLATE', 'verify');
     this.sender = this.configService.get<string>('KAVENEGAR_SENDER', '10004346');
+    this.enabled = true;
   }
 
   async sendWithTemplate(phoneNumber: string, otp: string): Promise<string> {
+    if (!this.enabled || !this.kavenegarApi) {
+      this.logger.warn('Kavenegar provider disabled: cannot send template SMS');
+      return Promise.reject(new Error('KAVENEGAR_API_KEY is not configured'));
+    }
+
     return new Promise((resolve, reject) => {
       this.kavenegarApi.VerifyLookup({
         receptor: phoneNumber,
@@ -41,6 +53,11 @@ export class KavenegarSmsProvider implements ISmsProvider {
   }
 
   async sendDirectMessage(phoneNumber: string, otp: string): Promise<string> {
+    if (!this.enabled || !this.kavenegarApi) {
+      this.logger.warn('Kavenegar provider disabled: cannot send direct SMS');
+      return Promise.reject(new Error('KAVENEGAR_API_KEY is not configured'));
+    }
+
     return new Promise((resolve, reject) => {
       this.kavenegarApi.Send({
         message: `کد تایید شما: ${otp}`,

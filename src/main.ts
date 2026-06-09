@@ -17,8 +17,8 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors({
     origin: [
-      'https://ariasakht.com',
-      'https://www.ariasakht.com',
+      'https://tejaris.ir',
+      'https://www.tejaris.ir',
       'http://localhost:3000'
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
