@@ -15,15 +15,23 @@ async function bootstrap(): Promise<void> {
 
   const app = await NestFactory.create(AppModule, adapter);
 
+  const isProd = process.env.NODE_ENV === 'production';
+  const allowedOrigins = [
+    'https://tejaris.ir',
+    'https://www.tejaris.ir',
+  ];
+  if (!isProd) {
+    allowedOrigins.push('http://localhost:3000');
+  }
+
   app.enableCors({
-    origin: [
-      'https://tejaris.ir',
-      'https://www.tejaris.ir',
-      'http://localhost:3000'
-    ],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
     preflightContinue: false,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    optionsSuccessStatus: 204,
+    maxAge: 600,
   });
 
   expressApp.set('trust proxy', 1);
@@ -70,6 +78,6 @@ async function bootstrap(): Promise<void> {
 
   app.useGlobalInterceptors(new RequestContextInterceptor());
 
-  await app.listen(3000, '0.0.0.0');
+  await app.listen(3001, '0.0.0.0');
 }
 bootstrap();
