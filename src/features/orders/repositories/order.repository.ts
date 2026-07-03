@@ -28,17 +28,19 @@ export class OrderRepository extends BaseCrudRepository<Order> implements IOrder
   }
 
   async findById(id: string, options?: { session?: ClientSession }): Promise<Order | null> {
-    return this.model.findById(id).session(options?.session ?? null).lean<Order>().exec();
+    return this.model.findById(id).session(options?.session ?? null).lean<Order>().exec() as Promise<Order | null>;
   }
 
   async findManyByCondition(where: Record<string, unknown>, options?: { session?: ClientSession }): Promise<Order[]> {
-    return this.model.find(where).session(options?.session ?? null).lean().exec();
+    return this.model.find(where).session(options?.session ?? null).lean<Order[]>().exec() as Promise<Order[]>;
   }
 
   async updateById(id: string, data: Partial<Order>, session?: ClientSession): Promise<Order> {
-    const result = await this.model.findByIdAndUpdate(id, data, { new: true }).session(session ?? null).lean().exec();
-    if (!result) throw new NotFoundException(`Order with ID '${id}' not found`);
-    return result as Order;
+    const result = await this.model.findByIdAndUpdate(id, data, { new: true }).session(session ?? null).lean<Order>().exec();
+    if (!result) {
+      throw new NotFoundException(`Order with ID '${id}' not found`);
+    }
+    return result as unknown as Order;
   }
   constructor(
     orderModel: Model<Order>,

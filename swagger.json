@@ -3436,7 +3436,7 @@
             "description": "Bad request"
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized\n\nUnauthorized"
           }
         },
         "security": [
@@ -3586,7 +3586,7 @@
             "description": "Bad request"
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized\n\nUnauthorized"
           },
           "403": {
             "description": "Forbidden"
@@ -3623,7 +3623,7 @@
             "description": "Bad Request - Invalid ID format"
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "Unauthorized\n\nUnauthorized"
           },
           "403": {
             "description": "Forbidden"
@@ -4156,14 +4156,21 @@
     }
   },
   "info": {
-    "title": "API Docs",
-    "description": "API description",
+    "title": "Tejaris API",
+    "description": "Industrial Marketplace B2B API",
     "version": "1.0",
     "contact": {}
   },
   "tags": [],
   "servers": [],
   "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
     "schemas": {
       "AuthProfileDto": {
         "type": "object",

@@ -33,10 +33,6 @@ import { RatingModule } from './features/ratings/rating.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [
-        `.env.${process.env.NODE_ENV}`,
-        `.env`
-      ],
       load: [configuration],
     }),
     MongooseModule.forRootAsync({

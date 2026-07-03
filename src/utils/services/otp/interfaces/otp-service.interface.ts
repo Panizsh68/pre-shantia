@@ -8,7 +8,7 @@ export interface IOtpGenerator {
 }
 
 export interface ISmsProvider {
-  sendWithTemplate(phoneNumber: string, otp: string): Promise<string>;
+  sendTemplate(phoneNumber: string, template: string, otp: string): Promise<void>;
   sendDirectMessage(phoneNumber: string, otp: string): Promise<string>;
 }
 

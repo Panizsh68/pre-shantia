@@ -1,10 +1,77 @@
+
+interface R2Config {
+  endpoint: string;
+  accessKey: string;
+  secretKey: string;
+  bucket: string;
+  publicBaseUrl: string;
+}
+
+interface AppConfig {
+  NODE_ENV: string;
+  MONGO_URL: string;
+  ENCRYPTION_KEY: string;
+  JWT_ACCESS_SECRET: string;
+  JWT_REFRESH_SECRET: string;
+  JWT_SECRET_KEY: string;
+  REDIS_HOST: string;
+  REDIS_PORT: number;
+  OTP_TTL: number;
+  SUPERADMIN_PHONE: string;
+  SUPERADMIN_MELICODE: string;
+  ZIBAL_MERCHANT_ID: string;
+  ZIBAL_SANDBOX: boolean;
+  ZIBAL_CALLBACK_URL: string;
+  ZIBAL_SECRET_KEY: string;
+  ZIBAL_LOG_LEVEL: number;
+  APP_URL: string;
+  R2_ENDPOINT: string;
+  R2_ACCESS_KEY: string;
+  R2_SECRET_KEY: string;
+  R2_BUCKET: string;
+  R2_PUBLIC_BASE_URL: string;
+}
+
+interface AppConfiguration {
+  NODE_ENV: string;
+  MONGO_URL: string;
+  ENCRYPTION_KEY: string;
+  JWT_ACCESS_SECRET: string;
+  JWT_REFRESH_SECRET: string;
+  JWT_SECRET_KEY: string;
+  REDIS_HOST: string;
+  REDIS_PORT: number;
+  REDIS_PASSWORD: string | undefined;
+  OTP_TTL: number;
+  KAVENEGAR_API_KEY: string;
+  KAVENEGAR_TEMPLATE: string;
+  KAVENEGAR_SENDER: string;
+  SUPERADMIN_PHONE: string;
+  SUPERADMIN_MELICODE: string;
+  ZIBAL_MERCHANT_ID: string;
+  ZIBAL_SANDBOX: boolean;
+  ZIBAL_CALLBACK_URL: string;
+  ZIBAL_SECRET_KEY: string;
+  ZIBAL_LOG_LEVEL: number;
+  APP_URL: string;
+  R2_ENDPOINT: string;
+  R2_ACCESS_KEY: string;
+  R2_SECRET_KEY: string;
+  R2_BUCKET: string;
+  R2_PUBLIC_BASE_URL: string;
+  app: AppConfig;
+  config: {
+    r2: R2Config;
+  };
+}
+
 function parseNumber(val: string | undefined, fallback: number): number {
   const n = Number(val);
   return isNaN(n) ? fallback : n;
 }
 
-export default () => {
-  const MONGO_URL = process.env.MONGO_URL || 'mongodb://mongo:27017/test?replicaSet=rs0';
+export default (): AppConfiguration => {
+  const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/test?replicaSet=rs0';
   const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '';
   const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || '';
   const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || '';

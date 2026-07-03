@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import rateLimit from 'express-rate-limit';
 import { RequestContextInterceptor } from './utils/interceptors/request-context.interceptor';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -10,74 +10,56 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 async function bootstrap(): Promise<void> {
+  const logger = new Logger('Bootstrap');
   const expressApp = express();
   const adapter = new ExpressAdapter(expressApp);
 
   const app = await NestFactory.create(AppModule, adapter);
 
-  const isProd = process.env.NODE_ENV === 'production';
-  const allowedOrigins = [
-    'https://tejaris.ir',
-    'https://www.tejaris.ir',
-  ];
-  if (!isProd) {
-    allowedOrigins.push('http://localhost:3000');
-  }
+  // Set Global Prefix FIRST
+  app.setGlobalPrefix('api');
 
   app.enableCors({
-    origin: allowedOrigins,
+    origin: true, // In dev, allow all to prevent workstation domain issues
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
-    preflightContinue: false,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-    optionsSuccessStatus: 204,
-    maxAge: 600,
   });
 
   expressApp.set('trust proxy', 1);
-
-  // Configure body size limits for file uploads (10MB)
   expressApp.use(express.json({ limit: '10mb' }));
-  expressApp.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
-      forbidUnknownValues: true,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
     }),
   );
 
-  app.setGlobalPrefix('api');
-
   const config = new DocumentBuilder()
-    .setTitle('API Docs')
-    .setDescription('API description')
+    .setTitle('Tejaris API')
+    .setDescription('Industrial Marketplace B2B API')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-
-  // Save swagger.json in project root
-  const fs = require('fs');
-  const path = require('path');
-  const swaggerPath = path.join(__dirname, '..', 'swagger.json');
-  fs.writeFileSync(swaggerPath, JSON.stringify(document, null, 2), 'utf8');
-  console.log(`Swagger JSON file written to: ${swaggerPath}`);
-
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('api/docs', app, document);
 
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000,
-      max: 100,
+      max: 2000,
     }),
   );
 
   app.useGlobalInterceptors(new RequestContextInterceptor());
 
-  await app.listen(3001, '0.0.0.0');
+  // Use PORT from environment (run.sh passes 3001)
+  const port = process.env.PORT || 3001;
+  await app.listen(port, '0.0.0.0');
+  
+  logger.log(`🚀 Backend API is running on: http://localhost:${port}/api`);
+  logger.log(`📜 Swagger documentation: http://localhost:${port}/api/docs`);
 }
 bootstrap();

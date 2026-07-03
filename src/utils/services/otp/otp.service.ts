@@ -1,48 +1,34 @@
-import { HttpException, HttpStatus, Injectable, Logger, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, Logger, HttpException, HttpStatus, Inject } from '@nestjs/common';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
-import { IOtpService } from './interfaces/otp-service.interface';
-import { OTP_GENERATOR, SMS_PROVIDER } from './constants';
+import { SMS_PROVIDER } from './constants';
+import { ISmsProvider } from './interfaces/sms-provider.interface';
 
 @Injectable()
-export class OtpService implements IOtpService {
+export class OtpService {
   private readonly logger = new Logger(OtpService.name);
 
   constructor(
     private readonly cachingService: CachingService,
-    private readonly configService: ConfigService,
-    @Inject(OTP_GENERATOR) private readonly otpGenerator: any,
-    @Inject(SMS_PROVIDER) private readonly smsProvider: any,
-  ) { }
+    @Inject(SMS_PROVIDER) private readonly smsProvider: ISmsProvider,
+  ) {}
 
-  async sendOtpToPhone(phoneNumber: string): Promise<string> {
-    const otp = this.otpGenerator.generate();
-    const ttl = this.configService.get<number>('OTP_TTL', 300);
+  private generateOtp(): string {
+    return Math.floor(1000 + Math.random() * 9000).toString();
+  }
 
-    // Store OTP in cache
-    const stored = await this.cachingService.set(phoneNumber, otp, ttl);
-    if (!stored) {
-      throw new HttpException('Failed to store OTP', HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    // Log OTP for testing purposes
+  async sendOtpToPhone(phoneNumber: string): Promise<void> {
+    const otp = this.generateOtp();
     this.logger.debug(`Generated OTP for ${phoneNumber}: ${otp}`);
 
-    try {
-      // Use template-based VerifyLookup only. Do not fallback to direct Send.
-      const result = await this.smsProvider.sendWithTemplate(phoneNumber, otp);
-      return result;
-    } catch (templateError) {
-      // Log structured error information for diagnostics
-      this.logger.error('Template-based SMS sending failed', {
-        message: templateError?.message,
-        status: templateError?.apiStatus ?? templateError?.status,
-      });
+    await this.cachingService.set(phoneNumber, otp, 600); // 10 minutes TTL
 
-      // Surface a clear HTTP error to the caller. Keep message generic to avoid leaking provider internals.
+    try {
+      await this.smsProvider.sendTemplate(phoneNumber, 'verify', otp);
+    } catch (error) {
+      this.logger.error('SMS sending failed', error);
       throw new HttpException(
-        `Failed to send OTP via template: ${templateError?.message || 'unknown error'}`,
-        HttpStatus.BAD_REQUEST,
+        `Failed to send OTP: ${(error as Error).message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -58,7 +44,6 @@ export class OtpService implements IOtpService {
       throw new HttpException('Invalid OTP', HttpStatus.BAD_REQUEST);
     }
 
-    // Clear the used OTP
     await this.cachingService.delete(identifier);
 
     return true;

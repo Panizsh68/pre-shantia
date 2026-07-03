@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { ITokensModels } from './Itokens.interface';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
 import { ConfigService } from '@nestjs/config';
@@ -78,7 +78,9 @@ export class TokensService<
       let decryptedValue: unknown = this.decryptString(payload[key]);
       try {
         decryptedValue = JSON.parse(decryptedValue as string);
-      } catch {}
+      } catch {
+        // Fallback if value is not valid JSON
+      }
       decryptedPayload[decryptedKey] = decryptedValue;
     }
     return decryptedPayload;
@@ -160,7 +162,8 @@ export class TokensService<
     expiresIn: string,
   ): Promise<string> {
     const payload = this.encryptPayload(data);
-    return this.jwtService.signAsync(payload, { secret, algorithm, expiresIn });
+    const options: JwtSignOptions = { secret, algorithm, expiresIn: expiresIn as any };
+    return this.jwtService.signAsync(payload, options);
   }
 
   /**
