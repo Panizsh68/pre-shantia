@@ -1,6 +1,7 @@
+
 import { Injectable, OnModuleInit, UnauthorizedException } from '@nestjs/common';
 import { ITokensModels } from './Itokens.interface';
-import { JwtService, JwtSignOptions } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';
 import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
 import { ConfigService } from '@nestjs/config';
@@ -117,8 +118,8 @@ export class TokensService<
       const decoded = await this.jwtService.verifyAsync<Record<string, string>>(token, {
         secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
       });
-      delete decoded.iat;
-      delete decoded.exp;
+      delete (decoded as any).iat;
+      delete (decoded as any).exp;
       const decrypted = this.decryptPayload(decoded);
       if (!isTokenPayload(decrypted)) {throw new UnauthorizedException('Invalid token structure');}
       return decrypted;
@@ -133,8 +134,8 @@ export class TokensService<
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
         algorithms: ['HS512'],
       });
-      delete decoded.iat;
-      delete decoded.exp;
+      delete (decoded as any).iat;
+      delete (decoded as any).exp;
       const decrypted = this.decryptPayload(decoded);
       if (!isTokenPayload(decrypted)) {throw new UnauthorizedException('Invalid token structure');}
       const sessionInfo = await this.cachingService.get<{
@@ -162,31 +163,12 @@ export class TokensService<
     expiresIn: string,
   ): Promise<string> {
     const payload = this.encryptPayload(data);
-    const options: JwtSignOptions = { secret, algorithm, expiresIn: expiresIn as any };
+    // Explicitly cast options to any to resolve TS2322 incompatibility with StringValue
+    const options: any = { 
+      secret, 
+      algorithm, 
+      expiresIn: expiresIn as any
+    };
     return this.jwtService.signAsync(payload, options);
-  }
-
-  /**
-   * Log the decrypted payload of a JWT token (access or refresh)
-   * @param token JWT token string
-   * @param type 'access' | 'refresh'
-   */
-  async logTokenPayload(token: string, type: 'access' | 'refresh' = 'access'): Promise<void> {
-    try {
-      const secret = this.configService.get<string>(
-        type === 'access' ? 'JWT_ACCESS_SECRET' : 'JWT_REFRESH_SECRET',
-      );
-      const decoded = await this.jwtService.verifyAsync<Record<string, string>>(token, {
-        secret,
-      });
-      delete decoded.iat;
-      delete decoded.exp;
-      const decrypted = this.decryptPayload(decoded);
-       
-      console.log(`Decoded ${type} token payload:`, decrypted);
-    } catch (err) {
-       
-      console.error(`Failed to decode ${type} token:`, err);
-    }
   }
 }

@@ -6,8 +6,6 @@ import { RequestContextInterceptor } from './utils/interceptors/request-context.
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import express from 'express';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import * as fs from 'fs';
-import * as path from 'path';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
@@ -16,11 +14,10 @@ async function bootstrap(): Promise<void> {
 
   const app = await NestFactory.create(AppModule, adapter);
 
-  // Set Global Prefix FIRST
   app.setGlobalPrefix('api');
 
   app.enableCors({
-    origin: true, // In dev, allow all to prevent workstation domain issues
+    origin: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
@@ -55,11 +52,10 @@ async function bootstrap(): Promise<void> {
 
   app.useGlobalInterceptors(new RequestContextInterceptor());
 
-  // Use PORT from environment (run.sh passes 3001)
+  // FIXED: Strictly use port 3001 for backend in dev unless explicitly forced
   const port = process.env.PORT || 3001;
   await app.listen(port, '0.0.0.0');
   
   logger.log(`🚀 Backend API is running on: http://localhost:${port}/api`);
-  logger.log(`📜 Swagger documentation: http://localhost:${port}/api/docs`);
 }
 bootstrap();
