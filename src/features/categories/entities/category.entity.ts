@@ -7,7 +7,7 @@ export class Category extends Document {
   @Prop({ required: true, index: true })
   name: string;
 
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ required: true })
   slug: string;
 
   @Prop()
@@ -41,6 +41,15 @@ export class Category extends Document {
 }
 
 export const CategorySchema = SchemaFactory.createForClass(Category);
+
+// B3: Add case-insensitive unique index for slugs to prevent collisions (e.g., "Cement" vs "cement")
+CategorySchema.index(
+  { slug: 1 },
+  { 
+    unique: true, 
+    collation: { locale: 'en', strength: 2 } 
+  }
+);
 
 // Add virtuals for hierarchical relationships
 CategorySchema.virtual('children', {

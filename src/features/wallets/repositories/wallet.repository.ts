@@ -2,15 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { Wallet } from '../entities/wallet.entity';
 import {
   IBaseCrudRepository,
+  IBaseAggregateRepository,
   IBaseTransactionRepository,
 } from 'src/libs/repository/interfaces/base-repo.interfaces';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 import { WalletOwnerType } from '../enums/wallet-ownertype.enum';
-import { ClientSession, Model, UpdateQuery } from 'mongoose';
+import { ClientSession, Model, UpdateQuery, PipelineStage } from 'mongoose';
 
 export interface IWalletRepository
   extends IBaseCrudRepository<Wallet>,
-  IBaseTransactionRepository<Wallet> {
+    IBaseAggregateRepository<Wallet>,
+    IBaseTransactionRepository<Wallet> {
   findByIdAndType(
     ownerId: string,
     ownerType: WalletOwnerType,
@@ -22,10 +24,12 @@ export interface IWalletRepository
 export class WalletRepository extends BaseCrudRepository<Wallet> implements IWalletRepository {
   constructor(
     walletModel: Model<Wallet>,
+    private readonly aggregateRepository: IBaseAggregateRepository<Wallet>,
     private readonly baseTransactionRepo: IBaseTransactionRepository<Wallet>,
   ) {
     super(walletModel);
   }
+
   async findByIdAndType(
     ownerId: string,
     ownerType: WalletOwnerType,
@@ -39,9 +43,11 @@ export class WalletRepository extends BaseCrudRepository<Wallet> implements IWal
     updateData: Partial<Wallet>,
     session?: ClientSession,
   ): Promise<Wallet> {
-    // Delegate to base repository implementation to avoid accidental recursion
-    // Base method expects an UpdateQuery<T>, so cast to that specific type instead of using `any`.
     return super.updateById(id, updateData as UpdateQuery<Wallet>, session);
+  }
+
+  async aggregate<R = any>(pipeline: PipelineStage[], session?: ClientSession): Promise<R[]> {
+    return this.aggregateRepository.aggregate<R>(pipeline, session);
   }
 
   async startTransaction(): Promise<ClientSession> {
@@ -49,10 +55,10 @@ export class WalletRepository extends BaseCrudRepository<Wallet> implements IWal
   }
 
   async commitTransaction(session: ClientSession): Promise<void> {
-    return this.baseTransactionRepo.commitTransaction(session);
+    await this.baseTransactionRepo.commitTransaction(session);
   }
 
   async abortTransaction(session: ClientSession): Promise<void> {
-    return this.baseTransactionRepo.abortTransaction(session);
+    await this.baseTransactionRepo.abortTransaction(session);
   }
 }

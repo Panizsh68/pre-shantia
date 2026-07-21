@@ -109,6 +109,10 @@ export class TransactionService implements ITransactionService {
     return tx ?? null;
   }
 
+  async existsByCorrelationId(correlationId: string, session?: ClientSession): Promise<boolean> {
+    return this.transactionRepository.existsByCondition({ correlationId }, session);
+  }
+
   async startSession(): Promise<ClientSession> {
     const session = await this.transactionRepository.startTransaction();
     return session;

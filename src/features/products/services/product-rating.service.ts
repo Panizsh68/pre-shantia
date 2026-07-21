@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ProductRatingRepository } from '../repositories/product-rating.repository';
 import { IProductRatingService } from '../interfaces/product-rating.service.interface';
-import { RatingStats } from '../types/rating-summary.type';
-import { Types } from 'mongoose';
+import { RatingStats, DenormComment } from '../types/rating-summary.type';
+import { Types, ClientSession } from 'mongoose';
 
 @Injectable()
 export class ProductRatingService implements IProductRatingService {
@@ -30,10 +30,29 @@ export class ProductRatingService implements IProductRatingService {
     };
   }
 
-  async updateProductRatingStats(productId: string, stats: Partial<RatingStats>): Promise<void> {
+  async updateProductRatingStats(productId: string, stats: Partial<RatingStats>, increments?: Record<string, number>, session?: ClientSession): Promise<void> {
     await this.ratingRepo.updateRatingStats(
       typeof productId === 'string' ? new Types.ObjectId(productId) : productId,
-      stats
+      stats,
+      increments,
+      session
+    );
+  }
+
+  async addOrUpdateDenormComment(productId: string, comment: DenormComment, isUpdate: boolean, session?: ClientSession): Promise<void> {
+    await this.ratingRepo.addOrUpdateDenormComment(
+      typeof productId === 'string' ? new Types.ObjectId(productId) : productId,
+      comment,
+      isUpdate,
+      session
+    );
+  }
+
+  async removeDenormComment(productId: string, userId: string, session?: ClientSession): Promise<void> {
+    await this.ratingRepo.removeDenormComment(
+      typeof productId === 'string' ? new Types.ObjectId(productId) : productId,
+      typeof userId === 'string' ? new Types.ObjectId(userId) : userId,
+      session
     );
   }
 }

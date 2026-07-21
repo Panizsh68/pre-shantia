@@ -29,7 +29,7 @@ export class CartsService implements ICartsService {
   async getPopulatedCartsForUserById(userId: string): Promise<Cart[]> {
     const options: FindManyOptions = {
       populate: [
-        { path: 'items.productId', select: 'name basePrice description' },
+        { path: 'items.productId', select: 'name basePrice description currency' },
         { path: 'items.companyId', select: 'name address' },
       ],
     };
@@ -40,7 +40,7 @@ export class CartsService implements ICartsService {
   async getPopulatedCartsForUser(userId: string): Promise<Cart[]> {
     const options: FindManyOptions = {
       populate: [
-        { path: 'items.productId', select: 'name basePrice description' },
+        { path: 'items.productId', select: 'name basePrice description currency' },
         { path: 'items.companyId', select: 'name address' },
       ],
     };
@@ -64,42 +64,47 @@ export class CartsService implements ICartsService {
   }
 
   async createCart(dto: CreateCartDto): Promise<ICart> {
-    // compute totalAmount from items if not provided
     const total = dto.totalAmount ?? this.calculateTotal(dto.items as CartItemDto[]);
-    const payload = { ...dto, totalAmount: total };
+    const payload = { ...dto, totalAmount: total, currency: 'IRR' };
     return this.cartRepository.createOne(payload as any);
   }
 
   async addItemToCart(userId: string, item: CartItemDto): Promise<ICart> {
     const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
-    // validate companyId presence and format
+    
     if (!item.companyId) {
       throw new NotFoundException('companyId is required for cart items');
     }
     if (!Types.ObjectId.isValid(item.companyId)) {
       throw new BadRequestException(`Invalid companyId format: ${item.companyId}`);
     }
-    // verify the product exists and belongs to the companyId
+    
     const product = await this.productsService.findOne(item.productId);
     if (!product) { throw new NotFoundException(`Product with id ${item.productId} not found`); }
     if (product.companyId?.toString() !== item.companyId) {
       throw new BadRequestException('Product does not belong to the provided companyId');
     }
-    // Check if item with same productId and companyId already exists
+
+    const productCurrency = (product as any).currency || 'IRR';
+    if (cart.items.length === 0) {
+      cart.currency = productCurrency;
+    } else if (cart.currency !== productCurrency) {
+      throw new BadRequestException(
+        `Currency mismatch: Cart is in ${cart.currency}, but product is in ${productCurrency}. You cannot mix currencies in a single order.`
+      );
+    }
+
     const existingItemIndex = cart.items.findIndex(
       i => i.productId === item.productId && i.companyId === item.companyId
     );
     if (existingItemIndex >= 0) {
-      // Update existing item quantity and price
       cart.items[existingItemIndex].quantity += item.quantity;
       cart.items[existingItemIndex].priceAtAdd = item.priceAtAdd;
       if (item.variant) cart.items[existingItemIndex].variant = item.variant;
       if (item.discount) cart.items[existingItemIndex].discount = item.discount;
     } else {
-      // Add new item
       cart.items.push(item);
     }
-    // Recalculate total including discounts
     cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
     const savedCart = await cart.save();
     return savedCart;
@@ -107,13 +112,16 @@ export class CartsService implements ICartsService {
 
   async removeItemFromCart(userId: string, productId: string): Promise<ICart> {
     const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
-    // Check if item exists
     const itemIndex = cart.items.findIndex(i => i.productId === productId);
     if (itemIndex < 0) {
       throw new NotFoundException(`Product with id ${productId} not found in cart`);
     }
-    // Remove the item
     cart.items.splice(itemIndex, 1);
+    
+    if (cart.items.length === 0) {
+      cart.currency = 'IRR';
+    }
+
     cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
     const savedCart = await cart.save();
     return savedCart;
@@ -123,45 +131,32 @@ export class CartsService implements ICartsService {
     const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
     cart.items = [];
     cart.totalAmount = 0;
+    cart.currency = 'IRR';
     const savedCart = await cart.save();
     return savedCart;
   }
 
-  async checkout(userId: string, session?: ClientSession): Promise<{ success: boolean; cartId: string; orders?: any[] }> {
-    const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
+  /**
+   * Internal simple checkout that only handles cart state transition.
+   * L1 Fix: This no longer calls ordersService.create to avoid recursion and ensure atomicity.
+   */
+  async checkout(userId: string, session?: ClientSession): Promise<{ success: boolean; cartId: string }> {
+    const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId, session);
 
-    // Validate cart has items
     if (!cart.items || cart.items.length === 0) {
       throw new BadRequestException('Cannot checkout with an empty cart');
     }
 
-    // ensure totals are up-to-date before checkout
     cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
     cart.status = CartStatus.CHECKED_OUT;
     const savedCart = await cart.save({ session });
 
-    // Create orders from the cart
-    try {
-      const orders = await this.ordersService.create(
-        {
-          userId,
-          shippingAddress: '',
-          paymentMethod: '',
-        } as CreateOrderFromCartDto,
-        session
-      );
-      return { success: true, cartId: savedCart.id, orders };
-    } catch (error) {
-      // If order creation fails, log error but still return success for cart checkout
-      console.error('Error creating orders during checkout:', error);
-      return { success: true, cartId: savedCart.id };
-    }
+    return { success: true, cartId: savedCart.id };
   }
 
   async updateCart(userId: string, cartData: Partial<Cart>): Promise<ICart> {
     const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
     Object.assign(cart, cartData);
-    // Recalculate total if items changed or totalAmount not provided
     cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
     const savedCart = await cart.save();
     return savedCart;
@@ -182,7 +177,6 @@ export class CartsService implements ICartsService {
   }
 
   private calculateItemTotal(item: CartItemDto): number {
-    // validate and compute per-item total including discount
     this.validateDiscount(item.discount as any);
     const base = item.priceAtAdd * item.quantity;
     if (!item.discount) return base;
@@ -191,7 +185,6 @@ export class CartsService implements ICartsService {
       const discountAmount = (base * value) / 100;
       return Math.max(0, base - discountAmount);
     }
-    // fixed: interpret value as fixed amount per item
     const discountAmount = value * item.quantity;
     return Math.max(0, base - discountAmount);
   }

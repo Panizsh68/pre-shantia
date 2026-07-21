@@ -1,14 +1,16 @@
 import {
   IBaseCrudRepository,
+  IBaseAggregateRepository,
   IBaseTransactionRepository,
 } from 'src/libs/repository/interfaces/base-repo.interfaces';
 import { Transporting } from '../entities/transporting.entity';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
-import { ClientSession, Model } from 'mongoose';
+import { ClientSession, Model, PipelineStage } from 'mongoose';
 
 export interface ITransportingRepository
   extends IBaseCrudRepository<Transporting>,
+    IBaseAggregateRepository<Transporting>,
     IBaseTransactionRepository<Transporting> {
   findByOrderId(orderId: string): Promise<Transporting>;
   findByCompanyId(companyId: string): Promise<Transporting[]>;
@@ -21,10 +23,12 @@ export class TransportingRepository
 {
   constructor(
     transportingModel: Model<Transporting>,
+    private readonly aggregateRepository: IBaseAggregateRepository<Transporting>,
     private readonly baseTransactionRepo: IBaseTransactionRepository<Transporting>,
   ) {
     super(transportingModel);
   }
+
   async findByOrderId(orderId: string): Promise<Transporting> {
     try {
       const transporting = await this.findOneByCondition({ orderId });
@@ -51,6 +55,10 @@ export class TransportingRepository
         `Failed to find transportings by companyId: ${companyId}. Error: ${(error as Error).message}`,
       );
     }
+  }
+
+  async aggregate<R = any>(pipeline: PipelineStage[], session?: ClientSession): Promise<R[]> {
+    return this.aggregateRepository.aggregate<R>(pipeline, session);
   }
 
   async startTransaction(): Promise<ClientSession> {

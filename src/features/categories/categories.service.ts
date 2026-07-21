@@ -24,6 +24,12 @@ export class CategoriesService implements ICategoryService {
     ) {
       sanitizedData.parentId = undefined;
     }
+
+    // L3 Fix: basic check for create
+    if (sanitizedData.parentId && sanitizedData._id && sanitizedData.parentId.toString() === sanitizedData._id.toString()) {
+      throw new BadRequestException('A category cannot be its own parent');
+    }
+
     return this.categoryRepository.createOne({
       ...sanitizedData,
       companyId: userId ? new Types.ObjectId(userId) : undefined,
@@ -92,6 +98,19 @@ export class CategoriesService implements ICategoryService {
       || (typeof sanitizedUpdates.parentId === 'string' && !Types.ObjectId.isValid(sanitizedUpdates.parentId))
     ) {
       sanitizedUpdates.parentId = undefined;
+    } else if (sanitizedUpdates.parentId) {
+      const newParentId = sanitizedUpdates.parentId.toString();
+      
+      // L3 Fix: Prevent loop - Category cannot be its own parent
+      if (newParentId === sanitizedId) {
+        throw new BadRequestException('A category cannot be its own parent');
+      }
+
+      // L3 Fix: Prevent loop - Proposed parent cannot be a descendant of the current category
+      const isLoop = await this.isDescendant(sanitizedId, newParentId);
+      if (isLoop) {
+        throw new BadRequestException('Cycle detected in category hierarchy: proposed parent is a descendant of this category');
+      }
     }
 
     // اضافه کردن updatedBy
@@ -101,6 +120,26 @@ export class CategoriesService implements ICategoryService {
       { _id: new Types.ObjectId(sanitizedId) },
       sanitizedUpdates,
     );
+  }
+
+  /**
+   * L3 Helper: Checks if the targetCategoryId is a descendant of the categoryId.
+   * We walk up from targetCategoryId to root. If we hit categoryId, return true.
+   */
+  private async isDescendant(categoryId: string, targetCategoryId: string): Promise<boolean> {
+    let currentId: string | undefined = targetCategoryId;
+    const seenIds = new Set<string>();
+
+    while (currentId) {
+      if (currentId === categoryId) return true;
+      if (seenIds.has(currentId)) break; // Prevent infinite loop in existing bad data
+      seenIds.add(currentId);
+
+      const parentDoc = await this.categoryRepository.findById(currentId, { select: 'parentId' });
+      currentId = parentDoc?.parentId?.toString();
+    }
+
+    return false;
   }
 
   async remove(id: string, userId: string): Promise<void> {

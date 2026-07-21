@@ -81,7 +81,7 @@ export class UsersService {
       targetId = byPhone.id.toString();
     }
 
-    // Ensure user exists before attempting update (avoid accidental create elsewhere)
+    // Ensure user exists before attempting update
     const existing = await this.findOne(targetId);
 
     // validate any scoped companyIds inside permissions before updating
@@ -98,10 +98,10 @@ export class UsersService {
     }
 
     // Merge incoming permissions with existing ones instead of replacing the whole array.
-    // This preserves unrelated permissions and updates/creates entries for matching resource+companyId.
     const existingPermissions = Array.isArray(existing.permissions) ? [...existing.permissions] : [];
 
-    const normalizeKey = (perm: IPermission) => `${perm.resource}::${perm.companyId ?? ''}`;
+    // Fix B4: Consistently cast companyId to string for normalization (Fixes normalization inconsistency)
+    const normalizeKey = (perm: IPermission) => `${perm.resource}::${perm.companyId?.toString() ?? ''}`;
 
     const map = new Map<string, IPermission>();
     // start with existing permissions
@@ -113,7 +113,12 @@ export class UsersService {
       for (const p of permissions) {
         const key = normalizeKey(p as IPermission);
         // replace or add
-        map.set(key, { ...(map.get(key) || {} as IPermission), resource: p.resource, actions: p.actions, companyId: p.companyId });
+        map.set(key, { 
+          ...(map.get(key) || {} as IPermission), 
+          resource: p.resource, 
+          actions: p.actions, 
+          companyId: p.companyId?.toString() // Ensure consistent type 
+        });
       }
     }
 
@@ -128,8 +133,6 @@ export class UsersService {
     try {
       await this.cacheService.delete(`permissions:${existing.id}`);
     } catch (err) {
-      // non-fatal: log and continue
-      // eslint-disable-next-line no-console
       console.warn('Failed to clear permissions cache for user', existing.id, err?.message || err);
     }
     return updated;

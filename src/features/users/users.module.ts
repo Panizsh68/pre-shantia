@@ -13,6 +13,10 @@ import { IUserRepository, UserRepository } from './repositories/user.repository'
 import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
 import { CompaniesModule } from 'src/features/companies/companies.module';
+import {
+  BASE_AGGREGATE_REPOSITORY,
+  BASE_TRANSACTION_REPOSITORY,
+} from 'src/libs/repository/constants/tokens.constants';
 
 @Module({
   imports: [
@@ -31,10 +35,10 @@ import { CompaniesModule } from 'src/features/companies/companies.module';
   providers: [
     {
       provide: 'UserRepository',
-      useFactory: (userModel: Model<User>): IUserRepository => {
-        return new UserRepository(userModel);
+      useFactory: (userModel: Model<User>, aggregateRepo, transactionRepo): IUserRepository => {
+        return new UserRepository(userModel, aggregateRepo, transactionRepo);
       },
-      inject: [getModelToken(User.name)],
+      inject: [getModelToken(User.name), BASE_AGGREGATE_REPOSITORY, BASE_TRANSACTION_REPOSITORY],
     },
     {
       provide: 'IUsersService',

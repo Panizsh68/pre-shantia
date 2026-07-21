@@ -33,6 +33,8 @@ import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Permission } from '../permissions/decorators/permissions.decorators';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
+import { IOrdersService } from '../orders/interfaces/order.service.interface';
+import { CreateOrderFromCartDto } from '../orders/dto/create-order-from-cart.dto';
 
 @ApiTags('Carts')
 @ApiBearerAuth()
@@ -41,6 +43,7 @@ export class CartsController {
   constructor(
     @Inject('ICartsService') private readonly cartsService: ICartsService,
     @Inject('IProductsService') private readonly productsService: IProductService,
+    @Inject('IOrdersService') private readonly ordersService: IOrdersService,
   ) { }
 
   @Get('active')
@@ -91,11 +94,9 @@ export class CartsController {
   @ApiResponse({ status: 404, description: 'Product or active cart not found' })
   @HttpCode(HttpStatus.OK)
   async addItem(@CurrentUser() user: TokenPayload, @Body() item: CartItemDto) {
-    // explicit ownership check: ensure product exists and belongs to provided companyId
     if (!item.companyId) {throw new BadRequestException('companyId is required');}
     const product = await this.productsService.findOne(item.productId);
     if (!product) {throw new NotFoundException(`Product with id ${item.productId} not found`);}
-    // product.companyId may be an ObjectId; compare as strings
     if (product.companyId?.toString() !== item.companyId) {
       throw new BadRequestException('Product does not belong to the provided companyId');
     }
@@ -127,10 +128,19 @@ export class CartsController {
   @UseGuards(AuthenticationGuard)
   @Permission(Resource.CARTS, Action.UPDATE)
   @ApiOperation({ summary: "Checkout the user's cart" })
+  @ApiBody({ type: CreateOrderFromCartDto, required: false })
   @ApiResponse({ status: 200, description: 'Cart checked out successfully and orders created', type: Object })
   @HttpCode(HttpStatus.OK)
-  checkout(@CurrentUser() user: TokenPayload) {
-    return this.cartsService.checkout(user.userId);
+  async checkout(@CurrentUser() user: TokenPayload, @Body() dto?: Partial<CreateOrderFromCartDto>) {
+    // L1 Fix: We orchestrate the checkout via OrdersService to ensure atomic transaction 
+    // between cart checkout and order creation.
+    const payload = { 
+      ...dto, 
+      userId: user.userId,
+      shippingAddress: dto?.shippingAddress || '',
+      paymentMethod: dto?.paymentMethod || ''
+    };
+    return this.ordersService.create(payload as CreateOrderFromCartDto);
   }
 
   @Patch()

@@ -16,49 +16,29 @@ export interface IOrderRepository extends IBaseCrudRepository<Order>, IBaseTrans
   findByUserId(userId: string, session?: ClientSession): Promise<Order[]>;
   findByCompanyId(companyId: string, session?: ClientSession): Promise<Order[]>;
   findActiveOrdersByUserId(userId: string, session?: ClientSession): Promise<Order[]>;
-  findById(id: string, options?: { session?: ClientSession }): Promise<Order | null>;
-  findManyByCondition(where: Record<string, unknown>, options?: { session?: ClientSession }): Promise<Order[]>;
-  updateById(id: string, data: Partial<Order>, session?: ClientSession): Promise<Order>;
 }
 
 @Injectable()
 export class OrderRepository extends BaseCrudRepository<Order> implements IOrderRepository {
-  async create(order: Order, session?: ClientSession): Promise<Order> {
-    return this.createOne(order, session);
-  }
-
-  async findById(id: string, options?: { session?: ClientSession }): Promise<Order | null> {
-    return this.model.findById(id).session(options?.session ?? null).lean<Order>().exec() as Promise<Order | null>;
-  }
-
-  async findManyByCondition(where: Record<string, unknown>, options?: { session?: ClientSession }): Promise<Order[]> {
-    return this.model.find(where).session(options?.session ?? null).lean<Order[]>().exec() as Promise<Order[]>;
-  }
-
-  async updateById(id: string, data: Partial<Order>, session?: ClientSession): Promise<Order> {
-    const result = await this.model.findByIdAndUpdate(id, data, { new: true }).session(session ?? null).lean<Order>().exec();
-    if (!result) {
-      throw new NotFoundException(`Order with ID '${id}' not found`);
-    }
-    return result as unknown as Order;
-  }
   constructor(
     orderModel: Model<Order>,
     private readonly transactionRepository: IBaseTransactionRepository<Order>,
   ) {
     super(orderModel);
   }
+
+  async create(order: Order, session?: ClientSession): Promise<Order> {
+    return this.createOne(order, session);
+  }
+
   async findByUserId(userId: string, session?: ClientSession): Promise<Order[]> {
     try {
       if (!Types.ObjectId.isValid(userId)) {
         throw new BadRequestException(`Invalid user ID format: ${userId}`);
       }
-      const orders = this.findManyByCondition({ userId }, { session });
-      if (!orders) {
-        throw new NotFoundException(`user with id: ${userId} not found`);
-      }
-      return await orders;
+      return await this.findManyByCondition({ userId }, { session });
     } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
       throw new BadRequestException(
         `Failed to find orders by userId: ${userId}. Error: ${error.message}`,
       );
@@ -70,10 +50,9 @@ export class OrderRepository extends BaseCrudRepository<Order> implements IOrder
       if (!Types.ObjectId.isValid(companyId)) {
         throw new BadRequestException(`Invalid company ID format: ${companyId}`);
       }
-      const orders = this.findManyByCondition({ companyId }, { session });
-
-      return await orders;
+      return await this.findManyByCondition({ companyId }, { session });
     } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
       throw new BadRequestException(
         `Failed to find orders for company ID '${companyId}': ${error.message}`,
       );
@@ -91,12 +70,12 @@ export class OrderRepository extends BaseCrudRepository<Order> implements IOrder
         OrdersStatus.COMPLETED,
         OrdersStatus.SHIPPED,
       ];
-      const activeOrders = this.findManyByCondition(
+      return await this.findManyByCondition(
         { userId, status: { $in: activeStatuses } },
         { session },
       );
-      return await activeOrders;
     } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
       throw new BadRequestException(
         `Failed to find active orders for user ID '${userId}': ${error.message}`,
       );
@@ -104,8 +83,7 @@ export class OrderRepository extends BaseCrudRepository<Order> implements IOrder
   }
 
   async startTransaction(): Promise<ClientSession> {
-    const session = await this.transactionRepository.startTransaction();
-    return session;
+    return this.transactionRepository.startTransaction();
   }
 
   async commitTransaction(session: ClientSession): Promise<void> {

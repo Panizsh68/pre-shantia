@@ -11,6 +11,7 @@ import {
   Max,
   MaxLength,
   IsNotEmpty,
+  Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional, ApiHideProperty } from '@nestjs/swagger';
@@ -154,6 +155,16 @@ export class CreateProductDto {
   @Min(0)
   @Max(100)
   discount?: number;
+
+  @ApiPropertyOptional({
+    description: 'Currency code (3 uppercase letters)',
+    example: 'IRR',
+    default: 'IRR'
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Z]{3}$/)
+  currency?: string;
 
   @ApiPropertyOptional({
     description: 'List of category IDs',

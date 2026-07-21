@@ -15,6 +15,9 @@ export class Cart extends Document {
   @Prop({ type: Number, required: true, min: 0, default: 0 })
   totalAmount: number;
 
+  @Prop({ type: String, default: 'IRR' })
+  currency: string;
+
   @Prop({ type: String, enum: CartStatus, required: true, default: CartStatus.ACTIVE })
   status: CartStatus;
 }

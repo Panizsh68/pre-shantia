@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, Inject, Query, BadRequestException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Ticket } from './entities/ticketing.entity';
 import { TicketResponseDto } from './dto/ticket-response.dto';
@@ -7,10 +7,11 @@ import { ticketToResponseDto } from './mappers/ticket.mapper';
 import { TicketStatusResponseDto } from './dto/ticket-status-response.dto';
 import { AuthenticationGuard } from 'src/features/auth/guards/auth.guard';
 import { TicketStatus } from './enums/ticket-status.enum';
+import { TicketPriority } from './enums/ticket-priority.enum';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { ITicketingService } from './interfaces/ticketing.service.interface';
-import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
+import { FindManyOptions, SortOrder } from 'src/libs/repository/interfaces/base-repo-options.interface';
 import { Permission } from '../permissions/decorators/permissions.decorators';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Resource } from '../permissions/enums/resources.enum';
@@ -51,16 +52,12 @@ export class TicketingController {
   }
 
   @Post()
-  // Only require authentication to create tickets (users can open tickets without special permissions)
   @UseGuards(AuthenticationGuard)
   @ApiOperation({ summary: 'Create a new ticket', description: 'Creates a new support ticket. Ticket is automatically assigned to superadmin.' })
   @ApiBody({ type: CreateTicketDto })
   @ApiResponse({ status: 201, description: 'Ticket created successfully', type: TicketResponseDto })
   async create(@CurrentUser() user: TokenPayload, @Body() createTicketDto: CreateTicketDto): Promise<TicketResponseDto> {
-    // Get superadmin to assign ticket
     const superAdmin = await this.getSuperAdmin();
-
-    // Set createdBy from authenticated user and assignedTo to superadmin
     createTicketDto.createdBy = user.userId;
     createTicketDto.assignedTo = superAdmin.id.toString();
     
@@ -74,19 +71,31 @@ export class TicketingController {
     summary: 'Get tickets', 
     description: 'Regular users see only their own tickets. Superadmin/staff with TICKETING.READ permission see all tickets.' 
   })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'status', required: false, enum: TicketStatus })
+  @ApiQuery({ name: 'priority', required: false, enum: TicketPriority })
   @ApiResponse({ status: 200, description: 'List of tickets returned', type: TicketResponseDto, isArray: true })
   async findAll(
     @CurrentUser() user: TokenPayload,
-    @Query() options: FindManyOptions
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('status') status?: TicketStatus,
+    @Query('priority') priority?: TicketPriority,
   ): Promise<TicketResponseDto[]> {
-    // Superadmin or user with TICKETING.READ can see all tickets
-    const canSeeAll = hasPermission(user, Resource.TICKETING, Action.READ);
+    // Explicitly construct options to avoid query injection (B2)
+    const options: FindManyOptions = {
+      page: Number(page) || 1,
+      perPage: Number(limit) || 10,
+      conditions: {},
+      sort: [{ field: 'createdAt', order: SortOrder.DESC }]
+    };
 
-    // If not authorized to see all, filter by createdBy
+    if (status) options.conditions.status = status;
+    if (priority) options.conditions.priority = priority;
+
+    const canSeeAll = hasPermission(user, Resource.TICKETING, Action.READ);
     if (!canSeeAll) {
-      if (!options.conditions) {
-        options.conditions = {};
-      }
       options.conditions.createdBy = user.userId;
     }
 
@@ -107,10 +116,7 @@ export class TicketingController {
       throw new BadRequestException('Ticket not found');
     }
 
-    // Superadmin or TICKETING.READ can see all tickets
     const canSeeAll = hasPermission(user, Resource.TICKETING, Action.READ);
-
-    // Regular users can only see their own tickets
     if (!canSeeAll && t.createdBy !== user.userId) {
       throw new BadRequestException('Forbidden - you can only see your own tickets');
     }
@@ -131,10 +137,7 @@ export class TicketingController {
       throw new BadRequestException('Ticket not found');
     }
 
-    // Superadmin or TICKETING.READ can check any ticket status
     const canSeeAll = hasPermission(user, Resource.TICKETING, Action.READ);
-
-    // Regular users can only check their own ticket status
     if (!canSeeAll && ticket.createdBy !== user.userId) {
       throw new BadRequestException('Forbidden - you can only check your own tickets');
     }
@@ -274,10 +277,7 @@ export class TicketingController {
       throw new BadRequestException('Ticket not found');
     }
 
-    // Superadmin or TICKETING.UPDATE can comment on any ticket
     const canUpdateAll = hasPermission(user, Resource.TICKETING, Action.UPDATE);
-
-    // Regular users can only comment on their own tickets
     if (!canUpdateAll && ticket.createdBy !== user.userId) {
       throw new BadRequestException('Forbidden - you can only comment on your own tickets');
     }
@@ -308,10 +308,7 @@ export class TicketingController {
       throw new BadRequestException('Ticket not found');
     }
 
-    // Superadmin or TICKETING.READ can view any ticket comments
     const canSeeAll = hasPermission(user, Resource.TICKETING, Action.READ);
-
-    // Regular users can only view comments on their own tickets
     if (!canSeeAll && ticket.createdBy !== user.userId) {
       throw new BadRequestException('Forbidden - you can only view comments on your own tickets');
     }
@@ -324,4 +321,5 @@ export class TicketingController {
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
     })) || [];
-  }}
+  }
+}

@@ -12,6 +12,7 @@ import { FindManyOptions, SortOption } from 'src/libs/repository/interfaces/base
 
 export interface IProductRepository extends IBaseCrudRepository<Product>, IBaseAggregateRepository<Product>, IBaseTransactionRepository<Product> {
   bulkDecrementStock(items: { productId: Types.ObjectId; qty: number }[], session?: ClientSession): Promise<number>;
+  bulkIncrementStock(items: { productId: Types.ObjectId; qty: number }[], session?: ClientSession): Promise<number>;
   getTopProductsByRating(limit?: number, session?: ClientSession): Promise<Product[]>;
   findByCompanyId(companyId: string | Types.ObjectId, options?: { page?: number; limit?: number; sort?: { field: string; order: 'asc' | 'desc' }[] }, session?: ClientSession): Promise<Product[]>;
   advancedSearchAggregate(
@@ -65,6 +66,27 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
     const res = await (this.model as any).bulkWrite(bulkOps, { session });
     return res.modifiedCount || 0;
   }
+
+  /**
+   * Atomically increment stock for multiple products (e.g. reverting a failed order).
+   * @param items [{ productId, qty }]
+   * @param session
+   */
+  async bulkIncrementStock(
+    items: { productId: Types.ObjectId; qty: number }[],
+    session?: ClientSession
+  ): Promise<number> {
+    if (!items?.length) return 0;
+    const bulkOps = items.map(it => ({
+      updateOne: {
+        filter: { _id: it.productId },
+        update: { $inc: { 'stock.quantity': it.qty } },
+      },
+    }));
+    const res = await (this.model as any).bulkWrite(bulkOps, { session });
+    return res.modifiedCount || 0;
+  }
+
   async getTopProductsByRating(limit = 5, session?: ClientSession): Promise<Product[]> {
     const pipeline: PipelineStage[] = [
       { $match: { status: 'active' } },
@@ -296,7 +318,7 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
   }
 
   async startTransaction(): Promise<ClientSession> {
-    const session = await this.transactionRepository.startTransaction();
+    const session = await this.transactionRepository.startSession();
     return session;
   }
 

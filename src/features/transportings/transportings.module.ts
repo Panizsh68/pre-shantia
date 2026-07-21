@@ -1,6 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { TransportingsService } from './transportings.service';
-import { TransportingsController } from './transportings.controller';
+import { TransportService } from './transportings.service';
+import { TransportController } from './transportings.controller';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Transporting, TransportingSchema } from './entities/transporting.entity';
 import { Model } from 'mongoose';
@@ -9,7 +9,10 @@ import {
   TransportingRepository,
 } from './repositories/transporting.repository';
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
-import { BASE_TRANSACTION_REPOSITORY } from 'src/libs/repository/constants/tokens.constants';
+import {
+  BASE_AGGREGATE_REPOSITORY,
+  BASE_TRANSACTION_REPOSITORY,
+} from 'src/libs/repository/constants/tokens.constants';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
 import { OrdersModule } from '../orders/orders.module';
 
@@ -23,19 +26,20 @@ import { OrdersModule } from '../orders/orders.module';
     OrdersModule,
     forwardRef(() => PermissionsModule),
   ],
-  controllers: [TransportingsController],
+  controllers: [TransportController],
   providers: [
     {
       provide: 'TransportingRepository',
-      useFactory: (transportingModel, transactionRepo): ITransportingRepository => {
-        return new TransportingRepository(transportingModel, transactionRepo);
+      useFactory: (transportingModel: Model<Transporting>, aggregateRepo, transactionRepo): ITransportingRepository => {
+        return new TransportingRepository(transportingModel, aggregateRepo, transactionRepo);
       },
-      inject: [getModelToken(Transporting.name), BASE_TRANSACTION_REPOSITORY],
+      inject: [getModelToken(Transporting.name), BASE_AGGREGATE_REPOSITORY, BASE_TRANSACTION_REPOSITORY],
     },
     {
-      provide: 'ITransportingsService',
-      useClass: TransportingsService,
+      provide: 'ITransportService',
+      useClass: TransportService,
     },
   ],
+  exports: ['ITransportService'],
 })
-export class TransportingsModule { }
+export class TransportModule { }

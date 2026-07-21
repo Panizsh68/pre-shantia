@@ -7,12 +7,16 @@ import { PayDto } from './dto/pay.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { TokenPayload } from '../auth/interfaces/token-payload.interface';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
+import { ConfigService } from '@nestjs/config';
 
 @ApiTags('Payment')
 @ApiBearerAuth()
 @Controller('payment')
 export class PaymentController {
-  constructor(@Inject('IPaymentService') private readonly paymentService: PaymentService) { }
+  constructor(
+    @Inject('IPaymentService') private readonly paymentService: PaymentService,
+    private readonly configService: ConfigService,
+  ) { }
 
   @Post('initiate')
   @UseGuards(AuthenticationGuard)
@@ -63,12 +67,17 @@ export class PaymentController {
     @Query('secret') secret?: string,
     @Req() req?: any,
   ) {
-    // Quick secret check: require either query param 'secret' or header 'x-callback-secret'
-    const configured = (process.env.PAYMENT_CALLBACK_SECRET || '').trim();
+    if (!trackId) {
+      throw new BadRequestException('trackId is required');
+    }
+
+    // L4 - Improved secret check using ConfigService
+    const configuredSecret = (this.configService.get<string>('PAYMENT_CALLBACK_SECRET') || '').trim();
     const headerSecret = req?.headers?.['x-callback-secret'] || req?.headers?.['X-Callback-Secret'];
-    const provided = (secret || headerSecret || '').toString().trim();
-    if (configured && configured.length > 0 && provided !== configured) {
-      throw new BadRequestException('Invalid callback secret');
+    const providedSecret = (secret || headerSecret || '').toString().trim();
+
+    if (configuredSecret.length > 0 && providedSecret !== configuredSecret) {
+      throw new BadRequestException('Invalid or missing callback security secret');
     }
 
     // proceed to business logic

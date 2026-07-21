@@ -11,7 +11,7 @@ import { ShahkarModule } from './utils/services/shahkar/shahkar.module';
 import { TokensModule } from './utils/services/tokens/tokens.module';
 import { ProductsModule } from './features/products/products.module';
 import { TicketingModule } from './features/ticketing/ticketing.module';
-import { TransportingsModule } from './features/transportings/transportings.module';
+import { TransportModule } from './features/transportings/transportings.module';
 import { CompaniesModule } from './features/companies/companies.module';
 import { ImageUploadModule } from './features/image-upload/image-upload.module';
 import { OrdersModule } from './features/orders/orders.module';
@@ -74,7 +74,7 @@ import { RatingModule } from './features/ratings/rating.module';
     TokensModule,
     ProductsModule,
     TicketingModule,
-    TransportingsModule,
+    TransportModule,
     CompaniesModule,
     OrdersModule,
     WalletsModule,

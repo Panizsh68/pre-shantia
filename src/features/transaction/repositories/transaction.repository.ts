@@ -1,9 +1,10 @@
 import {
   IBaseCrudRepository,
+  IBaseAggregateRepository,
   IBaseTransactionRepository,
 } from 'src/libs/repository/interfaces/base-repo.interfaces';
 import { Transaction } from '../schema/transaction.schema';
-import { Model } from 'mongoose';
+import { Model, PipelineStage } from 'mongoose';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 import { Injectable } from '@nestjs/common';
 import { ClientSession } from 'mongoose';
@@ -11,18 +12,33 @@ import { toMongooseSession } from 'src/libs/repository/session-utils';
 
 export interface ITransactionRepository
   extends IBaseCrudRepository<Transaction>,
-  IBaseTransactionRepository<Transaction> { }
+    IBaseAggregateRepository<Transaction>,
+    IBaseTransactionRepository<Transaction> {
+  findOneByTrackIdAndStatusAndUpdate(
+    trackId: string,
+    expectedStatus: any,
+    update: any,
+    session?: ClientSession,
+  ): Promise<Transaction | null>;
+}
 
 @Injectable()
 export class TransactionRepository
   extends BaseCrudRepository<Transaction>
-  implements ITransactionRepository {
+  implements ITransactionRepository
+{
   constructor(
-    private readonly userModel: Model<Transaction>,
+    private readonly transactionModel: Model<Transaction>,
+    private readonly aggregateRepository: IBaseAggregateRepository<Transaction>,
     private readonly transactionRepository: IBaseTransactionRepository<Transaction>,
   ) {
-    super(userModel);
+    super(transactionModel);
   }
+
+  async aggregate<R = any>(pipeline: PipelineStage[], session?: ClientSession): Promise<R[]> {
+    return this.aggregateRepository.aggregate<R>(pipeline, session);
+  }
+
   async startTransaction(): Promise<ClientSession> {
     return this.transactionRepository.startTransaction();
   }
@@ -35,7 +51,6 @@ export class TransactionRepository
     return this.transactionRepository.abortTransaction(session);
   }
 
-  // Atomically update a transaction only if it matches an expected status.
   async findOneByTrackIdAndStatusAndUpdate(
     trackId: string,
     expectedStatus: any,
@@ -43,7 +58,7 @@ export class TransactionRepository
     session?: ClientSession,
   ): Promise<Transaction | null> {
     const statusQuery = Array.isArray(expectedStatus) ? { $in: expectedStatus } : expectedStatus;
-    return this.userModel
+    return this.transactionModel
       .findOneAndUpdate({ trackId, status: statusQuery }, update, { new: true })
       .session(toMongooseSession(session))
       .exec();

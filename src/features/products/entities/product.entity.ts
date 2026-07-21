@@ -56,6 +56,9 @@ export class Product extends Document {
   })
   discount: number;
 
+  @Prop({ type: String, default: 'IRR', match: /^[A-Z]{3}$/ })
+  currency: string;
+
   @Prop({ type: Types.ObjectId, ref: 'Company', required: true, index: true })
   companyId: Types.ObjectId;
 

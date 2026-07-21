@@ -14,6 +14,10 @@ import { OrdersModule } from '../orders/orders.module';
 import { WalletsModule } from '../wallets/wallets.module';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
 import { UsersModule } from '../users/users.module';
+import {
+  BASE_AGGREGATE_REPOSITORY,
+  BASE_TRANSACTION_REPOSITORY,
+} from 'src/libs/repository/constants/tokens.constants';
 
 @Module({
   imports: [
@@ -22,19 +26,19 @@ import { UsersModule } from '../users/users.module';
       { name: User.name, schema: UserSchema },
     ]),
     ScheduleModule.forRoot(),
-    OrdersModule, // Added OrdersModule to imports
-    WalletsModule, // Added WalletsModule to imports
-    UsersModule, // Added UsersModule to get UsersService
+    OrdersModule,
+    WalletsModule,
+    UsersModule,
     forwardRef(() => PermissionsModule),
   ],
   controllers: [TicketingController],
   providers: [
     {
       provide: 'TicketRepository',
-      useFactory: (ticketModel: Model<Ticket>): ITicketRepository => {
-        return new TicketRepository(ticketModel);
+      useFactory: (ticketModel: Model<Ticket>, aggregateRepo, transactionRepo): ITicketRepository => {
+        return new TicketRepository(ticketModel, aggregateRepo, transactionRepo);
       },
-      inject: [getModelToken(Ticket.name)],
+      inject: [getModelToken(Ticket.name), BASE_AGGREGATE_REPOSITORY, BASE_TRANSACTION_REPOSITORY],
     },
     {
       provide: 'ITicketingService',

@@ -15,4 +15,5 @@ export interface ITransactionService {
   abortSession(session: ClientSession): Promise<void>;
   updateIfStatus?(trackId: string, expectedStatus: string | number, updateData: Partial<CreateTransactionDto>, session?: ClientSession): Promise<Transaction | null>;
   updateByLocalId?(localId: string, updateData: Partial<CreateTransactionDto>, session?: ClientSession): Promise<Transaction>;
+  existsByCorrelationId(correlationId: string, session?: ClientSession): Promise<boolean>;
 }

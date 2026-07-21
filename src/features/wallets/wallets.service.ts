@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import { CreditWalletDto } from './dto/credit-wallet.dto';
 import { IWalletService } from './interfaces/wallet.service.interface';
 import { IWalletRepository } from './repositories/wallet.repository';
@@ -13,6 +13,9 @@ import { TransactionStatus } from '../transaction/enums/transaction.status.enum'
 import { TransactionType } from '../transaction/enums/transaction.type.enum';
 import { CreateTransactionDto } from '../transaction/dtos/create-transaction.dto';
 import { ITransactionService } from '../transaction/interfaces/transaction.service.interface';
+import { IUsersService } from '../users/interfaces/user.service.interface';
+import { ICompanyService } from '../companies/interfaces/company.service.interface';
+import { getIntermediaryWalletId } from 'src/utils/intermediary-wallet.util';
 
 @Injectable()
 export class WalletsService implements IWalletService {
@@ -24,10 +27,49 @@ export class WalletsService implements IWalletService {
       currency: data.currency ?? 'IRR',
     }, session);
   }
+
   constructor(
     @Inject('WalletRepository') private readonly walletRepository: IWalletRepository,
     @Inject('ITransactionsService') private readonly transactionService: ITransactionService,
+    @Inject(forwardRef(() => 'IUsersService')) private readonly usersService: IUsersService,
+    @Inject(forwardRef(() => 'ICompanyService')) private readonly companiesService: ICompanyService,
   ) { }
+
+  private async validateOwner(ownerId: string, ownerType: WalletOwnerType): Promise<void> {
+    // Intermediary is the platform itself, identified by a special ID
+    if (ownerType === WalletOwnerType.INTERMEDIARY) {
+      const intermediaryId = getIntermediaryWalletId();
+      if (ownerId !== intermediaryId) {
+        throw new BadRequestException(`Invalid intermediary owner ID: ${ownerId}`);
+      }
+      return;
+    }
+
+    if (ownerType === WalletOwnerType.USER) {
+      try {
+        const user = await this.usersService.findOne(ownerId);
+        if (!user) {
+          throw new BadRequestException(`Destination user ${ownerId} not found`);
+        }
+      } catch (err) {
+        throw new BadRequestException(`Destination user ${ownerId} not found or inactive`);
+      }
+    } else if (ownerType === WalletOwnerType.COMPANY) {
+      try {
+        const company = await this.companiesService.findOne(ownerId);
+        if (!company) {
+          throw new BadRequestException(`Destination company ${ownerId} not found`);
+        }
+        // B2B Security: Ensure the company is active before allowing any fund transfer/release
+        if (company.status !== 'active') {
+          throw new BadRequestException(`Destination company ${ownerId} is not active (current status: ${company.status})`);
+        }
+      } catch (err) {
+        if (err instanceof BadRequestException) throw err;
+        throw new BadRequestException(`Destination company ${ownerId} not found or inactive`);
+      }
+    }
+  }
 
   async creditWallet(creditWalletDto: CreditWalletDto, session?: ClientSession): Promise<Wallet> {
     return runInTransaction(this.walletRepository, async (transactionSession) => {
@@ -40,20 +82,16 @@ export class WalletsService implements IWalletService {
         throw new NotFoundException(`Wallet not found for owner ${creditWalletDto.ownerId}`);
       }
 
-      wallet.balance += creditWalletDto.amount;
       const updatedWallet = await this.walletRepository.updateById(
         wallet.id,
-        { balance: wallet.balance },
+        { $inc: { balance: creditWalletDto.amount } } as any,
         transactionSession,
       );
 
-      // create transaction record for credit
       const txDto: CreateTransactionDto = {
         trackId: uuidv4(),
         amount: creditWalletDto.amount,
         description: `Credit to wallet ${wallet.id}`,
-        mobile: undefined,
-        email: undefined,
         userId: creditWalletDto.ownerId,
         status: TransactionStatus.COMPLETED,
         type: TransactionType.CREDIT,
@@ -61,8 +99,6 @@ export class WalletsService implements IWalletService {
         createdAt: new Date(),
         toWalletId: wallet.id,
         resultingBalance: updatedWallet.balance,
-        counterpartyOwnerId: undefined,
-        counterpartyOwnerType: undefined,
         metadata: { reason: 'credit' },
       };
       await this.transactionService.create(txDto, transactionSession);
@@ -80,25 +116,21 @@ export class WalletsService implements IWalletService {
       if (!wallet) {
         throw new NotFoundException(`Wallet not found for owner ${debitWalletDto.ownerId}`);
       }
-      if (wallet.balance < debitWalletDto.amount) {
-        console.warn('Insufficient balance for debit', { ownerId: debitWalletDto.ownerId, amount: debitWalletDto.amount, balance: wallet.balance });
+
+      const updatedWallet = await this.walletRepository.updateOneByCondition(
+        { _id: wallet.id, balance: { $gte: debitWalletDto.amount } } as any,
+        { $inc: { balance: -debitWalletDto.amount } } as any,
+        { session: transactionSession }
+      ).catch(() => null);
+
+      if (!updatedWallet) {
         throw new BadRequestException('Insufficient balance');
       }
 
-      wallet.balance -= debitWalletDto.amount;
-      const updatedWallet = await this.walletRepository.updateById(
-        wallet.id,
-        { balance: wallet.balance },
-        transactionSession,
-      );
-
-      // create transaction record for debit
       const txDto: CreateTransactionDto = {
         trackId: uuidv4(),
         amount: debitWalletDto.amount,
         description: `Debit from wallet ${wallet.id}`,
-        mobile: undefined,
-        email: undefined,
         userId: debitWalletDto.ownerId,
         status: TransactionStatus.COMPLETED,
         type: TransactionType.DEBIT,
@@ -118,9 +150,21 @@ export class WalletsService implements IWalletService {
     to: { ownerId: string; ownerType: WalletOwnerType },
     amount: number,
     session?: ClientSession,
+    correlationId?: string,
   ): Promise<void> {
+    // L2 Fix: Validate destination owner existence and status before transferring funds
+    await this.validateOwner(to.ownerId, to.ownerType);
+
     const transactionSession = session || (await this.walletRepository.startTransaction());
     try {
+      if (correlationId) {
+        const alreadyDone = await this.transactionService.existsByCorrelationId(correlationId, transactionSession);
+        if (alreadyDone) {
+          if (!session) await this.walletRepository.commitTransaction(transactionSession);
+          return;
+        }
+      }
+
       const fromWallet = await this.walletRepository.findByIdAndType(
         from.ownerId,
         from.ownerType,
@@ -135,28 +179,27 @@ export class WalletsService implements IWalletService {
       if (!fromWallet || !toWallet) {
         throw new NotFoundException('Wallet not found');
       }
-      if (fromWallet.balance < amount) {
-        console.warn('Insufficient balance for transfer', { from: from.ownerId, amount, balance: fromWallet.balance });
-        throw new BadRequestException('Insufficient balance');
+
+      const updatedFromWallet = await this.walletRepository.updateOneByCondition(
+        { _id: fromWallet.id, balance: { $gte: amount } } as any,
+        { $inc: { balance: -amount } } as any,
+        { session: transactionSession }
+      ).catch(() => null);
+
+      if (!updatedFromWallet) {
+        throw new BadRequestException('Insufficient balance for transfer');
       }
 
-      fromWallet.balance -= amount;
-      toWallet.balance += amount;
-
-      await this.walletRepository.updateById(
-        fromWallet.id,
-        { balance: fromWallet.balance },
+      const updatedToWallet = await this.walletRepository.updateById(
+        toWallet.id,
+        { $inc: { balance: amount } } as any,
         transactionSession,
       );
-      await this.walletRepository.updateById(toWallet.id, { balance: toWallet.balance }, transactionSession);
 
-      // create transaction record for transfer (one record representing this transfer)
       const txDto: CreateTransactionDto = {
         trackId: uuidv4(),
         amount,
         description: `Transfer from ${from.ownerId} to ${to.ownerId}`,
-        mobile: undefined,
-        email: undefined,
         userId: from.ownerId,
         status: TransactionStatus.COMPLETED,
         type: TransactionType.TRANSFER,
@@ -164,11 +207,12 @@ export class WalletsService implements IWalletService {
         createdAt: new Date(),
         fromWalletId: fromWallet.id,
         toWalletId: toWallet.id,
-        resultingBalance: fromWallet.balance,
-        resultingBalanceTo: toWallet.balance,
+        resultingBalance: updatedFromWallet.balance,
+        resultingBalanceTo: updatedToWallet.balance,
         counterpartyOwnerId: to.ownerId,
         counterpartyOwnerType: to.ownerType,
         metadata: { reason: 'transfer' },
+        correlationId
       };
       await this.transactionService.create(txDto, transactionSession);
 
@@ -179,95 +223,115 @@ export class WalletsService implements IWalletService {
       if (!session) {
         await this.walletRepository.abortTransaction(transactionSession);
       }
-      throw new BadRequestException(`Transfer failed: ${error.message}`);
+      throw error instanceof BadRequestException || error instanceof NotFoundException 
+        ? error 
+        : new BadRequestException(`Transfer failed: ${error.message}`);
     }
   }
 
-  // Block amount on a wallet (move from balance -> blockedBalance) and record a BLOCK transaction
   async blockAmount(
     owner: { ownerId: string; ownerType: WalletOwnerType },
     amount: number,
-    meta: { orderId?: string; ticketId?: string; reason?: string } = {},
+    meta: { orderId?: string; ticketId?: string; reason?: string; correlationId?: string } = {},
     session?: ClientSession,
   ): Promise<void> {
     const transactionSession = session || (await this.walletRepository.startTransaction());
     try {
+      if (meta.correlationId) {
+        const alreadyDone = await this.transactionService.existsByCorrelationId(meta.correlationId, transactionSession);
+        if (alreadyDone) {
+          if (!session) await this.walletRepository.commitTransaction(transactionSession);
+          return;
+        }
+      }
+
       const wallet = await this.walletRepository.findByIdAndType(
         owner.ownerId,
         owner.ownerType,
         transactionSession,
       );
       if (!wallet) { throw new NotFoundException('Wallet not found'); }
-      if (wallet.balance < amount) {
-        console.warn('Insufficient balance to block', { ownerId: owner.ownerId, amount, balance: wallet.balance });
+
+      const updatedWallet = await this.walletRepository.updateOneByCondition(
+        { _id: wallet.id, balance: { $gte: amount } } as any,
+        { $inc: { balance: -amount, blockedBalance: amount } } as any,
+        { session: transactionSession }
+      ).catch(() => null);
+
+      if (!updatedWallet) {
         throw new BadRequestException('Insufficient balance to block');
       }
-
-      wallet.balance -= amount;
-      wallet.blockedBalance = (wallet.blockedBalance ?? 0) + amount;
-
-      await this.walletRepository.updateById(wallet.id, { balance: wallet.balance, blockedBalance: wallet.blockedBalance }, transactionSession);
 
       const txDto: CreateTransactionDto = {
         trackId: uuidv4(),
         amount,
         description: `Block ${amount} on wallet ${wallet.id}`,
-        mobile: undefined,
-        email: undefined,
         userId: owner.ownerId,
         status: TransactionStatus.COMPLETED,
         type: TransactionType.BLOCK,
         currency: wallet.currency,
         createdAt: new Date(),
         fromWalletId: wallet.id,
-        resultingBalance: wallet.balance,
+        resultingBalance: updatedWallet.balance,
         metadata: { ...meta, reason: meta.reason ?? 'block' },
+        correlationId: meta.correlationId
       };
       await this.transactionService.create(txDto, transactionSession);
 
       if (!session) { await this.walletRepository.commitTransaction(transactionSession); }
     } catch (error) {
       if (!session) { await this.walletRepository.abortTransaction(transactionSession); }
-      throw new BadRequestException(`Failed to block amount: ${error.message}`);
+      throw error instanceof BadRequestException || error instanceof NotFoundException 
+        ? error 
+        : new BadRequestException(`Failed to block amount: ${error.message}`);
     }
   }
 
-  // Release blocked amount and either refund to user or transfer to another wallet
   async releaseBlockedAmount(
     from: { ownerId: string; ownerType: WalletOwnerType },
     to: { ownerId: string; ownerType: WalletOwnerType },
     amount: number,
-    meta: { orderId?: string; ticketId?: string; reason?: string; type?: 'REFUND' | 'TRANSFER' },
+    meta: { orderId?: string; ticketId?: string; reason?: string; type?: 'REFUND' | 'TRANSFER'; correlationId?: string } = {},
     session?: ClientSession,
   ): Promise<void> {
+    // L2 Fix: Validate destination owner existence and status before releasing blocked funds
+    await this.validateOwner(to.ownerId, to.ownerType);
+
     const transactionSession = session || (await this.walletRepository.startTransaction());
     try {
+      if (meta.correlationId) {
+        const alreadyDone = await this.transactionService.existsByCorrelationId(meta.correlationId, transactionSession);
+        if (alreadyDone) {
+          if (!session) await this.walletRepository.commitTransaction(transactionSession);
+          return;
+        }
+      }
+
       const fromWallet = await this.walletRepository.findByIdAndType(from.ownerId, from.ownerType, transactionSession);
       const toWallet = await this.walletRepository.findByIdAndType(to.ownerId, to.ownerType, transactionSession);
       if (!fromWallet || !toWallet) { throw new NotFoundException('Wallet not found'); }
-      if ((fromWallet.blockedBalance ?? 0) < amount) {
-        console.warn('Insufficient blocked balance for release', { from: from.ownerId, amount, blockedBalance: fromWallet.blockedBalance });
+
+      const updatedFromWallet = await this.walletRepository.updateOneByCondition(
+        { _id: fromWallet.id, blockedBalance: { $gte: amount } } as any,
+        { $inc: { blockedBalance: -amount } } as any,
+        { session: transactionSession }
+      ).catch(() => null);
+
+      if (!updatedFromWallet) {
         throw new BadRequestException('Insufficient blocked balance');
       }
 
-      // If releasing from and to the same wallet, just reduce blockedBalance and avoid double-crediting
+      let resultingBalanceTo = toWallet.balance;
       const sameWallet = from.ownerId === to.ownerId && from.ownerType === to.ownerType;
-      fromWallet.blockedBalance -= amount;
       if (!sameWallet) {
-        toWallet.balance += amount;
-      }
-
-      await this.walletRepository.updateById(fromWallet.id, { blockedBalance: fromWallet.blockedBalance }, transactionSession);
-      if (!sameWallet) {
-        await this.walletRepository.updateById(toWallet.id, { balance: toWallet.balance }, transactionSession);
+        const updatedToWallet = await this.walletRepository.updateById(toWallet.id, { $inc: { balance: amount } } as any, transactionSession);
+        resultingBalanceTo = updatedToWallet.balance;
       }
 
       const txDto: CreateTransactionDto = {
         trackId: uuidv4(),
         amount,
         description: `${meta.type ?? 'TRANSFER'} from blocked on ${fromWallet.id} to ${toWallet.id}`,
-        mobile: undefined,
-        email: undefined,
         userId: from.ownerId,
         status: TransactionStatus.COMPLETED,
         type: meta.type === 'REFUND' ? TransactionType.REFUND : TransactionType.TRANSFER,
@@ -275,16 +339,19 @@ export class WalletsService implements IWalletService {
         createdAt: new Date(),
         fromWalletId: fromWallet.id,
         toWalletId: toWallet.id,
-        resultingBalance: fromWallet.balance,
-        resultingBalanceTo: toWallet.balance,
+        resultingBalance: updatedFromWallet.balance,
+        resultingBalanceTo,
         metadata: { ...meta, reason: meta.reason ?? (meta.type ?? 'transfer') },
+        correlationId: meta.correlationId
       };
       await this.transactionService.create(txDto, transactionSession);
 
       if (!session) { await this.walletRepository.commitTransaction(transactionSession); }
     } catch (error) {
       if (!session) { await this.walletRepository.abortTransaction(transactionSession); }
-      throw new BadRequestException(`Failed to release blocked amount: ${error.message}`);
+      throw error instanceof BadRequestException || error instanceof NotFoundException 
+        ? error 
+        : new BadRequestException(`Failed to release blocked amount: ${error.message}`);
     }
   }
 
@@ -298,7 +365,6 @@ export class WalletsService implements IWalletService {
     let wallet = await this.walletRepository.findByIdAndType(ownerId, ownerType, session);
 
     if (!wallet) {
-      // Lazy creation: create wallet with initial values; ensure creation participates in provided session
       wallet = await this.walletRepository.createOne({
         ownerId,
         ownerType,

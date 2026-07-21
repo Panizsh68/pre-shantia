@@ -1,107 +1,108 @@
 import { Controller, Post, Get, Patch, Param, Body, Inject, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateTransportingDto } from './dto/create-transporting.dto';
 import { UpdateTransportingDto } from './dto/update-transporting.dto';
 import { ITransporting } from './interfaces/transporting.interface';
-import { ITransportingsService } from './interfaces/transporting.service.interface';
+import { ITransportService } from './interfaces/transporting.service.interface';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
 import { Permission } from '../permissions/decorators/permissions.decorators';
 import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
 
-@ApiTags('transportings')
-@Controller('transportings')
-export class TransportingsController {
+@ApiTags('Transport')
+@ApiBearerAuth()
+@Controller('transport')
+export class TransportController {
   constructor(
-    @Inject('ITransportingsService') private readonly transportingsService: ITransportingsService,
+    @Inject('ITransportService') private readonly transportService: ITransportService,
   ) { }
 
   @Post()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.TRANSPORTING, Action.CREATE)
-  @ApiOperation({ summary: 'Create a new transporting record' })
+  @ApiOperation({ summary: 'Create a new transport record' })
   @ApiBody({ type: CreateTransportingDto })
-  @ApiResponse({ status: 201, description: 'Transporting record created successfully' })
+  @ApiResponse({ status: 201, description: 'Transport record created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   async create(@Body() createTransportingDto: CreateTransportingDto): Promise<ITransporting> {
-    return this.transportingsService.create(createTransportingDto);
+    return this.transportService.create(createTransportingDto);
   }
 
   @Get(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.TRANSPORTING, Action.READ)
-  @ApiOperation({ summary: 'Get transporting record by ID', description: 'This route is open for default users.' })
-  @ApiParam({ name: 'id', description: 'Transporting ID', example: '507f1f77bcf86cd799439011' })
-  @ApiResponse({ status: 200, description: 'Transporting record found' })
-  @ApiResponse({ status: 404, description: 'Transporting record not found' })
+  @ApiOperation({ summary: 'Get transport record by ID' })
+  @ApiParam({ name: 'id', description: 'Transport ID', example: '507f1f77bcf86cd799439011' })
+  @ApiResponse({ status: 200, description: 'Transport record found' })
+  @ApiResponse({ status: 404, description: 'Transport record not found' })
   async findById(@Param('id') id: string): Promise<ITransporting> {
-    return this.transportingsService.findById(id);
+    return this.transportService.findById(id);
   }
 
   @Get('order/:orderId')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.TRANSPORTING, Action.READ)
-  @ApiOperation({ summary: 'Get transporting record by order ID', description: 'This route is open for default users.' })
+  @ApiOperation({ summary: 'Get transport record by order ID' })
   @ApiParam({ name: 'orderId', description: 'Order ID', example: '507f1f77bcf86cd799439012' })
-  @ApiResponse({ status: 200, description: 'Transporting record found' })
-  @ApiResponse({ status: 404, description: 'Transporting record not found' })
+  @ApiResponse({ status: 200, description: 'Transport record found' })
+  @ApiResponse({ status: 404, description: 'Transport record not found' })
   async findByOrderId(@Param('orderId') orderId: string): Promise<ITransporting> {
-    return this.transportingsService.findByOrderId(orderId);
+    return this.transportService.findByOrderId(orderId);
   }
 
   @Get('company/:companyId')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.TRANSPORTING, Action.detailed_read)
-  @ApiOperation({ summary: 'Get transporting records by company ID' })
+  @ApiOperation({ summary: 'Get transport records by company ID' })
   @ApiParam({ name: 'companyId', description: 'Company ID', example: '507f1f77bcf86cd799439013' })
-  @ApiResponse({ status: 200, description: 'List of transporting records found' })
-  @ApiResponse({ status: 404, description: 'No transporting records found for the company' })
+  @ApiResponse({ status: 200, description: 'List of transport records found' })
+  @ApiResponse({ status: 404, description: 'No transport records found for the company' })
   async findByCompanyId(@Param('companyId') companyId: string): Promise<ITransporting[]> {
-    return this.transportingsService.findByCompanyId(companyId);
+    return this.transportService.findByCompanyId(companyId);
   }
 
   @Patch()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.TRANSPORTING, Action.UPDATE)
-  @ApiOperation({ summary: 'Update a transporting record' })
+  @ApiOperation({ summary: 'Update a transport record' })
   @ApiBody({ type: UpdateTransportingDto })
-  @ApiResponse({ status: 200, description: 'Transporting record updated successfully' })
-  @ApiResponse({ status: 404, description: 'Transporting record not found' })
+  @ApiResponse({ status: 200, description: 'Transport record updated successfully' })
+  @ApiResponse({ status: 404, description: 'Transport record not found' })
   async update(@Body() updateTransportingDto: UpdateTransportingDto): Promise<ITransporting> {
-    return this.transportingsService.update(updateTransportingDto);
+    return this.transportService.update(updateTransportingDto);
   }
 
   @Patch(':id/cancel')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.TRANSPORTING, Action.UPDATE)
-  @ApiOperation({ summary: 'Cancel a transporting record' })
-  @ApiParam({ name: 'id', description: 'Transporting ID', example: '507f1f77bcf86cd799439011' })
-  @ApiResponse({ status: 200, description: 'Transporting record canceled successfully' })
-  @ApiResponse({ status: 404, description: 'Transporting record not found' })
-  @ApiResponse({ status: 400, description: 'Transporting record cannot be canceled' })
+  @ApiOperation({ summary: 'Cancel a transport record' })
+  @ApiParam({ name: 'id', description: 'Transport ID', example: '507f1f77bcf86cd799439011' })
+  @ApiResponse({ status: 200, description: 'Transport record canceled successfully' })
+  @ApiResponse({ status: 404, description: 'Transport record not found' })
+  @ApiResponse({ status: 400, description: 'Transport record cannot be canceled' })
   async cancel(@Param('id') id: string): Promise<ITransporting> {
-    return this.transportingsService.cancel(id);
+    return this.transportService.cancel(id);
   }
 
   @Patch(':id/delivered')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @Permission(Resource.TRANSPORTING, Action.UPDATE)
-  @ApiOperation({ summary: 'Mark a transporting record as delivered' })
-  @ApiParam({ name: 'id', description: 'Transporting ID', example: '507f1f77bcf86cd799439011' })
+  @ApiOperation({ summary: 'Mark a transport record as delivered' })
+  @ApiParam({ name: 'id', description: 'Transport ID', example: '507f1f77bcf86cd799439011' })
   @ApiBody({
     schema: {
       type: 'object',
       properties: { estimatedDelivery: { type: 'string', format: 'date-time' } },
     },
   })
-  @ApiResponse({ status: 200, description: 'Transporting record marked as delivered successfully' })
-  @ApiResponse({ status: 404, description: 'Transporting record not found' })
-  @ApiResponse({ status: 400, description: 'Transporting record cannot be marked as delivered' })
+  @ApiResponse({ status: 200, description: 'Transport record marked as delivered successfully' })
+  @ApiResponse({ status: 404, description: 'Transport record not found' })
+  @ApiResponse({ status: 400, description: 'Transport record cannot be marked as delivered' })
   async markAsDelivered(
     @Param('id') id: string,
     @Body('estimatedDelivery') estimatedDelivery?: Date,
   ): Promise<ITransporting> {
-    return this.transportingsService.markAsDelivered(id, estimatedDelivery);
+    return this.transportService.markAsDelivered(id, estimatedDelivery);
   }
 }

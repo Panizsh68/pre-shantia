@@ -89,7 +89,7 @@ export class Transaction extends Document {
   @Prop({ type: Object })
   metadata?: Record<string, unknown>;
 
-  @Prop()
+  @Prop({ index: true, sparse: true, unique: true })
   correlationId?: string;
 }
 

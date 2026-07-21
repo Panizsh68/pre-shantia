@@ -2,7 +2,7 @@ import { CreateTransportingDto } from '../dto/create-transporting.dto';
 import { UpdateTransportingDto } from '../dto/update-transporting.dto';
 import { ITransporting } from './transporting.interface';
 
-export interface ITransportingsService {
+export interface ITransportService {
   create(dto: CreateTransportingDto): Promise<ITransporting>;
   findById(id: string): Promise<ITransporting>;
   findByOrderId(orderId: string): Promise<ITransporting>;

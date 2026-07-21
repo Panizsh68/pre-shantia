@@ -25,101 +25,68 @@ export class RatingService implements IRatingService {
   /**
    * Create or update a user's rating for a product atomically.
    * - Uses a DB transaction (productRepo as transaction owner)
-   * - Maintains product.avgRate, product.totalRatings, product.ratingsSummary and product.denormComments
-   * - Rounds avgRate to 2 decimals
+   * - Optimized: Atomic increments for counts and in-memory average calculation to avoid heavy joins.
    */
   async rateProduct(userId: string, dto: CreateRatingDto): Promise<IRating> {
-    // Safe-guard validation (DTO also validates)
     if (dto.rating < 1 || dto.rating > 5) throw new BadRequestException('Rating must be between 1 and 5');
 
     const result = await runInTransaction(this.productRepo, async (session: ClientSession) => {
-      // find existing rating (session-scoped)
+      // 1. Fetch current state inside transaction
       const existing = await this.repo.findByUserAndProduct(userId, dto.productId, session);
-
-      // load product (session-scoped)
-      const product = await this.productRepo.findById(dto.productId, { session });
+      const product = await (this.productRepo as any).findById(dto.productId, { session });
       if (!product) throw new NotFoundException('Product not found');
 
-      let stats = await this.productRatingService.getProductRatingStats(dto.productId);
-      const { avgRate: oldAvg, totalRatings: oldCount, ratingsSummary } = stats;
+      const isUpdate = !!existing;
+      const oldRating = existing ? existing.rating : 0;
+      const newRating = dto.rating;
 
-      if (existing) {
-        // UPDATE
-        const oldRate = Number(existing.rating ?? 0);
-
-        // If rating value changed -> adjust avg & summary
-        if (oldRate !== dto.rating) {
-          // update rating doc inside session
-          const updatedRating = await this.repo.updateRating(userId, dto.productId, dto.rating, dto.comment, session);
-
-          // compute new stats
-          const newAvgUnrounded = oldCount > 0 ? ((oldAvg * oldCount - oldRate + dto.rating) / oldCount) : dto.rating;
-          const newAvg = Math.round(newAvgUnrounded * 100) / 100;
-
-          // update summary counts
-          const newSummary = { ...ratingsSummary };
-          newSummary[String(oldRate)] = Math.max(0, (newSummary[String(oldRate)] ?? 1) - 1);
-          newSummary[String(dto.rating)] = (newSummary[String(dto.rating)] ?? 0) + 1;
-
-          // update via rating service
-          await this.productRatingService.updateProductRatingStats(dto.productId, {
-            avgRate: newAvg,
-            ratingsSummary: newSummary
-          });
-
-          // if comment changed, recalculate all stats to ensure consistency
-          if (dto.comment !== undefined) {
-            await this.productRatingService.recalculateProductRatings(dto.productId);
-          }
-
-          return toPlain<IRating>(updatedRating as any);
-        }
-
-        // rating value unchanged -> possibly update comment only
-        if (dto.comment !== undefined && dto.comment !== existing.comment) {
-          const updatedRating = await this.repo.updateRating(userId, dto.productId, dto.rating, dto.comment, session);
-          await this.productRatingService.recalculateProductRatings(dto.productId);
-          return toPlain<IRating>(updatedRating as any);
-        }
-
-        // nothing changed
-        return toPlain<IRating>(existing as any);
+      // 2. Save/Update the rating record
+      let savedRating: any;
+      if (isUpdate) {
+        savedRating = await this.repo.updateRating(userId, dto.productId, newRating, dto.comment, session);
+      } else {
+        savedRating = await this.repo.createOne({ 
+          userId: toObjectId(userId), 
+          productId: toObjectId(dto.productId), 
+          rating: newRating, 
+          comment: dto.comment 
+        } as any, session);
       }
 
-      // INSERT
-      let createdRating: any;
-      try {
-        createdRating = await this.repo.createOne({ userId: toObjectId(userId), productId: toObjectId(dto.productId), rating: dto.rating, comment: dto.comment } as any, session);
-      } catch (err) {
-        // handle duplicate-key races: if another request created it concurrently, fetch and treat as update
-        if ((err as any)?.code === 11000) {
-          const concurrent = await this.repo.findByUserAndProduct(userId, dto.productId, session);
-          if (concurrent) return toPlain<IRating>(concurrent as any);
-        }
-        throw err;
+      // 3. Calculate new stats atomically
+      const currentTotal = product.totalRatings || 0;
+      const currentAvg = product.avgRate || 0;
+      const currentSum = currentAvg * currentTotal;
+      
+      const nextTotal = isUpdate ? currentTotal : currentTotal + 1;
+      const nextSum = currentSum - oldRating + newRating;
+      const nextAvg = nextTotal > 0 ? nextSum / nextTotal : 0;
+
+      const increments: Record<string, number> = {};
+      increments[`ratingsSummary.${newRating}`] = 1;
+      if (isUpdate) {
+        increments[`ratingsSummary.${oldRating}`] = -1;
+      } else {
+        increments.totalRatings = 1;
       }
 
-      // Calculate new stats
-      const newCount = oldCount + 1;
-      const newAvgUnrounded = oldCount === 0 ? dto.rating : ((oldAvg * oldCount + dto.rating) / newCount);
-      const newAvg = Math.round(newAvgUnrounded * 100) / 100;
+      // 4. Update Product Denorm Fields
+      await this.productRatingService.updateProductRatingStats(
+        dto.productId, 
+        { avgRate: Math.round(nextAvg * 100) / 100, totalRatings: nextTotal },
+        increments,
+        session
+      );
 
-      const newSummary = { ...ratingsSummary };
-      newSummary[String(dto.rating)] = (newSummary[String(dto.rating)] ?? 0) + 1;
+      // 5. Update Denorm Comment
+      await this.productRatingService.addOrUpdateDenormComment(
+        dto.productId,
+        { userId, rating: newRating, comment: dto.comment, createdAt: new Date() },
+        isUpdate,
+        session
+      );
 
-      // Update stats via rating service
-      await this.productRatingService.updateProductRatingStats(dto.productId, {
-        avgRate: newAvg,
-        totalRatings: newCount,
-        ratingsSummary: newSummary
-      });
-
-      // If comment provided, recalculate to ensure consistency
-      if (dto.comment) {
-        await this.productRatingService.recalculateProductRatings(dto.productId);
-      }
-
-      return toPlain<IRating>(createdRating as any);
+      return toPlain<IRating>(savedRating as any);
     });
 
     return result as IRating;
@@ -140,42 +107,45 @@ export class RatingService implements IRatingService {
   }
 
   async updateProductRating(userId: string, dto: CreateRatingDto): Promise<IRating | null> {
-    // reuse rateProduct transactional implementation
     const updated = await this.rateProduct(userId, dto);
     return updated ?? null;
   }
 
   async deleteProductRating(userId: string, productId: string): Promise<void> {
-    // perform delete inside a transaction to update product denorm fields
     await runInTransaction(this.productRepo, async (session: ClientSession) => {
       const existing = await this.repo.findByUserAndProduct(userId, productId, session);
       if (!existing) throw new NotFoundException('Rating not found');
 
-      const product = await this.productRepo.findById(productId, { session });
+      const product = await (this.productRepo as any).findById(productId, { session });
       if (!product) throw new NotFoundException('Product not found');
 
-      const oldAvg = Number(product.avgRate ?? 0);
-      const oldCount = Number(product.totalRatings ?? 0);
-      const ratingsSummary: Record<string, number> = Object.assign({}, product.ratingsSummary ?? {});
-      for (let r = 1; r <= 5; r++) ratingsSummary[String(r)] = Number(ratingsSummary[String(r)] ?? 0);
-      const denormComments = Array.isArray(product.denormComments) ? [...product.denormComments] : [];
+      const oldRating = existing.rating;
+      const currentTotal = product.totalRatings || 0;
+      const currentAvg = product.avgRate || 0;
+      const currentSum = currentAvg * currentTotal;
 
-      // remove rating doc
+      const nextTotal = Math.max(0, currentTotal - 1);
+      const nextSum = Math.max(0, currentSum - oldRating);
+      const nextAvg = nextTotal > 0 ? nextSum / nextTotal : 0;
+
+      // 1. Delete actual rating record
       await this.repo.deleteRating(userId, productId, session);
 
-      // update summary and avg
-      const oldRate = Number(existing.rating ?? 0);
-      ratingsSummary[String(oldRate)] = Math.max(0, (ratingsSummary[String(oldRate)] ?? 1) - 1);
+      // 2. Atomic update product counts and avg
+      const increments: Record<string, number> = {
+        totalRatings: -1
+      };
+      increments[`ratingsSummary.${oldRating}`] = -1;
 
-      const newCount = Math.max(0, oldCount - 1);
-      const newAvgUnrounded = newCount > 0 ? ((oldAvg * oldCount - oldRate) / newCount) : 0;
-      const newAvg = Math.round(newAvgUnrounded * 100) / 100;
+      await this.productRatingService.updateProductRatingStats(
+        productId,
+        { avgRate: Math.round(nextAvg * 100) / 100, totalRatings: nextTotal },
+        increments,
+        session
+      );
 
-      // remove denorm comment entry for user if present
-      const idx = denormComments.findIndex(c => String(c.userId) === String(userId));
-      if (idx >= 0) denormComments.splice(idx, 1);
-
-      await this.productRepo.updateById(productId, { $set: { avgRate: newAvg, ratingsSummary, denormComments }, $inc: { totalRatings: -1 } } as any, session);
+      // 3. Remove denorm comment
+      await this.productRatingService.removeDenormComment(productId, userId, session);
     });
   }
 
@@ -183,4 +153,3 @@ export class RatingService implements IRatingService {
     return this.repo.getRatingsCount(productId);
   }
 }
-

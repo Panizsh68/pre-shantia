@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ITransportingRepository } from './repositories/transporting.repository';
-import { ITransportingsService } from './interfaces/transporting.service.interface';
+import { ITransportService } from './interfaces/transporting.service.interface';
 import { ITransporting } from './interfaces/transporting.interface';
 import { TransportingStatus } from './enums/transporting.status.enum';
 import { Types } from 'mongoose';
@@ -10,7 +10,7 @@ import { runInTransaction } from 'src/libs/repository/run-in-transaction';
 import { IOrdersService } from '../orders/interfaces/order.service.interface';
 
 @Injectable()
-export class TransportingsService implements ITransportingsService {
+export class TransportService implements ITransportService {
   constructor(
     @Inject('TransportingRepository')
     private readonly transportingRepository: ITransportingRepository,
@@ -30,17 +30,17 @@ export class TransportingsService implements ITransportingsService {
       const newTransporting = await this.transportingRepository.createOne(transportingData, session);
       return newTransporting;
     }).catch(error => {
-      throw new BadRequestException(`Failed to create transporting. Error: ${(error as Error).message}`);
+      throw new BadRequestException(`Failed to create transport record. Error: ${(error as Error).message}`);
     });
   }
 
   async findById(id: string): Promise<ITransporting> {
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('Invalid transporting ID format');
+      throw new BadRequestException('Invalid transport ID format');
     }
     const transporting = await this.transportingRepository.findById(id);
     if (!transporting) {
-      throw new NotFoundException(`Transporting with id: ${id} not found`);
+      throw new NotFoundException(`Transport record with id: ${id} not found`);
     }
     return transporting;
   }
@@ -63,7 +63,7 @@ export class TransportingsService implements ITransportingsService {
 
   async update(dto: UpdateTransportingDto): Promise<ITransporting> {
     if (!Types.ObjectId.isValid(dto.id)) {
-      throw new BadRequestException('Invalid transporting ID format');
+      throw new BadRequestException('Invalid transport ID format');
     }
 
     return runInTransaction(this.transportingRepository, async (session) => {
@@ -75,54 +75,54 @@ export class TransportingsService implements ITransportingsService {
       };
       const updatedTransporting = await this.transportingRepository.updateById(dto.id, updateData, session);
       if (!updatedTransporting) {
-        throw new NotFoundException(`Transporting with id: ${dto.id} not found`);
+        throw new NotFoundException(`Transport record with id: ${dto.id} not found`);
       }
       return updatedTransporting;
     }).catch(error => {
-      throw new BadRequestException(`Failed to update transporting. Error: ${(error as Error).message}`);
+      throw new BadRequestException(`Failed to update transport record. Error: ${(error as Error).message}`);
     });
   }
 
   async cancel(id: string): Promise<ITransporting> {
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('Invalid transporting ID format');
+      throw new BadRequestException('Invalid transport ID format');
     }
     return runInTransaction(this.transportingRepository, async (session) => {
       const transporting = await this.transportingRepository.findById(id, { session });
       if (!transporting) {
-        throw new NotFoundException(`Transporting with id: ${id} not found`);
+        throw new NotFoundException(`Transport record with id: ${id} not found`);
       }
       if (transporting.status === TransportingStatus.CANCELED) {
-        throw new BadRequestException(`Transporting record with ID '${id}' is already canceled`);
+        throw new BadRequestException(`Transport record with ID '${id}' is already canceled`);
       }
       if (transporting.status === TransportingStatus.DELIVERED) {
         throw new BadRequestException(
-          `Cannot cancel delivered transporting record with ID '${id}'`,
+          `Cannot cancel delivered transport record with ID '${id}'`,
         );
       }
       transporting.status = TransportingStatus.CANCELED;
       const updatedTransporting = await this.transportingRepository.saveOne(transporting, session);
       return updatedTransporting;
     }).catch(error => {
-      throw new BadRequestException(`Failed to cancel transporting. Error: ${(error as Error).message}`);
+      throw new BadRequestException(`Failed to cancel transport record. Error: ${(error as Error).message}`);
     });
   }
 
   async markAsDelivered(id: string, estimatedDelivery?: Date): Promise<ITransporting> {
     if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException('Invalid transporting ID format');
+      throw new BadRequestException('Invalid transport ID format');
     }
     return runInTransaction(this.transportingRepository, async (session) => {
       const transporting = await this.transportingRepository.findById(id, { session });
       if (!transporting) {
-        throw new NotFoundException(`Transporting with id: ${id} not found`);
+        throw new NotFoundException(`Transport record with id: ${id} not found`);
       }
       if (transporting.status === TransportingStatus.DELIVERED) {
-        throw new BadRequestException(`Transporting record with ID '${id}' is already delivered`);
+        throw new BadRequestException(`Transport record with ID '${id}' is already delivered`);
       }
       if (transporting.status === TransportingStatus.CANCELED) {
         throw new BadRequestException(
-          `Cannot mark canceled transporting record with ID '${id}' as delivered`,
+          `Cannot mark canceled transport record with ID '${id}' as delivered`,
         );
       }
       transporting.status = TransportingStatus.DELIVERED;
@@ -133,7 +133,7 @@ export class TransportingsService implements ITransportingsService {
       await this.ordersService.markAsDelivered(transporting.orderId, session);
       return updatedTransporting;
     }).catch(error => {
-      throw new BadRequestException(`Failed to mark transporting as delivered. Error: ${(error as Error).message}`);
+      throw new BadRequestException(`Failed to mark transport as delivered. Error: ${(error as Error).message}`);
     });
   }
 }

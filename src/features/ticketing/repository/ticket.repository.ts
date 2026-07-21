@@ -3,11 +3,18 @@ import { Ticket, TicketComment } from '../entities/ticketing.entity';
 import { TicketStatus } from '../enums/ticket-status.enum';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { TicketPriority } from '../enums/ticket-priority.enum';
-import { Model, Types, ClientSession } from 'mongoose';
-import { IBaseCrudRepository } from 'src/libs/repository/interfaces/base-repo.interfaces';
+import { Model, Types, ClientSession, PipelineStage } from 'mongoose';
+import {
+  IBaseCrudRepository,
+  IBaseAggregateRepository,
+  IBaseTransactionRepository,
+} from 'src/libs/repository/interfaces/base-repo.interfaces';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 
-export interface ITicketRepository extends IBaseCrudRepository<Ticket> {
+export interface ITicketRepository
+  extends IBaseCrudRepository<Ticket>,
+    IBaseAggregateRepository<Ticket>,
+    IBaseTransactionRepository<Ticket> {
   findTicketStatus(id: string): Promise<TicketStatus>;
   updateTicketStatus(id: string, status: TicketStatus): Promise<Ticket | null>;
   escalateTicket(ticketId: string): Promise<Ticket>;
@@ -18,7 +25,11 @@ export interface ITicketRepository extends IBaseCrudRepository<Ticket> {
 
 @Injectable()
 export class TicketRepository extends BaseCrudRepository<Ticket> implements ITicketRepository {
-  constructor(private readonly ticketModel: Model<Ticket>) {
+  constructor(
+    private readonly ticketModel: Model<Ticket>,
+    private readonly aggregateRepository: IBaseAggregateRepository<Ticket>,
+    private readonly transactionRepository: IBaseTransactionRepository<Ticket>,
+  ) {
     super(ticketModel);
   }
 
@@ -100,12 +111,27 @@ export class TicketRepository extends BaseCrudRepository<Ticket> implements ITic
     return ticket.comments || [];
   }
 
-  // Cron job to automatically escalate tickets after 4 hours if no response
-  @Cron(CronExpression.EVERY_HOUR) // Runs every hour
+  async aggregate<R = any>(pipeline: PipelineStage[], session?: ClientSession): Promise<R[]> {
+    return this.aggregateRepository.aggregate<R>(pipeline, session);
+  }
+
+  async startTransaction(): Promise<ClientSession> {
+    return this.transactionRepository.startTransaction();
+  }
+
+  async commitTransaction(session: ClientSession): Promise<void> {
+    await this.transactionRepository.commitTransaction(session);
+  }
+
+  async abortTransaction(session: ClientSession): Promise<void> {
+    await this.transactionRepository.abortTransaction(session);
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
   async autoEscalateTickets(): Promise<void> {
     const tickets = await this.findManyByCondition({
       status: TicketStatus.Open,
-      updatedAt: { $lt: new Date(Date.now() - 4 * 60 * 60 * 1000) }, // 4 hours threshold
+      updatedAt: { $lt: new Date(Date.now() - 4 * 60 * 60 * 1000) },
     });
 
     for (const ticket of tickets) {
@@ -113,4 +139,3 @@ export class TicketRepository extends BaseCrudRepository<Ticket> implements ITic
     }
   }
 }
-

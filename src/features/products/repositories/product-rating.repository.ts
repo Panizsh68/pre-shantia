@@ -14,22 +14,30 @@ export class ProductRatingRepository extends BaseCrudRepository<Product> impleme
   async updateRatingStats(
     productId: string | Types.ObjectId,
     stats: Partial<RatingStats>,
+    increments?: Record<string, number>,
     session?: ClientSession
   ): Promise<void> {
-    const update: Record<string, any> = {};
+    const update: any = {};
+    const sets: any = {};
+
     if (stats.avgRate !== undefined) {
-      update.avgRate = stats.avgRate;
+      sets.avgRate = stats.avgRate;
     }
     if (stats.totalRatings !== undefined) {
-      update.totalRatings = stats.totalRatings;
+      sets.totalRatings = stats.totalRatings;
     }
-    if (stats.ratingsSummary !== undefined) {
-      update.ratingsSummary = stats.ratingsSummary;
+
+    if (Object.keys(sets).length > 0) {
+      update.$set = sets;
+    }
+
+    if (increments && Object.keys(increments).length > 0) {
+      update.$inc = increments;
     }
 
     await this.model.findByIdAndUpdate(
       productId,
-      { $set: update },
+      update,
       { session }
     );
   }
@@ -44,15 +52,46 @@ export class ProductRatingRepository extends BaseCrudRepository<Product> impleme
       {
         $push: {
           denormComments: {
-            userId: comment.userId,
-            rating: comment.rating,
-            comment: comment.comment,
-            createdAt: comment.createdAt
+            $each: [{
+              userId: comment.userId,
+              rating: comment.rating,
+              comment: comment.comment,
+              createdAt: comment.createdAt
+            }],
+            $slice: -10 // Keep only last 10 comments to prevent document bloat
           }
         }
       },
       { session }
     );
+  }
+
+  async addOrUpdateDenormComment(
+    productId: string | Types.ObjectId,
+    comment: DenormComment,
+    isUpdate: boolean,
+    session?: ClientSession
+  ): Promise<void> {
+    if (isUpdate) {
+      // Update existing comment for this user
+      await this.model.updateOne(
+        { 
+          _id: typeof productId === 'string' ? new Types.ObjectId(productId) : productId, 
+          'denormComments.userId': typeof comment.userId === 'string' ? new Types.ObjectId(comment.userId) : comment.userId 
+        },
+        { 
+          $set: { 
+            'denormComments.$.rating': comment.rating,
+            'denormComments.$.comment': comment.comment,
+            'denormComments.$.createdAt': comment.createdAt 
+          } 
+        },
+        { session }
+      );
+    } else {
+      // Add new comment (capped at 10)
+      await this.addDenormComment(productId, comment, session);
+    }
   }
 
   async removeDenormComment(
@@ -77,7 +116,6 @@ export class ProductRatingRepository extends BaseCrudRepository<Product> impleme
     productId: string | Types.ObjectId,
     session?: ClientSession
   ): Promise<RatingStats> {
-    // Execute aggregation to recalculate stats from ratings collection
     const [result] = await this.model.aggregate([
       { $match: { _id: typeof productId === 'string' ? new Types.ObjectId(productId) : productId } },
       {
@@ -126,15 +164,14 @@ export class ProductRatingRepository extends BaseCrudRepository<Product> impleme
       throw new Error(`Product ${productId} not found`);
     }
 
-    // Round avgRate to 2 decimal places
     const stats: RatingStats = {
       avgRate: Math.round((result.avgRate || 0) * 100) / 100,
       totalRatings: result.totalRatings || 0,
       ratingsSummary: result.ratingsSummary || { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 }
     };
 
-    // Update the product with recalculated stats
-    await this.updateRatingStats(productId, stats, session);
+    // Note: This still uses the heavy aggregation but is kept for data repair or non-hot paths
+    await this.model.findByIdAndUpdate(productId, { $set: stats }, { session });
 
     return stats;
   }

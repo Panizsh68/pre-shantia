@@ -30,38 +30,25 @@ export class OrdersService implements IOrdersService {
 
   async create(dto: CreateOrderFromCartDto, session?: ClientSession): Promise<IOrder[]> {
     return runInTransaction(this.orderRepository, async (orderSession) => {
-      // خواندن سبد داخل تراکنش
+      // 1. Load active cart
       const cart = await this.cartsService.getUserActiveCart(dto.userId, orderSession);
       if (!cart || cart.items.length === 0) {
         throw new BadRequestException('Empty cart');
       }
 
-      // ساخت orderDtos با perCompany overrides
+      // 2. Build order DTOs grouped by company
       let orderDtos = this.orderFactory.buildOrdersFromCart(cart);
       if (dto.perCompany && typeof dto.perCompany === 'object') {
-        // پشتیبانی از object و array
         if (Array.isArray(dto.perCompany)) {
           orderDtos = orderDtos.map(order => {
-            let overrides: Record<string, unknown> | undefined = undefined;
-            if (dto.perCompany) {
-              overrides = (dto.perCompany as Array<{ companyId: string }>).find((o) => o.companyId === order.companyId);
-            }
-            return {
-              ...order,
-              ...(overrides ?? {}),
-            };
+            const overrides = (dto.perCompany as Array<{ companyId: string }>).find((o) => o.companyId === order.companyId);
+            return { ...order, ...(overrides ?? {}) };
           });
         } else {
           orderDtos = orderDtos.map(order => {
-            let overrides: Record<string, unknown> | undefined = undefined;
-            if (dto.perCompany) {
-              const rawOverride = (dto.perCompany as Record<string, unknown>)[order.companyId];
-              overrides = typeof rawOverride === 'object' && rawOverride !== null ? rawOverride as Record<string, unknown> : undefined;
-            }
-            return {
-              ...order,
-              ...(overrides ?? {}),
-            };
+            const rawOverride = (dto.perCompany as Record<string, unknown>)[order.companyId];
+            const overrides = typeof rawOverride === 'object' && rawOverride !== null ? rawOverride as Record<string, unknown> : {};
+            return { ...order, ...overrides };
           });
         }
       } else {
@@ -72,84 +59,56 @@ export class OrdersService implements IOrdersService {
         }));
       }
 
-      // Batch fetch product data used in the cart
+      // 3. Validate product prices and prep stock reservation
       const productIdStrs = Array.from(new Set(cart.items.map(i => String(i.productId))));
-      const productIds = productIdStrs.map(id => (Types.ObjectId.isValid(id) ? new Types.ObjectId(id) : id));
-      const repoProvider: any = (this.productRepository && typeof (this.productRepository as any).findManyByCondition === 'function')
-        ? this.productRepository
-        : (this.productsService as any);
-
-      let products: Array<{ _id: Types.ObjectId; basePrice: number; discount?: number; variants?: Array<{ name: string; options: Array<{ value: string; priceModifier?: number }> }>; stock: number; companyId: string }> = [];
-      if (repoProvider && typeof repoProvider.findManyByCondition === 'function') {
-        products = await repoProvider.findManyByCondition({ _id: { $in: productIds } }, { session: orderSession });
-      }
-      if (!products || products.length === 0) {
-        throw new BadRequestException('Products not found for cart items');
-      }
-
-      const productMap = new Map<string, typeof products[0]>();
+      const productIds = productIdStrs.map(id => new Types.ObjectId(id));
+      
+      const products = await this.productRepository.findManyByCondition(
+        { _id: { $in: productIds } }, 
+        { session: orderSession }
+      );
+      
+      const productMap = new Map<string, any>();
       for (const p of products) { productMap.set(p._id.toString(), p); }
 
-      // اعتبارسنجی موجودی و قیمت قبل از رزرو
-      const insufficientStock: string[] = [];
+      const reservationItems: { productId: Types.ObjectId; qty: number }[] = [];
+      
       for (const item of cart.items) {
         const product = productMap.get(String(item.productId));
         if (!product) throw new BadRequestException(`Product ${item.productId} not found`);
-        if (product.stock < item.quantity) {
-          insufficientStock.push(String(item.productId));
-        }
-        const currentPrice = Math.round(computeFinalPrice(product, item.variant));
+        
+        // Verify price hasn't changed since adding to cart
+        const currentPrice = Math.round(this.computeFinalPrice(product, item.variant));
         if (item.priceAtAdd && Math.abs(item.priceAtAdd - currentPrice) > 0) {
           throw new BadRequestException(
-            `Price changed for product ${item.productId}. Cart price: ${item.priceAtAdd}, current price: ${currentPrice}. Please refresh your cart.`,
+            `Price changed for product ${product.name}. Cart price: ${item.priceAtAdd}, current price: ${currentPrice}. Please refresh your cart.`,
           );
         }
-      }
-      if (insufficientStock.length > 0) {
-        throw new BadRequestException(`Insufficient stock for products: ${insufficientStock.join(', ')}`);
-      }
-
-      // رزرو موجودی
-      const simpleItems = cart.items.map(it => ({
-        productId: new Types.ObjectId(it.productId),
-        qty: Number(it.quantity || 0),
-      }));
-      const modified = await this.productRepository.bulkDecrementStock(simpleItems, orderSession);
-      if (modified !== simpleItems.length) {
-        throw new BadRequestException(`Insufficient stock for products: ${simpleItems.map(i => i.productId).join(', ')}`);
+        
+        reservationItems.push({
+          productId: new Types.ObjectId(item.productId),
+          qty: Number(item.quantity || 0),
+        });
       }
 
-      // helper to compute final price per product + variant
-      function computeFinalPrice(product: typeof products[0], selectedVariant?: { name: string; value: string }) {
-        let price = product.basePrice || 0;
-        const discount = Math.min(Math.max(product.discount || 0, 0), 100);
-        const discountAmount = (price * discount) / 100;
-        price = Math.max(price - discountAmount, 0);
-        if (selectedVariant && product.variants?.length) {
-          const variant = product.variants.find((v) => v.name === selectedVariant.name);
-          if (variant) {
-            const option = variant.options.find((o) => o.value === selectedVariant.value);
-            if (option && typeof option.priceModifier === 'number') {
-              price += option.priceModifier;
-            }
-          }
-        }
-        return Math.round(Math.max(price, 0));
+      // 4. ATOMIC STOCK RESERVATION
+      const modifiedCount = await this.productRepository.bulkDecrementStock(reservationItems, orderSession);
+      if (modifiedCount !== reservationItems.length) {
+        throw new BadRequestException('One or more items in your cart are no longer available in the requested quantity.');
       }
 
-      // ساخت سفارش‌ها
+      // 5. Build and Save Orders
       const orders: IOrder[] = [];
       for (const orderDto of orderDtos) {
-        const items = orderDto.items.map((item: { productId: string; variant?: { name: string; value: string }; quantity: number }) => {
+        const items = orderDto.items.map((item: any) => {
           const product = productMap.get(String(item.productId));
-          if (!product) throw new BadRequestException(`Product not found: ${item.productId}`);
-          const finalPrice = computeFinalPrice(product, item.variant);
           return {
             ...item,
-            priceAtAdd: finalPrice,
+            priceAtAdd: Math.round(this.computeFinalPrice(product, item.variant)),
           };
         });
         const totalPrice = items.reduce((sum, it) => sum + (Number(it.priceAtAdd) * Number(it.quantity)), 0);
+        
         const order = await this.orderRepository.create({
           ...orderDto,
           items,
@@ -158,9 +117,27 @@ export class OrdersService implements IOrdersService {
         orders.push(order);
       }
 
+      // 6. Checkout cart
       await this.cartsService.checkout(dto.userId, orderSession);
       return orders;
     }, session);
+  }
+
+  private computeFinalPrice(product: any, selectedVariant?: { name: string; value: string }) {
+    let price = product.basePrice || 0;
+    const discount = Math.min(Math.max(product.discount || 0, 0), 100);
+    const discountAmount = (price * discount) / 100;
+    price = Math.max(price - discountAmount, 0);
+    if (selectedVariant && product.variants?.length) {
+      const variant = product.variants.find((v) => v.name === selectedVariant.name);
+      if (variant) {
+        const option = variant.options.find((o) => o.value === selectedVariant.value);
+        if (option && typeof option.priceModifier === 'number') {
+          price += option.priceModifier;
+        }
+      }
+    }
+    return price;
   }
 
   async findById(id: string, session?: ClientSession): Promise<Order> {
@@ -196,7 +173,6 @@ export class OrdersService implements IOrdersService {
 
   async update(dto: UpdateOrderDto, session?: ClientSession): Promise<Order> {
     return runInTransaction(this.orderRepository, async (orderSession) => {
-      // اعتبارسنجی آیتم‌ها مشابه متد create
       const items: any[] = [];
       if (dto.items && Array.isArray(dto.items)) {
         for (const item of dto.items) {
@@ -238,9 +214,7 @@ export class OrdersService implements IOrdersService {
         throw new NotFoundException(`Order with ID '${dto.id}' not found`);
       }
       return updatedOrder;
-    }, session).catch(error => {
-      throw new BadRequestException(`Failed to update order: ${error.message}`);
-    });
+    }, session);
   }
 
   async markAsPaid(id: string, session?: ClientSession): Promise<Order> {
@@ -255,12 +229,9 @@ export class OrdersService implements IOrdersService {
         );
       }
 
-      const updateData = { status: OrdersStatus.PAID };
-      const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
+      const updatedOrder = await this.orderRepository.updateById(id, { status: OrdersStatus.PAID }, orderSession);
       return updatedOrder;
-    }, session).catch(error => {
-      throw new BadRequestException(`Failed to mark order as paid: ${error.message}`);
-    });
+    }, session);
   }
 
   async markAsShipped(id: string, transportId?: string, session?: ClientSession): Promise<Order> {
@@ -284,9 +255,7 @@ export class OrdersService implements IOrdersService {
       }
       const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
       return updatedOrder;
-    }, session).catch(error => {
-      throw new BadRequestException(`Failed to mark order as shipped: ${error.message}`);
-    });
+    }, session);
   }
 
   async markAsDelivered(id: string, session?: ClientSession): Promise<Order> {
@@ -304,9 +273,7 @@ export class OrdersService implements IOrdersService {
       const updateData = { status: OrdersStatus.DELIVERED, deliveredAt: new Date() };
       const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
       return updatedOrder;
-    }, session).catch(error => {
-      throw new BadRequestException(`Failed to mark order as delivered: ${error.message}`);
-    });
+    }, session);
   }
 
   async refund(id: string, session?: ClientSession): Promise<IOrder> {
@@ -321,12 +288,9 @@ export class OrdersService implements IOrdersService {
         );
       }
 
-      const updateData = { status: OrdersStatus.REFUNDED };
-      const updatedOrder = await this.orderRepository.updateById(id, updateData, orderSession);
+      const updatedOrder = await this.orderRepository.updateById(id, { status: OrdersStatus.REFUNDED }, orderSession);
       return updatedOrder;
-    }, session).catch(error => {
-      throw new BadRequestException(`Failed to refund order: ${error.message}`);
-    });
+    }, session);
   }
 
   async confirmDelivery(orderId: string, userId: string, session?: ClientSession): Promise<IOrder> {
@@ -349,17 +313,23 @@ export class OrdersService implements IOrdersService {
       const updatedOrder = await this.orderRepository.updateById(orderId, updateData, orderSession);
 
       const intermediaryId = getIntermediaryWalletId();
+      // Use shared correlationId with Cron to ensure idempotency (Fixes B3)
+      const correlationId = `release-order-${orderId}`;
+
       await this.walletsService.releaseBlockedAmount(
         { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY },
         { ownerId: order.companyId.toString(), ownerType: WalletOwnerType.COMPANY },
         order.totalPrice,
-        { orderId: order.id.toString(), type: 'TRANSFER', reason: 'delivery_confirmed' },
+        { 
+          orderId: order.id.toString(), 
+          type: 'TRANSFER', 
+          reason: 'delivery_confirmed',
+          correlationId
+        },
         orderSession,
       );
 
       return updatedOrder;
-    }, session).catch(error => {
-      throw new BadRequestException(`Failed to confirm delivery: ${error.message}`);
-    });
+    }, session);
   }
 }
