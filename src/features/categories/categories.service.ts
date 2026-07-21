@@ -17,6 +17,12 @@ export class CategoriesService implements ICategoryService {
   async create(data: Partial<ICategory>, userId: string, ctx: RequestContext): Promise<ICategory> {
     // Sanitize parentId: اگر رشته خالی یا نامعتبر بود، undefined شود
     const sanitizedData = { ...data };
+    
+    // L7: Normalize slug for consistency
+    if (sanitizedData.slug) {
+      sanitizedData.slug = sanitizedData.slug.toLowerCase().trim().replace(/\/+$/, '');
+    }
+
     if (
       (typeof sanitizedData.parentId === 'string' && (sanitizedData.parentId + '').trim() === '')
       || sanitizedData.parentId === null
@@ -92,6 +98,12 @@ export class CategoriesService implements ICategoryService {
 
     // Sanitize parentId in updates
     const sanitizedUpdates = { ...updates };
+
+    // L7: Normalize slug on update
+    if (sanitizedUpdates.slug) {
+      sanitizedUpdates.slug = sanitizedUpdates.slug.toLowerCase().trim().replace(/\/+$/, '');
+    }
+
     if (
       (typeof sanitizedUpdates.parentId === 'string' && (sanitizedUpdates.parentId + '').trim() === '')
       || sanitizedUpdates.parentId === null
@@ -213,7 +225,9 @@ export class CategoriesService implements ICategoryService {
   }
 
   async existsBySlug(slug: string): Promise<boolean> {
-    return this.categoryRepository.existsByCondition({ slug });
+    // L7: Normalize slug for check
+    const normalizedSlug = slug.toLowerCase().trim().replace(/\/+$/, '');
+    return this.categoryRepository.existsByCondition({ slug: normalizedSlug });
   }
 
   async count(): Promise<number> {

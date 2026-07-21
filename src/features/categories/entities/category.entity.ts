@@ -42,7 +42,7 @@ export class Category extends Document {
 
 export const CategorySchema = SchemaFactory.createForClass(Category);
 
-// B3: Add case-insensitive unique index for slugs to prevent collisions (e.g., "Cement" vs "cement")
+// B3 & L7: Add case-insensitive unique index for slugs to prevent collisions
 CategorySchema.index(
   { slug: 1 },
   { 
@@ -58,12 +58,18 @@ CategorySchema.virtual('children', {
   foreignField: 'parentId',
 });
 
-// Add pre-save hook for soft deletion and parentId sanitization
+// Add pre-save hook for soft deletion, parentId sanitization, and slug normalization
 CategorySchema.pre('save', function (next) {
   // Soft delete logic
   if (this.deletedAt) {
     this.status = CategoryStatus.INACTIVE;
   }
+
+  // L7: Normalize slug (lowercase, trim, remove trailing slashes)
+  if (this.slug) {
+    this.slug = this.slug.toLowerCase().trim().replace(/\/+$/, '');
+  }
+
   // Defensive: sanitize parentId
   if (
     typeof this.parentId === 'string' && this.parentId === ''

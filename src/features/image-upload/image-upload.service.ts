@@ -38,15 +38,13 @@ export class ImageUploadService {
     this.maxCompanyImages = parseInt(process.env.MAX_COMPANY_IMAGES || String(DEFAULTS.MAX_COMPANY_IMAGES), 10);
 
     this.logger.log(`[constructor] Limits: maxImageBytes=${this.maxImageBytes}, presignSeconds=${this.presignExpiresSeconds}, maxProduct=${this.maxProductImages}, maxCompany=${this.maxCompanyImages}`);
-    // do not throw here to allow app to boot in non-R2 environments; validate when used
   }
 
   async createPresignedUrls(dto: CreatePresignDto): Promise<CreatePresignResponseDto> {
     this.logger.log(`[createPresignedUrls] ENTRY: type=${dto.type} fileCount=${dto.files?.length || 0}`);
 
     if (!this.s3) {
-      this.logger.error('[createPresignedUrls] FAIL: R2 S3 client is null - S3ClientProvider did not initialize client');
-      this.logger.error(`[createPresignedUrls] DIAGNOSTIC: bucket=${this.bucket || 'EMPTY'}, publicBaseUrl=${this.publicBaseUrl || 'EMPTY'}`);
+      this.logger.error('[createPresignedUrls] FAIL: R2 S3 client is null');
       throw new InternalServerErrorException('R2 S3 client is not configured. Please set R2 endpoint and credentials.');
     }
 
@@ -96,33 +94,54 @@ export class ImageUploadService {
 
   private buildKey(type: string, filename: string) {
     const id = uuidv4();
-    // store under type/<uuid>_<sanitizedFilename>
     const safe = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
     return `${type}/${id}_${safe}`;
   }
 
+  /**
+   * D1 Fix: Build robust, secure public URLs for assets.
+   * Ensures HTTPS for external domains to prevent Mixed Content errors.
+   */
   private buildPublicUrl(key: string) {
     if (this.publicBaseUrl) {
-      return `${this.publicBaseUrl.replace(/\/$/, '')}/${key}`;
+      let baseUrl = this.publicBaseUrl.replace(/\/$/, '');
+      // Ensure HTTPS if protocol is missing and it's not a local test
+      if (!baseUrl.startsWith('http')) {
+        baseUrl = `https://${baseUrl}`;
+      }
+      return `${baseUrl}/${key}`;
     }
-    // fallback to S3-style URL using endpoint if available
-    // Note: endpoint might include protocol and host
+
     if (!this.s3) {
       this.logger.warn('[buildPublicUrl] s3 client is null, returning key only');
       return key;
     }
-    const endpointCandidate = (this.s3.config && (this.s3.config as any).endpoint) || undefined;
+
+    const endpointCandidate = (this.s3.config as any)?.endpoint;
     let endpoint = '';
-    if (endpointCandidate) {
-      if (typeof endpointCandidate === 'string') { endpoint = endpointCandidate; }
-      else if (typeof endpointCandidate === 'object' && (endpointCandidate as any).href) { endpoint = (endpointCandidate as any).href; }
-      else { endpoint = String(endpointCandidate); }
+    
+    if (typeof endpointCandidate === 'string') {
+      endpoint = endpointCandidate;
+    } else if (typeof endpointCandidate === 'object' && endpointCandidate?.href) {
+      endpoint = endpointCandidate.href;
+    } else if (endpointCandidate) {
+      endpoint = String(endpointCandidate);
     }
+
     if (endpoint) {
-      // try to craft URL: endpoint/bucket/key
-      return `${endpoint.replace(/\/$/, '')}/${this.bucket}/${key}`;
+      let publicEndpoint = endpoint.replace(/\/$/, '');
+      
+      // Force HTTPS for non-local endpoints to prevent mixed content issues
+      const isLocal = publicEndpoint.includes('localhost') || publicEndpoint.includes('127.0.0.1');
+      if (publicEndpoint.startsWith('http://') && !isLocal) {
+        publicEndpoint = publicEndpoint.replace('http://', 'https://');
+      } else if (!publicEndpoint.startsWith('http') && !isLocal) {
+        publicEndpoint = `https://${publicEndpoint}`;
+      }
+
+      return `${publicEndpoint}/${this.bucket}/${key}`;
     }
-    // Last resort: key only
+
     return key;
   }
 
@@ -132,7 +151,6 @@ export class ImageUploadService {
         this.logger.error('[getPresignedPutUrl] s3 client is null');
         throw new InternalServerErrorException('S3 client is not available');
       }
-      // Create PutObjectCommand without ChecksumAlgorithm
       const command = new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
@@ -140,9 +158,6 @@ export class ImageUploadService {
       });
       let url = await getSignedUrl(this.s3, command, { expiresIn: this.presignExpiresSeconds });
 
-      // Remove flexible checksum parameters from presigned URL
-      // These are added by AWS SDK but cause issues with Parspack/S3-compatible services
-      // Remove: x-amz-checksum-crc32, x-amz-sdk-checksum-algorithm
       const checksumParams = [
         'x-amz-checksum-crc32',
         'x-amz-checksum-sha1',
@@ -152,7 +167,6 @@ export class ImageUploadService {
       ];
 
       for (const param of checksumParams) {
-        // Remove parameter from URL using regex
         url = url.replace(new RegExp(`&${param}=[^&]*`, 'g'), '');
         url = url.replace(new RegExp(`\\?${param}=[^&]*&`, 'g'), '?');
       }
@@ -180,7 +194,6 @@ export class ImageUploadService {
 
     this.logger.log(`[uploadFiles] S3 client ready, bucket=${this.bucket}`);
 
-    // Validate file count
     const maxImages = type === 'product' ? this.maxProductImages : this.maxCompanyImages;
     if (files.length > maxImages) {
       this.logger.warn(`[uploadFiles] file count ${files.length} exceeds limit ${maxImages}`);
@@ -192,18 +205,15 @@ export class ImageUploadService {
     for (const file of files) {
       this.logger.log(`[uploadFiles] Processing file: ${file.originalname} (${file.size} bytes, ${file.mimetype})`);
 
-      // Validate file size
       if (file.size > this.maxImageBytes) {
         this.logger.warn(`[uploadFiles] file ${file.originalname} size ${file.size} exceeds limit ${this.maxImageBytes}`);
         throw new BadRequestException(`File ${file.originalname} exceeds maximum size of ${this.maxImageBytes} bytes`);
       }
 
       try {
-        // Build S3 key
         const key = this.buildKey(type, file.originalname);
         this.logger.debug(`[uploadFiles] Built key: ${key}`);
 
-        // Upload to S3
         const command = new PutObjectCommand({
           Bucket: this.bucket,
           Key: key,
@@ -211,23 +221,17 @@ export class ImageUploadService {
           ContentType: file.mimetype,
         });
 
-        this.logger.debug(`[uploadFiles] Sending PutObjectCommand to S3: bucket=${this.bucket}, key=${key}, size=${file.buffer.length}`);
         await this.s3.send(command);
-        this.logger.log(`[uploadFiles] File uploaded to S3: ${key}`);
-
-        // Build public URL
         const publicUrl = this.buildPublicUrl(key);
-        this.logger.debug(`[uploadFiles] Public URL: ${publicUrl}`);
 
         items.push({
           filename: file.originalname,
           contentType: file.mimetype,
           publicUrl,
-          presignedUrl: '', // Not applicable for direct uploads
+          presignedUrl: '',
         });
       } catch (err) {
         this.logger.error(`[uploadFiles] Upload failed for ${file.originalname}: ${err instanceof Error ? err.message : String(err)}`);
-        this.logger.debug(`[uploadFiles] Error details: ${JSON.stringify(err, null, 2)}`);
         throw new InternalServerErrorException(`Failed to upload file ${file.originalname}`);
       }
     }

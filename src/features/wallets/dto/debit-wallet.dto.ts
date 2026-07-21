@@ -1,5 +1,5 @@
-import { IsString, IsNumber, IsPositive } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsNumber, IsPositive, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { WalletOwnerType } from '../enums/wallet-ownertype.enum';
 
 export class DebitWalletDto {
@@ -22,6 +22,11 @@ export class DebitWalletDto {
   @IsNumber()
   @IsPositive()
   amount: number;
+
+  @ApiPropertyOptional({ description: 'Optional unique correlation ID to prevent duplicate transactions' })
+  @IsString()
+  @IsOptional()
+  correlationId?: string;
 }
 
 export class DebitWalletRequestDto {
@@ -29,6 +34,11 @@ export class DebitWalletRequestDto {
   @IsNumber()
   @IsPositive()
   amount: number;
+
+  @ApiPropertyOptional({ description: 'Optional unique correlation ID to prevent duplicate transactions' })
+  @IsString()
+  @IsOptional()
+  correlationId?: string;
 }
 
 export class TransferWalletRequestDto {
@@ -51,4 +61,9 @@ export class TransferWalletRequestDto {
   @IsNumber()
   @IsPositive()
   amount: number;
+
+  @ApiPropertyOptional({ description: 'Optional unique correlation ID to prevent duplicate transactions' })
+  @IsString()
+  @IsOptional()
+  correlationId?: string;
 }

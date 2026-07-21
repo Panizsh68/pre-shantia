@@ -10,8 +10,8 @@ export interface ITicketingService {
   findAll(options: FindManyOptions): Promise<Ticket[]>;
   findStatus(id: string): Promise<TicketStatus>;
   update(id: string, updateTicketDto: UpdateTicketDto): Promise<Ticket | null>;
-  updateStatus(id: string, status: TicketStatus, refund?: boolean): Promise<Ticket | null>;
-  resolveTicket(ticketId: string, refund: boolean): Promise<void>;
+  updateStatus(id: string, status: TicketStatus, refund?: boolean, amount?: number): Promise<Ticket | null>;
+  resolveTicket(ticketId: string, refund: boolean, amount?: number): Promise<void>;
   remove(id: string): Promise<boolean>;
   escalateTicket(ticketId: string): Promise<Ticket>;
   autoEscalateTickets(): Promise<void>;

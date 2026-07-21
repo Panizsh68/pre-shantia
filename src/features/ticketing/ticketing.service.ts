@@ -26,42 +26,64 @@ export class TicketingService implements ITicketingService {
     @Inject('IWalletsService') private readonly walletsService: WalletsService,
     @Inject('OrderRepository') private readonly orderRepository: IOrderRepository,
   ) { }
+
   /**
-   * Call this after ticket is resolved/closed. If refund=true, پول به کاربر برمی‌گردد و سفارش refunded می‌شود.
-   * اگر refund=false، پول به شرکت منتقل و سفارش completed می‌شود.
+   * Post-dispute logic for order-related tickets.
+   * L6: Added 'amount' parameter to support partial refunds.
    */
-  async handleOrderAfterTicket(ticketId: string, refund: boolean): Promise<void> {
-    // perform order status update and wallet transfer in a single transaction
+  async handleOrderAfterTicket(ticketId: string, refund: boolean, amount?: number): Promise<void> {
     const ticket = await this.findOne(ticketId);
     if (!ticket || !ticket.orderId) { return; }
     const order = await this.orderRepository.findById(ticket.orderId);
     if (!order) { return; }
 
-    // Use the OrderRepository's transaction helpers via runInTransaction
+    const intermediaryId = getIntermediaryWalletId();
+    const totalPrice = order.totalPrice;
+
     await runInTransaction(this.orderRepository, async (tx) => {
       if (refund) {
-        await this.ordersService.refund(order.id, tx);
-        const intermediaryId = getIntermediaryWalletId();
-        await this.walletsService.releaseBlockedAmount(
-          { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY },
-          { ownerId: order.userId, ownerType: WalletOwnerType.USER },
-          order.totalPrice,
-          { orderId: order.id.toString(), ticketId, type: 'REFUND', reason: 'ticket_refund' },
-          tx,
-        );
+        // L6: Partial Refund Logic
+        if (amount && amount > 0 && amount < totalPrice) {
+          // 1. Refund the partial amount to the user
+          await this.walletsService.releaseBlockedAmount(
+            { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY },
+            { ownerId: order.userId, ownerType: WalletOwnerType.USER },
+            amount,
+            { orderId: order.id.toString(), ticketId, type: 'REFUND', reason: 'partial_ticket_refund' },
+            tx,
+          );
+          // 2. Release the remainder to the company
+          await this.walletsService.releaseBlockedAmount(
+            { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY },
+            { ownerId: order.companyId, ownerType: WalletOwnerType.COMPANY },
+            totalPrice - amount,
+            { orderId: order.id.toString(), ticketId, type: 'TRANSFER', reason: 'partial_ticket_release' },
+            tx,
+          );
+          // 3. Mark order as COMPLETED (resolved via price adjustment)
+          await this.orderRepository.updateById(order.id, { status: OrdersStatus.COMPLETED, ticketId: null }, tx);
+        } else {
+          // Full Refund
+          await this.ordersService.refund(order.id, tx);
+          await this.walletsService.releaseBlockedAmount(
+            { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY },
+            { ownerId: order.userId, ownerType: WalletOwnerType.USER },
+            totalPrice,
+            { orderId: order.id.toString(), ticketId, type: 'REFUND', reason: 'ticket_refund' },
+            tx,
+          );
+        }
       } else {
-        await this.ordersService.update({ id: order.id, status: OrdersStatus.COMPLETED, ticketId: null }, tx);
-        const intermediaryId = getIntermediaryWalletId();
+        // Full Release to Company
+        await this.orderRepository.updateById(order.id, { status: OrdersStatus.COMPLETED, ticketId: null }, tx);
         await this.walletsService.releaseBlockedAmount(
           { ownerId: intermediaryId, ownerType: WalletOwnerType.INTERMEDIARY },
           { ownerId: order.companyId, ownerType: WalletOwnerType.COMPANY },
-          order.totalPrice,
+          totalPrice,
           { orderId: order.id.toString(), ticketId, type: 'TRANSFER', reason: 'ticket_resolution' },
           tx,
         );
       }
-
-      await this.orderRepository.updateById(order.id, { ticketId: null }, tx);
     });
   }
 
@@ -133,27 +155,23 @@ export class TicketingService implements ITicketingService {
     return updated;
   }
 
-  async updateStatus(id: string, status: TicketStatus, refund?: boolean): Promise<Ticket | null> {
+  async updateStatus(id: string, status: TicketStatus, refund?: boolean, amount?: number): Promise<Ticket | null> {
     const updated = await this.ticketRepository.updateTicketStatus(id, status);
     if (updated) { await this.cacheService.set(`ticket:${id}`, updated, 3000); }
 
     // if ticket is resolved/closed and related to an order, perform post-ticket order handling
     if (updated && (status === TicketStatus.Resolved || status === TicketStatus.Closed) && updated.orderId) {
-      await this.resolveTicket(id, !!refund);
+      await this.resolveTicket(id, !!refund, amount);
     }
 
     return updated;
   }
 
   // strongly-typed admin/service-facing resolve method
-  async resolveTicket(ticketId: string, refund: boolean): Promise<void> {
+  async resolveTicket(ticketId: string, refund: boolean, amount?: number): Promise<void> {
     // ensure status is marked resolved/closed in repository
     await this.ticketRepository.updateTicketStatus(ticketId, TicketStatus.Resolved);
-    if (refund) {
-      await this.handleOrderAfterTicket(ticketId, true);
-    } else {
-      await this.handleOrderAfterTicket(ticketId, false);
-    }
+    await this.handleOrderAfterTicket(ticketId, refund, amount);
   }
 
   async remove(id: string): Promise<boolean> {

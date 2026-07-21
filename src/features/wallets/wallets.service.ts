@@ -82,6 +82,14 @@ export class WalletsService implements IWalletService {
         throw new NotFoundException(`Wallet not found for owner ${creditWalletDto.ownerId}`);
       }
 
+      // L5: Transaction Idempotency Check
+      if (creditWalletDto.correlationId) {
+        const alreadyDone = await this.transactionService.existsByCorrelationId(creditWalletDto.correlationId, transactionSession);
+        if (alreadyDone) {
+          return wallet;
+        }
+      }
+
       const updatedWallet = await this.walletRepository.updateById(
         wallet.id,
         { $inc: { balance: creditWalletDto.amount } } as any,
@@ -100,6 +108,7 @@ export class WalletsService implements IWalletService {
         toWalletId: wallet.id,
         resultingBalance: updatedWallet.balance,
         metadata: { reason: 'credit' },
+        correlationId: creditWalletDto.correlationId
       };
       await this.transactionService.create(txDto, transactionSession);
       return updatedWallet;
@@ -115,6 +124,14 @@ export class WalletsService implements IWalletService {
       );
       if (!wallet) {
         throw new NotFoundException(`Wallet not found for owner ${debitWalletDto.ownerId}`);
+      }
+
+      // L5: Transaction Idempotency Check
+      if (debitWalletDto.correlationId) {
+        const alreadyDone = await this.transactionService.existsByCorrelationId(debitWalletDto.correlationId, transactionSession);
+        if (alreadyDone) {
+          return wallet;
+        }
       }
 
       const updatedWallet = await this.walletRepository.updateOneByCondition(
@@ -139,6 +156,7 @@ export class WalletsService implements IWalletService {
         fromWalletId: wallet.id,
         resultingBalance: updatedWallet.balance,
         metadata: { reason: 'debit' },
+        correlationId: debitWalletDto.correlationId
       };
       await this.transactionService.create(txDto, transactionSession);
       return updatedWallet;

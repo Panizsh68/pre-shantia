@@ -83,7 +83,6 @@ export class TicketingController {
     @Query('status') status?: TicketStatus,
     @Query('priority') priority?: TicketPriority,
   ): Promise<TicketResponseDto[]> {
-    // Explicitly construct options to avoid query injection (B2)
     const options: FindManyOptions = {
       page: Number(page) || 1,
       perPage: Number(limit) || 10,
@@ -181,6 +180,7 @@ export class TicketingController {
           example: TicketStatus.Open,
         },
         refund: { type: 'boolean', description: 'When resolving a ticket related to an order, set true to refund to user, false to release to company' },
+        amount: { type: 'number', description: 'Optional partial refund amount. If omitted or full order price, performs full refund.' },
       },
     },
   })
@@ -191,8 +191,9 @@ export class TicketingController {
     @Param('id') id: string,
     @Body('status') status: TicketStatus,
     @Body('refund') refund?: boolean,
+    @Body('amount') amount?: number,
   ): Promise<TicketResponseDto> {
-    const t = await this.ticketingService.updateStatus(id, status, refund);
+    const t = await this.ticketingService.updateStatus(id, status, refund, amount);
     if (!t) {
       throw new BadRequestException('Ticket not found');
     }
@@ -238,6 +239,7 @@ export class TicketingController {
       type: 'object',
       properties: {
         refund: { type: 'boolean', description: 'true => refund to user, false => release to company' },
+        amount: { type: 'number', description: 'Optional partial refund amount. If omitted, performs full refund.' },
       },
     },
   })
@@ -247,8 +249,9 @@ export class TicketingController {
   async adminResolve(
     @Param('id') id: string,
     @Body('refund') refund: boolean,
+    @Body('amount') amount?: number,
   ): Promise<TicketResponseDto> {
-    await this.ticketingService.resolveTicket(id, !!refund);
+    await this.ticketingService.resolveTicket(id, !!refund, amount);
     const t = await this.ticketingService.findOne(id);
     if (!t) {
       throw new BadRequestException('Ticket not found');
