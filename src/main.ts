@@ -52,8 +52,8 @@ async function bootstrap(): Promise<void> {
 
   app.useGlobalInterceptors(new RequestContextInterceptor());
 
-  // FIXED: Strictly use port 3001 for backend in dev unless explicitly forced
-  const port = process.env.PORT || 3001;
+  // Use BACKEND_PORT to avoid conflict with Nuxt on 9002
+  const port = process.env.BACKEND_PORT || 3001;
   await app.listen(port, '0.0.0.0');
   
   logger.log(`🚀 Backend API is running on: http://localhost:${port}/api`);
