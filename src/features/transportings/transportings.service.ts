@@ -34,6 +34,17 @@ export class TransportService implements ITransportService {
     });
   }
 
+  async findAll(page = 1, limit = 20): Promise<{ items: ITransporting[]; total: number; page: number; limit: number }> {
+    const normalizedPage = Math.max(1, Math.floor(page));
+    const normalizedLimit = Math.min(100, Math.max(1, Math.floor(limit)));
+    const [items, total] = await Promise.all([
+      this.transportingRepository.findAll({ page: normalizedPage, perPage: normalizedLimit }),
+      this.transportingRepository.countByCondition({}),
+    ]);
+
+    return { items, total, page: normalizedPage, limit: normalizedLimit };
+  }
+
   async findById(id: string): Promise<ITransporting> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid transport ID format');

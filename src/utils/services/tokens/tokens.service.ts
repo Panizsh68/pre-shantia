@@ -101,7 +101,12 @@ export class TokensService<
     if (!secret) {
       throw new Error('JWT_ACCESS_SECRET is missing in configuration.');
     }
-    return this.signToken(data, secret, 'HS256', '1h');
+    return this.signToken(
+      data,
+      secret,
+      'HS256',
+      this.configService.get<string>('JWT_ACCESS_EXPIRES') || '10m',
+    );
   }
 
   async getRefreshToken(data: TRefreshToken): Promise<string> {
@@ -109,7 +114,12 @@ export class TokensService<
     if (!secret) {
       throw new Error('JWT_REFRESH_SECRET is missing in configuration.');
     }
-    return this.signToken(data, secret, 'HS512', '48h');
+    return this.signToken(
+      data,
+      secret,
+      'HS512',
+      this.configService.get<string>('JWT_REFRESH_EXPIRES') || '48h',
+    );
   }
 
   async validateAccessToken(token: string): Promise<TokenPayload> {

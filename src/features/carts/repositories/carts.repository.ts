@@ -21,6 +21,7 @@ export interface ICartRepository
   IBaseAggregateRepository<Cart> {
   findActiveCartByUserId(userId: string, session?: ClientSession): Promise<Cart>;
   findActiveCartByUserIdForUpdate(userId: string, session?: ClientSession): Promise<Cart>;
+  findOrCreateActiveCart(userId: string, session?: ClientSession): Promise<Cart>;
   markAbandonedBefore(date: Date): Promise<number>;
 }
 
@@ -62,6 +63,30 @@ export class CartRepository extends BaseCrudRepository<Cart> implements ICartRep
       throw new NotFoundException(`Active cart for user ${userId} not found`);
     }
     return cart;
+  }
+
+  async findOrCreateActiveCart(userId: string, session?: ClientSession): Promise<Cart> {
+    try {
+      return await this.model.findOneAndUpdate(
+        { userId, status: CartStatus.ACTIVE },
+        {
+          $setOnInsert: {
+            userId,
+            items: [],
+            totalAmount: 0,
+            currency: 'IRR',
+            status: CartStatus.ACTIVE,
+          },
+        },
+        { new: true, upsert: true, setDefaultsOnInsert: true, session },
+      ).exec();
+    } catch (error: any) {
+      // A concurrent request may win the unique user/cart insert race.
+      if (error?.code === 11000) {
+        return this.findActiveCartByUserIdForUpdate(userId, session);
+      }
+      throw error;
+    }
   }
 
   async populate(): Promise<Cart[]> {

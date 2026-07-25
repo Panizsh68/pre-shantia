@@ -69,7 +69,7 @@ export class OrdersService implements IOrdersService {
       );
       
       const productMap = new Map<string, any>();
-      for (const p of products) { productMap.set(p._id.toString(), p); }
+      for (const p of products) { productMap.set(p.id, p); }
 
       const reservationItems: { productId: Types.ObjectId; qty: number }[] = [];
       

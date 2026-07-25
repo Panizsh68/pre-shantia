@@ -38,12 +38,16 @@ export class OrdersController {
   @ApiOperation({ summary: 'Create a new order', description: 'This route is open for default users.' })
   @ApiBody({ type: CreateOrderDto })
   @ApiResponse({ status: 201, description: 'Order created successfully', type: Order })
-  async create(@Body() dto: CreateOrderDto) {
+  async create(@Body() dto: CreateOrderDto, @CurrentUser() user: TokenPayload) {
+    if (!isSuperAdmin(user)) {
+      dto.userId = user.userId;
+    }
     return await this.ordersService.create(dto);
   }
 
   @Get(':id')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.ORDERS, Action.READ)
   @ApiOperation({ summary: 'Get order by ID', description: 'Regular users can only access their own orders.' })
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, description: 'Order found', type: Order })
@@ -52,7 +56,7 @@ export class OrdersController {
     const order = await this.ordersService.findById(id);
     
     // Owner check: user can only see their own orders unless they're superadmin
-    if (order.userId !== user.userId && !isSuperAdmin(user)) {
+    if (String(order.userId) !== String(user.userId) && !isSuperAdmin(user)) {
       throw new ForbiddenException('Cannot access another user\'s order');
     }
     
@@ -60,7 +64,8 @@ export class OrdersController {
   }
 
   @Get()
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.ORDERS, Action.READ)
   @ApiOperation({ 
     summary: 'Find orders by userId or companyId',
     description: 'Regular users see only their own orders. Admins see all.'
@@ -104,7 +109,8 @@ export class OrdersController {
   @ApiOperation({ summary: 'Mark order as paid' })
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, description: 'Order marked as paid' })
-  async markAsPaid(@Param('id') id: string) {
+  async markAsPaid(@Param('id') id: string, @CurrentUser() user: TokenPayload) {
+    await this.ensureOrderMutationAccess(id, user);
     return await this.ordersService.markAsPaid(id);
   }
 
@@ -122,7 +128,8 @@ export class OrdersController {
     },
   })
   @ApiResponse({ status: 200, description: 'Order marked as shipped' })
-  async markAsShipped(@Param('id') id: string, @Body('transportId') transportId?: string) {
+  async markAsShipped(@Param('id') id: string, @Body('transportId') transportId: string | undefined, @CurrentUser() user: TokenPayload) {
+    await this.ensureOrderMutationAccess(id, user);
     return await this.ordersService.markAsShipped(id, transportId);
   }
 
@@ -132,7 +139,8 @@ export class OrdersController {
   @ApiOperation({ summary: 'Mark order as delivered' })
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, description: 'Order marked as delivered' })
-  async markAsDelivered(@Param('id') id: string) {
+  async markAsDelivered(@Param('id') id: string, @CurrentUser() user: TokenPayload) {
+    await this.ensureOrderMutationAccess(id, user);
     return await this.ordersService.markAsDelivered(id);
   }
 
@@ -142,7 +150,8 @@ export class OrdersController {
   @ApiOperation({ summary: 'Refund an order' })
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, description: 'Order refunded' })
-  async refund(@Param('id') id: string) {
+  async refund(@Param('id') id: string, @CurrentUser() user: TokenPayload) {
+    await this.ensureOrderMutationAccess(id, user);
     return await this.ordersService.refund(id);
   }
 
@@ -153,6 +162,22 @@ export class OrdersController {
   @ApiParam({ name: 'id', description: 'Order ID' })
   @ApiResponse({ status: 200, description: 'Order delivery confirmed by user' })
   async confirmDelivery(@Param('id') id: string, @CurrentUser() user: TokenPayload) {
+    const order = await this.ordersService.findById(id);
+    if (!isSuperAdmin(user) && String(order.userId) !== String(user.userId)) {
+      throw new ForbiddenException('Cannot confirm delivery for another user\'s order');
+    }
     return await this.ordersService.confirmDelivery(id, user.userId);
+  }
+
+  private async ensureOrderMutationAccess(id: string, user: TokenPayload): Promise<void> {
+    if (isSuperAdmin(user) || hasPermission(user, Resource.ORDERS, Action.UPDATE)) {
+      return;
+    }
+
+    const order = await this.ordersService.findById(id);
+    if (String(order.userId) !== String(user.userId)) {
+      throw new ForbiddenException('Cannot modify another user\'s order');
+    }
+    throw new ForbiddenException('Order mutation requires update permission');
   }
 }

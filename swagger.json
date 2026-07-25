@@ -568,14 +568,14 @@
             "description": "Unauthorized"
           }
         },
+        "summary": "Create a new company",
+        "tags": [
+          "Companies"
+        ],
         "security": [
           {
             "bearer": []
           }
-        ],
-        "summary": "Create a new company",
-        "tags": [
-          "Companies"
         ]
       },
       "get": {
@@ -615,11 +615,6 @@
             }
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
         "summary": "Get all companies",
         "tags": [
           "Companies"
@@ -745,11 +740,6 @@
             "description": "Company not found"
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
         "summary": "Get company by ID",
         "tags": [
           "Companies"
@@ -791,6 +781,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
           },
           "403": {
             "description": "Forbidden - not admin of this company"
@@ -1675,16 +1668,8 @@
         "responses": {
           "200": {
             "description": "List of offer products returned"
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
         "summary": "Get products that currently have a discount (offers)",
         "tags": [
           "Products"
@@ -1716,18 +1701,10 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized"
-          },
           "404": {
             "description": "Product not found"
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
         "summary": "Get product by ID",
         "tags": [
           "Products"
@@ -3042,229 +3019,6 @@
         ]
       }
     },
-    "/api/transportings": {
-      "post": {
-        "operationId": "TransportingsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTransportingDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Transporting record created successfully"
-          },
-          "400": {
-            "description": "Invalid input"
-          }
-        },
-        "summary": "Create a new transporting record",
-        "tags": [
-          "transportings"
-        ]
-      },
-      "patch": {
-        "operationId": "TransportingsController_update",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTransportingDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Transporting record updated successfully"
-          },
-          "404": {
-            "description": "Transporting record not found"
-          }
-        },
-        "summary": "Update a transporting record",
-        "tags": [
-          "transportings"
-        ]
-      }
-    },
-    "/api/transportings/{id}": {
-      "get": {
-        "description": "This route is open for default users.",
-        "operationId": "TransportingsController_findById",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Transporting ID",
-            "schema": {
-              "example": "507f1f77bcf86cd799439011",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Transporting record found"
-          },
-          "404": {
-            "description": "Transporting record not found"
-          }
-        },
-        "summary": "Get transporting record by ID",
-        "tags": [
-          "transportings"
-        ]
-      }
-    },
-    "/api/transportings/order/{orderId}": {
-      "get": {
-        "description": "This route is open for default users.",
-        "operationId": "TransportingsController_findByOrderId",
-        "parameters": [
-          {
-            "name": "orderId",
-            "required": true,
-            "in": "path",
-            "description": "Order ID",
-            "schema": {
-              "example": "507f1f77bcf86cd799439012",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Transporting record found"
-          },
-          "404": {
-            "description": "Transporting record not found"
-          }
-        },
-        "summary": "Get transporting record by order ID",
-        "tags": [
-          "transportings"
-        ]
-      }
-    },
-    "/api/transportings/company/{companyId}": {
-      "get": {
-        "operationId": "TransportingsController_findByCompanyId",
-        "parameters": [
-          {
-            "name": "companyId",
-            "required": true,
-            "in": "path",
-            "description": "Company ID",
-            "schema": {
-              "example": "507f1f77bcf86cd799439013",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of transporting records found"
-          },
-          "404": {
-            "description": "No transporting records found for the company"
-          }
-        },
-        "summary": "Get transporting records by company ID",
-        "tags": [
-          "transportings"
-        ]
-      }
-    },
-    "/api/transportings/{id}/cancel": {
-      "patch": {
-        "operationId": "TransportingsController_cancel",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Transporting ID",
-            "schema": {
-              "example": "507f1f77bcf86cd799439011",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Transporting record canceled successfully"
-          },
-          "400": {
-            "description": "Transporting record cannot be canceled"
-          },
-          "404": {
-            "description": "Transporting record not found"
-          }
-        },
-        "summary": "Cancel a transporting record",
-        "tags": [
-          "transportings"
-        ]
-      }
-    },
-    "/api/transportings/{id}/delivered": {
-      "patch": {
-        "operationId": "TransportingsController_markAsDelivered",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Transporting ID",
-            "schema": {
-              "example": "507f1f77bcf86cd799439011",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "estimatedDelivery": {
-                    "type": "string",
-                    "format": "date-time"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Transporting record marked as delivered successfully"
-          },
-          "400": {
-            "description": "Transporting record cannot be marked as delivered"
-          },
-          "404": {
-            "description": "Transporting record not found"
-          }
-        },
-        "summary": "Mark a transporting record as delivered",
-        "tags": [
-          "transportings"
-        ]
-      }
-    },
     "/api/payment/initiate": {
       "post": {
         "description": "This route is open for default users.",
@@ -4151,6 +3905,266 @@
         },
         "tags": [
           "Health"
+        ]
+      }
+    },
+    "/api/transport": {
+      "post": {
+        "operationId": "TransportingsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTransportingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transporting record created successfully"
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        },
+        "summary": "Create a new transporting record",
+        "tags": [
+          "transportings"
+        ]
+      },
+      "patch": {
+        "operationId": "TransportingsController_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTransportingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transporting record updated successfully"
+          },
+          "404": {
+            "description": "Transporting record not found"
+          }
+        },
+        "summary": "Update a transporting record",
+        "tags": [
+          "transportings"
+        ]
+      },
+      "get": {
+        "tags": [
+          "Transport"
+        ],
+        "summary": "Get all transport records with pagination",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated transport records returned"
+          },
+          "400": {
+            "description": "Invalid pagination"
+          }
+        }
+      }
+    },
+    "/api/transport/{id}": {
+      "get": {
+        "description": "This route is open for default users.",
+        "operationId": "TransportingsController_findById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Transporting ID",
+            "schema": {
+              "example": "507f1f77bcf86cd799439011",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transporting record found"
+          },
+          "404": {
+            "description": "Transporting record not found"
+          }
+        },
+        "summary": "Get transporting record by ID",
+        "tags": [
+          "transportings"
+        ]
+      }
+    },
+    "/api/transport/order/{orderId}": {
+      "get": {
+        "description": "This route is open for default users.",
+        "operationId": "TransportingsController_findByOrderId",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "description": "Order ID",
+            "schema": {
+              "example": "507f1f77bcf86cd799439012",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transporting record found"
+          },
+          "404": {
+            "description": "Transporting record not found"
+          }
+        },
+        "summary": "Get transporting record by order ID",
+        "tags": [
+          "transportings"
+        ]
+      }
+    },
+    "/api/transport/company/{companyId}": {
+      "get": {
+        "operationId": "TransportingsController_findByCompanyId",
+        "parameters": [
+          {
+            "name": "companyId",
+            "required": true,
+            "in": "path",
+            "description": "Company ID",
+            "schema": {
+              "example": "507f1f77bcf86cd799439013",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of transporting records found"
+          },
+          "404": {
+            "description": "No transporting records found for the company"
+          }
+        },
+        "summary": "Get transporting records by company ID",
+        "tags": [
+          "transportings"
+        ]
+      }
+    },
+    "/api/transport/{id}/cancel": {
+      "patch": {
+        "operationId": "TransportingsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Transporting ID",
+            "schema": {
+              "example": "507f1f77bcf86cd799439011",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transporting record canceled successfully"
+          },
+          "400": {
+            "description": "Transporting record cannot be canceled"
+          },
+          "404": {
+            "description": "Transporting record not found"
+          }
+        },
+        "summary": "Cancel a transporting record",
+        "tags": [
+          "transportings"
+        ]
+      }
+    },
+    "/api/transport/{id}/delivered": {
+      "patch": {
+        "operationId": "TransportingsController_markAsDelivered",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Transporting ID",
+            "schema": {
+              "example": "507f1f77bcf86cd799439011",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "estimatedDelivery": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transporting record marked as delivered successfully"
+          },
+          "400": {
+            "description": "Transporting record cannot be marked as delivered"
+          },
+          "404": {
+            "description": "Transporting record not found"
+          }
+        },
+        "summary": "Mark a transporting record as delivered",
+        "tags": [
+          "transportings"
         ]
       }
     }

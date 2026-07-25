@@ -43,7 +43,7 @@ export function defaultTestProviders(): Provider[] {
     makeMock('IWalletsService'),
     makeMock('ITransactionsService'),
     makeMock('ITicketingService'),
-    makeMock('ITransportingsService'),
+    makeMock('ITransportService'),
     makeMock('ICategoryService'),
     makeMock('ICompanyService'),
     makeMock('IImageUploadService'),

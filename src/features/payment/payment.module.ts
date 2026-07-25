@@ -9,6 +9,14 @@ import { OrdersModule } from '../orders/orders.module';
 import { ZibalModule } from 'src/utils/services/zibal/zibal.module';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
 
+function requiredPaymentEnv(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value && process.env.NODE_ENV === 'production') {
+    throw new Error(`Missing required payment environment variable: ${name}`);
+  }
+  return value || '';
+}
+
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Transaction.name, schema: TransactionSchema }]),
@@ -17,8 +25,8 @@ import { PermissionsModule } from 'src/features/permissions/permissions.module';
     OrdersModule,
     forwardRef(() => PermissionsModule),
     ZibalModule.register({
-      merchant: process.env.ZIBAL_MERCHANT_ID || '68b44a2ca45c720011a852e0',
-      callbackUrl: process.env.ZIBAL_CALLBACK_URL || 'http://localhost:3000/payment/callback',
+      merchant: requiredPaymentEnv('ZIBAL_MERCHANT_ID'),
+      callbackUrl: requiredPaymentEnv('ZIBAL_CALLBACK_URL'),
       // sandbox should only be true when explicitly set to 'true'
       sandbox: (process.env.ZIBAL_SANDBOX || '').toLowerCase() === 'true',
       logLevel: parseInt(process.env.ZIBAL_LOG_LEVEL || '2', 10),

@@ -1,5 +1,5 @@
-import { Controller, Post, Get, Patch, Param, Body, Inject, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Post, Get, Patch, Param, Body, Inject, UseGuards, Query, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { CreateTransportingDto } from './dto/create-transporting.dto';
 import { UpdateTransportingDto } from './dto/update-transporting.dto';
 import { ITransporting } from './interfaces/transporting.interface';
@@ -27,6 +27,22 @@ export class TransportController {
   @ApiResponse({ status: 400, description: 'Invalid input' })
   async create(@Body() createTransportingDto: CreateTransportingDto): Promise<ITransporting> {
     return this.transportService.create(createTransportingDto);
+  }
+
+  @Get()
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TRANSPORTING, Action.READ)
+  @ApiOperation({ summary: 'Get all transport records with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  @ApiResponse({ status: 200, description: 'Paginated transport records returned' })
+  async findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    const parsedPage = page === undefined ? 1 : Number(page);
+    const parsedLimit = limit === undefined ? 20 : Number(limit);
+    if (!Number.isInteger(parsedPage) || parsedPage < 1 || !Number.isInteger(parsedLimit) || parsedLimit < 1) {
+      throw new BadRequestException('page and limit must be positive integers');
+    }
+    return this.transportService.findAll(parsedPage, parsedLimit);
   }
 
   @Get(':id')

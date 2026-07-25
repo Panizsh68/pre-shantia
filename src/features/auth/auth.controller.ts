@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpStatus, HttpCode, Get, Res, UseGuards, Inject, BadRequestException, Patch, Param } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, HttpCode, Get, Res, Req, UseGuards, Inject, BadRequestException, Patch, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthProfileDto } from './dto/auth-profile.dto';
 import { IProfileService } from '../users/profile/interfaces/profile.service.interface';
@@ -25,6 +25,17 @@ import { Action } from '../permissions/enums/actions.enum';
 import { AuthenticationGuard } from './guards/auth.guard';
 import { IUsersService } from '../users/interfaces/user.service.interface';
 import { UpdateUserPermissionsDto } from 'src/features/users/dto/update-user-permissions.dto';
+import { randomBytes } from 'crypto';
+
+const CSRF_COOKIE = 'csrfToken';
+const CSRF_HEADER = 'x-csrf-token';
+
+function readCookie(request: Request, name: string): string | undefined {
+  const header = request.headers.cookie;
+  if (!header) return undefined;
+  const entry = header.split(';').find((part) => part.trim().startsWith(`${name}=`));
+  return entry ? decodeURIComponent(entry.trim().slice(name.length + 1)) : undefined;
+}
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -34,6 +45,35 @@ export class AuthController {
     @Inject('IProfileService') private readonly profileService: IProfileService,
     @Inject('IUsersService') private readonly usersService: IUsersService,
   ) { }
+
+  private issueCsrfToken(res: Response): string {
+    const token = randomBytes(32).toString('hex');
+    const req = res.req as Request;
+    const secure = req?.secure || req?.protocol === 'https' || process.env.NODE_ENV === 'production';
+    res.cookie(CSRF_COOKIE, token, {
+      httpOnly: false,
+      secure: !!secure,
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 1000 * 60 * 60 * 48,
+    });
+    return token;
+  }
+
+  private assertCsrf(request: Request): void {
+    const cookieToken = readCookie(request, CSRF_COOKIE);
+    const headerToken = request.headers[CSRF_HEADER] as string | undefined;
+    if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+      throw new BadRequestException('Invalid CSRF token');
+    }
+  }
+
+  @Public()
+  @Get('csrf')
+  @HttpCode(HttpStatus.OK)
+  async csrf(@Res({ passthrough: true }) res: Response): Promise<{ csrfToken: string }> {
+    return { csrfToken: this.issueCsrfToken(res) };
+  }
 
   @Public()
   @Post('signup')
@@ -68,8 +108,9 @@ export class AuthController {
     @Body() verifyOtpDto: VerifyOtpDto,
     @RequestContext() context: ContextType,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<SignUpResponseDto> {
+  ): Promise<SignUpResponseDto & { csrfToken?: string }> {
     const tokens = await this.authService.verifyOtp(verifyOtpDto, context);
+    let csrfToken: string | undefined;
     try {
       // set Authorization header if access token exists
       if (tokens.accessToken) {
@@ -85,9 +126,11 @@ export class AuthController {
           httpOnly: true,
           secure: !!secureFlag,
           sameSite: 'strict',
+          path: '/',
           maxAge: 1000 * 60 * 60 * 48,
         });
       }
+      csrfToken = this.issueCsrfToken(res);
     } catch (err) {
       // Log but don't throw: avoid crashing the request after successful token generation
        
@@ -96,7 +139,7 @@ export class AuthController {
     return {
       phoneNumber: verifyOtpDto.phoneNumber,
       accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
+      csrfToken,
       profile: tokens.profile
     };
   }
@@ -121,10 +164,11 @@ export class AuthController {
   async refreshToken(
     @Body() body: RefreshTokenRequestDto,
     @RequestContext() context: ContextType,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<SignUpResponseDto> {
-    const reqForCookies = (res.req as Request & { cookies?: Record<string, string> });
-    const refreshToken = body.refreshToken || (reqForCookies.cookies && reqForCookies.cookies.refreshToken);
+  ): Promise<SignUpResponseDto & { csrfToken?: string }> {
+    this.assertCsrf(req);
+    const refreshToken = readCookie(req, 'refreshToken');
     if (!refreshToken) {throw new BadRequestException('Refresh token not provided');}
     const result = await this.authService.refreshAccessTokenByRefreshToken(refreshToken, context);
     try {
@@ -136,7 +180,7 @@ export class AuthController {
       console.error('Failed to set Authorization header in refreshToken response:', err?.message || err);
     }
     // refresh فقط accessToken میده، پس refreshToken رو برنمیگردونیم
-    return { phoneNumber: '', accessToken: result.accessToken };
+    return { phoneNumber: '', accessToken: result.accessToken, csrfToken: readCookie(req, CSRF_COOKIE) };
   }
 
   @Post('signout')
@@ -155,12 +199,15 @@ export class AuthController {
   async signOut(
     @RequestContext() context: ContextType,
     @CurrentUser() user: TokenPayload,
-    @Body('refreshToken') refreshToken?: string,
+    @Req() req: Request,
     @Res({ passthrough: true }) res?: Response,
   ): Promise<{ message: string }> {
+    this.assertCsrf(req);
+    const refreshToken = readCookie(req, 'refreshToken');
     // حذف کوکی refreshToken سمت کلاینت
     if (res) {
       res.clearCookie('refreshToken');
+      res.clearCookie(CSRF_COOKIE);
     }
     return this.authService.signOut(user.userId, refreshToken);
   }
@@ -258,7 +305,7 @@ export class AuthController {
     @Body() signUpDto: SignUpDto,
     @RequestContext() context: ContextType,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<SignUpResponseDto> {
+  ): Promise<SignUpResponseDto & { csrfToken?: string }> {
     const result = await this.authService.adminSignUp(signUpDto, context);
     try {
       if (result.accessToken) {
@@ -273,14 +320,17 @@ export class AuthController {
           httpOnly: true,
           secure: !!secureFlag,
           sameSite: 'strict',
+          path: '/',
           maxAge: 1000 * 60 * 60 * 48,
         });
       }
+      const csrfToken = this.issueCsrfToken(res);
+      return { phoneNumber: result.phoneNumber, accessToken: result.accessToken, csrfToken, profile: result.profile };
     } catch (err) {
        
       console.error('Failed to set headers/cookies in adminSignUp response:', err?.message || err);
     }
-    return result;
+    return { phoneNumber: result.phoneNumber, accessToken: result.accessToken, profile: result.profile };
   }
 
   @Patch('users/:id/permissions')

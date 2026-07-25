@@ -40,9 +40,9 @@ import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-option
 import { RequestContext } from 'src/common/decorators/request-context.decorator';
 import { RequestContext as IRequestContext } from 'src/common/types/request-context.interface';
 import { isSuperAdmin } from 'src/common/utils/auth-helpers';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @ApiTags('Companies')
-@ApiBearerAuth()
 @Controller('companies')
 export class CompaniesController {
   constructor(
@@ -52,6 +52,7 @@ export class CompaniesController {
 
   @Post()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
   @Permission(Resource.COMPANIES, Action.CREATE)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new company' })
@@ -69,6 +70,7 @@ export class CompaniesController {
 
   @Patch(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
   @Permission(Resource.COMPANIES, Action.UPDATE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
@@ -99,6 +101,7 @@ export class CompaniesController {
 
   @Patch(':id/status')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
   @Permission(Resource.COMPANIES, Action.UPDATE)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ 
@@ -127,6 +130,7 @@ export class CompaniesController {
 
   @Delete(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
   @Permission(Resource.COMPANIES, Action.DELETE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ 
@@ -153,9 +157,9 @@ export class CompaniesController {
   }
 
   @Get(':id')
-
+  @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get company by ID' })
+  @ApiOperation({ summary: 'Get company by ID', security: [] })
   @ApiParam({ name: 'id', type: String, description: 'Company ID' })
   @ApiResponse({ status: 200, description: 'Company found', type: Company })
   @ApiResponse({ status: 404, description: 'Company not found' })
@@ -164,8 +168,9 @@ export class CompaniesController {
   }
 
   @Get()
+  @Public()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get all companies' })
+  @ApiOperation({ summary: 'Get all companies', security: [] })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiResponse({ status: 200, description: 'List of all companies', type: [Company] })
@@ -193,6 +198,7 @@ export class CompaniesController {
 
   @Get('exists/name/:name')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
   @Permission(Resource.COMPANIES, Action.READ)
   @ApiOperation({ summary: 'Check if a company exists by name' })
   @ApiParam({ name: 'name', type: String, description: 'Company name' })
@@ -204,6 +210,7 @@ export class CompaniesController {
 
   @Get('count')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
   @Permission(Resource.COMPANIES, Action.READ)
   @ApiOperation({ summary: 'Get total number of companies' })
   @ApiResponse({ status: 200, description: 'Total count returned' })

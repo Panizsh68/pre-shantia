@@ -1,7 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
-import { getModelToken, MongooseModule } from '@nestjs/mongoose';
+import { getModelToken } from '@nestjs/mongoose';
 import { User, UserSchema } from './entities/user.entity';
 import { AuthModule } from '../auth/auth.module';
 import { AuthenticationGuard } from '../auth/guards/auth.guard';
@@ -17,15 +17,11 @@ import {
   BASE_AGGREGATE_REPOSITORY,
   BASE_TRANSACTION_REPOSITORY,
 } from 'src/libs/repository/constants/tokens.constants';
+import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      {
-        name: User.name,
-        schema: UserSchema,
-      },
-    ]),
+    GenericRepositoryModule.forFeature<User>(User.name, User, UserSchema),
     forwardRef(() => AuthModule),
     ProfileModule,
     forwardRef(() => PermissionsModule),

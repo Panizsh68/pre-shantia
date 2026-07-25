@@ -42,9 +42,9 @@ import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
 import { RequestContext } from 'src/common/decorators/request-context.decorator';
 import { RequestContext as IRequestContext } from 'src/common/types/request-context.interface';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @ApiTags('Products')
-@ApiBearerAuth()
 @Controller('products')
 export class ProductsController {
   
@@ -261,6 +261,7 @@ export class ProductsController {
 
   @Post()
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
   @Permission(Resource.PRODUCTS, Action.CREATE)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new product', description: 'Creates a product for the company associated with the authenticated user. Do NOT include companyId in the request body — it is resolved from the user\'s profile on the server.' })
@@ -330,6 +331,7 @@ export class ProductsController {
 
   @Get('admin/all-products')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
   @Permission(Resource.PRODUCTS, Action.CREATE)
   @ApiOperation({
     summary: 'Get all products (all statuses) for admin/editor',
@@ -464,11 +466,11 @@ export class ProductsController {
   }
 
   @Get('offers')
-  @ApiOperation({ summary: 'Get products that currently have a discount (offers)' })
+  @Public()
+  @ApiOperation({ summary: 'Get products that currently have a discount (offers)', security: [] })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiResponse({ status: 200, description: 'List of offer products returned' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getOffers(
     @Query('limit') limit?: string,
     @Query('page') page?: string,
@@ -499,11 +501,11 @@ export class ProductsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get product by ID' })
+  @Public()
+  @ApiOperation({ summary: 'Get product by ID', security: [] })
   @ApiParam({ name: 'id', type: String, description: 'Product ID' })
   @ApiResponse({ status: 200, description: 'Product found', type: ProductResponseDto })
   @ApiResponse({ status: 404, description: 'Product not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   findOne(@Param('id') id: string) {
     // eslint-disable-next-line no-console
     console.log('[ProductsController.findOne] entry id=', id);
@@ -521,6 +523,7 @@ export class ProductsController {
 
   @Patch(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
   @Permission(Resource.PRODUCTS, Action.UPDATE)
   @ApiOperation({ summary: 'Update product by ID' })
   @ApiParam({ name: 'id', type: String, description: 'Product ID' })
@@ -550,6 +553,7 @@ export class ProductsController {
 
   @Patch(':id/status')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
   @Permission(Resource.PRODUCT_STATUS, Action.UPDATE)
   @ApiOperation({ summary: 'Update only the status of a product' })
   @ApiParam({ name: 'id', type: String, description: 'Product ID' })
@@ -566,7 +570,7 @@ export class ProductsController {
     // eslint-disable-next-line no-console
     console.log('[ProductsController.updateStatus] entry id=', id, 'userId=', user?.userId, 'status=', dto?.status);
     try {
-      const updated = await this.productsService.updateStatus(id, dto.status, user.userId);
+      const updated = await this.productsService.updateStatus(id, dto.status, user.userId, user);
       // eslint-disable-next-line no-console
       console.log('[ProductsController.updateStatus] success id=', id, 'status=', dto.status);
       return updated;
@@ -579,6 +583,7 @@ export class ProductsController {
 
   @Delete(':id')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
   @Permission(Resource.PRODUCTS, Action.DELETE)
   @ApiOperation({ summary: 'Delete product by ID' })
   @ApiParam({ name: 'id', type: String, description: 'Product ID' })

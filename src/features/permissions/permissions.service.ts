@@ -26,7 +26,11 @@ export class PermissionsService {
 
       if (perm.resource !== resource) {return false;}
 
-      if (!perm.actions.includes(action)) {return false;}
+      const actionAllowed =
+        perm.actions.includes(action) ||
+        (perm.actions.includes(Action.MANAGE) &&
+          [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE].includes(action));
+      if (!actionAllowed) {return false;}
 
       // if permission has companyId, it must match the requested companyId
       if (perm.companyId) {

@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, Inject, Query, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { FilterQuery } from 'mongoose';
 import { Ticket } from './entities/ticketing.entity';
 import { TicketResponseDto } from './dto/ticket-response.dto';
 import { ticketToResponseDto } from './mappers/ticket.mapper';
@@ -52,7 +53,8 @@ export class TicketingController {
   }
 
   @Post()
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.CREATE)
   @ApiOperation({ summary: 'Create a new ticket', description: 'Creates a new support ticket. Ticket is automatically assigned to superadmin.' })
   @ApiBody({ type: CreateTicketDto })
   @ApiResponse({ status: 201, description: 'Ticket created successfully', type: TicketResponseDto })
@@ -66,7 +68,8 @@ export class TicketingController {
   }
 
   @Get()
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.READ)
   @ApiOperation({ 
     summary: 'Get tickets', 
     description: 'Regular users see only their own tickets. Superadmin/staff with TICKETING.READ permission see all tickets.' 
@@ -83,19 +86,20 @@ export class TicketingController {
     @Query('status') status?: TicketStatus,
     @Query('priority') priority?: TicketPriority,
   ): Promise<TicketResponseDto[]> {
+    const conditions: FilterQuery<Ticket> = {};
     const options: FindManyOptions = {
       page: Number(page) || 1,
       perPage: Number(limit) || 10,
-      conditions: {},
+      conditions,
       sort: [{ field: 'createdAt', order: SortOrder.DESC }]
     };
 
-    if (status) options.conditions.status = status;
-    if (priority) options.conditions.priority = priority;
+    if (status) conditions.status = status;
+    if (priority) conditions.priority = priority;
 
     const canSeeAll = hasPermission(user, Resource.TICKETING, Action.READ);
     if (!canSeeAll) {
-      options.conditions.createdBy = user.userId;
+      conditions.createdBy = user.userId;
     }
 
     const tickets = await this.ticketingService.findAll(options);
@@ -103,7 +107,8 @@ export class TicketingController {
   }
 
   @Get(':id')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.READ)
   @ApiOperation({ summary: 'Get a ticket by ID', description: 'Users can only see tickets they created. Admins can see any ticket.' })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 200, description: 'Ticket found', type: TicketResponseDto })
@@ -124,7 +129,8 @@ export class TicketingController {
   }
 
   @Get(':id/status')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.READ)
   @ApiOperation({ summary: 'Get status of a ticket by ID', description: 'Users can only check status of their own tickets.' })
   @ApiParam({ name: 'id', type: String })
   @ApiResponse({ status: 200, description: 'Ticket status returned', type: TicketStatusResponseDto })
@@ -260,7 +266,8 @@ export class TicketingController {
   }
 
   @Post(':id/comments')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.READ)
   @ApiOperation({
     summary: 'Add a comment/reply to a ticket',
     description: 'Both users and admins can add comments. Creates a two-way conversation thread.',
@@ -293,7 +300,8 @@ export class TicketingController {
   }
 
   @Get(':id/comments')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.TICKETING, Action.READ)
   @ApiOperation({
     summary: 'Get all comments on a ticket',
     description: 'Users can view comments on their own tickets. Admins can view any ticket comments.',

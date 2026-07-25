@@ -1,18 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { TransportingsController } from './transportings.controller';
+import { TransportController } from './transportings.controller';
 import defaultTestProviders from 'src/test/test-utils';
-import { TransportingsService } from './transportings.service';
+import { TransportService } from './transportings.service';
 
-describe('TransportingsController', () => {
-  let controller: TransportingsController;
+describe('TransportController', () => {
+  let controller: TransportController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [TransportingsController],
-      providers: [TransportingsService, ...defaultTestProviders()],
+      controllers: [TransportController],
+      providers: [
+        ...defaultTestProviders(),
+        {
+          provide: 'ITransportService',
+          useClass: TransportService,
+        },
+      ],
     }).compile();
 
-    controller = module.get<TransportingsController>(TransportingsController);
+    controller = module.get<TransportController>(TransportController);
   });
 
   it('should be defined', () => {

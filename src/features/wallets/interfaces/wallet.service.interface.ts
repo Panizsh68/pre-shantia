@@ -18,14 +18,14 @@ export interface IWalletService {
   blockAmount(
     owner: { ownerId: string; ownerType: WalletOwnerType },
     amount: number,
-    meta?: { orderId?: string; ticketId?: string; reason?: string },
+    meta?: { orderId?: string; ticketId?: string; reason?: string; correlationId?: string },
     session?: ClientSession,
   );
   releaseBlockedAmount(
     from: { ownerId: string; ownerType: WalletOwnerType },
     to: { ownerId: string; ownerType: WalletOwnerType },
     amount: number,
-    meta?: { orderId?: string; ticketId?: string; reason?: string; type?: 'REFUND' | 'TRANSFER' },
+    meta?: { orderId?: string; ticketId?: string; reason?: string; type?: 'REFUND' | 'TRANSFER'; correlationId?: string },
     session?: ClientSession,
   );
   getWallet(getWalletDto: GetWalletDto, session?: ClientSession);

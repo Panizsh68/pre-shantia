@@ -17,6 +17,14 @@ import {
 } from 'src/libs/repository/constants/tokens.constants';
 import { TransactionController } from './transaction.controller';
 
+function requiredTransactionEnv(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value && process.env.NODE_ENV === 'production') {
+    throw new Error(`Missing required transaction environment variable: ${name}`);
+  }
+  return value || '';
+}
+
 @Module({
   imports: [
     GenericRepositoryModule.forFeature<Transaction>(
@@ -25,8 +33,8 @@ import { TransactionController } from './transaction.controller';
       TransactionSchema,
     ),
     ZibalModule.register({
-      merchant: process.env.ZIBAL_MERCHANT_ID || '68b44a2ca45c720011a852e0',
-      callbackUrl: process.env.ZIBAL_CALLBACK_URL || 'http://localhost:3000/payment/callback',
+      merchant: requiredTransactionEnv('ZIBAL_MERCHANT_ID'),
+      callbackUrl: requiredTransactionEnv('ZIBAL_CALLBACK_URL'),
       sandbox: (process.env.ZIBAL_SANDBOX || '').toLowerCase() === 'true',
       logLevel: parseInt(process.env.ZIBAL_LOG_LEVEL || '2', 10),
     }),

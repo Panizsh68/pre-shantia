@@ -4,6 +4,7 @@ import { ITransporting } from './transporting.interface';
 
 export interface ITransportService {
   create(dto: CreateTransportingDto): Promise<ITransporting>;
+  findAll(page?: number, limit?: number): Promise<{ items: ITransporting[]; total: number; page: number; limit: number }>;
   findById(id: string): Promise<ITransporting>;
   findByOrderId(orderId: string): Promise<ITransporting>;
   findByCompanyId(companyId: string): Promise<ITransporting[]>;

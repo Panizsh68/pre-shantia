@@ -318,7 +318,7 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
   }
 
   async startTransaction(): Promise<ClientSession> {
-    const session = await this.transactionRepository.startSession();
+    const session = await this.transactionRepository.startTransaction();
     return session;
   }
 

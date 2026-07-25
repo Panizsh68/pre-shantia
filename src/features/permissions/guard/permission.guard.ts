@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSION_KEY, PermissionMeta } from '../decorators/permissions.decorators';
 import { PermissionsService } from '../permissions.service';
@@ -24,6 +24,9 @@ export class PermissionsGuard implements CanActivate {
       const perm = user.permissions.find(p => p.resource === permissionMeta.resource && p.actions.includes(permissionMeta.action));
       companyId = perm?.companyId;
     }
-    return this.permissionsService.hasPermission(user?.permissions, permissionMeta.resource, permissionMeta.action, companyId);
+    if (!this.permissionsService.hasPermission(user?.permissions, permissionMeta.resource, permissionMeta.action, companyId)) {
+      throw new ForbiddenException('Access denied: missing required permission');
+    }
+    return true;
   }
 }

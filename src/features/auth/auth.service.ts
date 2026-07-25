@@ -151,6 +151,7 @@ export class AuthService {
             { resource: Resource.RATINGS, actions: [Action.READ, Action.CREATE] },
             { resource: Resource.TICKETING, actions: [Action.READ, Action.CREATE] },
             { resource: Resource.TRANSACTION, actions: [Action.READ] },
+            { resource: Resource.PAYMENT, actions: [Action.CREATE] },
             { resource: Resource.PROFILE, actions: [Action.READ, Action.UPDATE] },
             { resource: Resource.WALLETS, actions: [Action.READ, Action.UPDATE] },
             { resource: Resource.CARTS, actions: [Action.READ, Action.CREATE, Action.UPDATE] },
@@ -201,7 +202,7 @@ export class AuthService {
       await this.cacheService.set(
         `refresh-info:${refreshToken}`,
         { ip: context.ip, userAgent: context.userAgent, userId: user.id.toString() }, 
-        48 * 3600,
+        Number(this.configService.get<string>('JWT_REFRESH_TTL_SECONDS') || 48 * 3600),
       );
 
       const profile = await this.profileService.getByUserId(user.id.toString());
@@ -270,7 +271,7 @@ export class AuthService {
       await this.cacheService.set(
         `refresh-info:${refreshToken}`,
         { ip: context?.ip || '', userAgent: context?.userAgent || '', userId: user.id.toString() }, 
-        48 * 3600,
+        Number(this.configService.get<string>('JWT_REFRESH_TTL_SECONDS') || 48 * 3600),
       );
 
       return { phoneNumber: user.phoneNumber, accessToken, refreshToken };

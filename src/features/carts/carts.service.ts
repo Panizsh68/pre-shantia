@@ -70,7 +70,7 @@ export class CartsService implements ICartsService {
   }
 
   async addItemToCart(userId: string, item: CartItemDto): Promise<ICart> {
-    const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
+    const cart = await this.cartRepository.findOrCreateActiveCart(userId);
     
     if (!item.companyId) {
       throw new NotFoundException('companyId is required for cart items');

@@ -241,7 +241,7 @@ export class CategoriesController {
   }
 
   @Patch(':id/status')
-  @UseGuards(PermissionsGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
   @ApiBearerAuth()
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @Permission(Resource.CATEGORIES, Action.UPDATE)

@@ -20,6 +20,8 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Profile } from './entities/profile.entity';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
+import { isSuperAdmin } from 'src/common/utils/auth-helpers';
+import { ForbiddenException } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -62,7 +64,11 @@ export class ProfileController {
   async update(
     @Param('id') id: string,
     @Body() updateProfileDto: UpdateProfileDto,
+    @CurrentUser() user: TokenPayload,
   ): Promise<Profile> {
+    if (!isSuperAdmin(user) && String(id) !== String(user.userId)) {
+      throw new ForbiddenException('Cannot update another user\'s profile');
+    }
     return this.profileService.update(id, updateProfileDto);
   }
 

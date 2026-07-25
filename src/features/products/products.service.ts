@@ -312,10 +312,29 @@ export class ProductsService implements IProductService {
     }
   }
 
-  async updateStatus(id: string, status: import('./enums/product-status.enum').ProductStatus, userId: string, session?: ClientSession): Promise<IProduct> {
+  async updateStatus(id: string, status: import('./enums/product-status.enum').ProductStatus, userId: string, tokenPayload?: TokenPayload, session?: ClientSession): Promise<IProduct> {
     // eslint-disable-next-line no-console
     console.log('[ProductsService.updateStatus] entry id=', id, 'status=', status, 'userId=', userId);
     try {
+      const existing = await this.repo.findById(id, { session });
+      if (!existing) {
+        throw new NotFoundException(`Product with id ${id} not found`);
+      }
+
+      const existingCompanyId = existing.companyId?.toString();
+      const isOwner = existing.createdBy?.toString() === String(userId);
+      const isSuperAdmin = tokenPayload?.permissions?.some(
+        (permission) => permission.resource === Resource.ALL && permission.actions.includes(Action.MANAGE),
+      );
+      if (!isOwner && !isSuperAdmin) {
+        this.permissionsService.ensurePermission(
+          tokenPayload?.permissions,
+          Resource.PRODUCT_STATUS,
+          Action.UPDATE,
+          existingCompanyId,
+        );
+      }
+
       const updateData: Partial<Product> & { deletedAt?: Date | undefined } = {
         status,
         updatedBy: toObjectId(userId),

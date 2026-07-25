@@ -36,7 +36,11 @@ export function hasPermission(
   }
 
   return user.permissions.some(
-    p => p.resource === resource && p.actions.includes(action)
+    p =>
+      p.resource === resource &&
+      (p.actions.includes(action) ||
+        (p.actions.includes(Action.MANAGE) &&
+          [Action.READ, Action.CREATE, Action.UPDATE, Action.DELETE].includes(action)))
   );
 }
 

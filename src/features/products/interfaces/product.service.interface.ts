@@ -65,5 +65,5 @@ export interface IProductService {
   /**
    * Update only the status of a product. Returns the updated product.
    */
-  updateStatus(id: string, status: ProductStatus, userId: string, session?: ClientSession): Promise<IProduct>;
+  updateStatus(id: string, status: ProductStatus, userId: string, tokenPayload?: TokenPayload, session?: ClientSession): Promise<IProduct>;
 }

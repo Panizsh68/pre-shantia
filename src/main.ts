@@ -16,8 +16,25 @@ async function bootstrap(): Promise<void> {
 
   app.setGlobalPrefix('api');
 
+  const defaultAllowedOrigins = [
+    'https://tejaris.ir',
+    'https://www.tejaris.ir',
+  ];
+
+  const allowedOrigins = new Set(defaultAllowedOrigins);
+
+  if (process.env.NODE_ENV !== 'production') {
+    allowedOrigins.add('http://localhost:3000');
+    allowedOrigins.add('http://127.0.0.1:3000');
+  }
+
   app.enableCors({
-    origin: true,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS origin not allowed: ${origin}`), false);
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });

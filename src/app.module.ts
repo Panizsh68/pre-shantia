@@ -27,13 +27,21 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { CachingModule } from './infrastructure/caching/caching.module';
 import { RequestContextInterceptor } from './utils/interceptors/request-context.interceptor';
 import configuration from './infrastructure/config/configuration';
+import productionConfiguration from './infrastructure/config/configuration.prod';
 import { RatingModule } from './features/ratings/rating.module';
+import { PublicSubmissionsModule } from './features/public-submissions/public-submissions.module';
+
+const configFactory = process.env.NODE_ENV === 'production'
+  ? productionConfiguration
+  : configuration;
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [configuration],
+      load: [configFactory],
+      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
+      ignoreEnvFile: false,
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
@@ -48,14 +56,29 @@ import { RatingModule } from './features/ratings/rating.module';
 
     RedisModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService): Promise<RedisModuleOptions> => ({
-        type: 'single',
-        options: {
-          host: configService.get<string>('REDIS_HOST', 'localhost'),
-          port: configService.get<number>('REDIS_PORT', 6379),
-          password: configService.get<string>('REDIS_PASSWORD') || undefined,
-        },
-      }),
+      useFactory: async (configService: ConfigService): Promise<RedisModuleOptions> => {
+        const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
+        const host = configService.get<string>('REDIS_HOST');
+        const port = configService.get<number>('REDIS_PORT');
+        const password = configService.get<string>('REDIS_PASSWORD');
+
+        if (!host || !port) {
+          throw new Error('Redis configuration is incomplete: host and port are required');
+        }
+
+        if (nodeEnv === 'production' && !password) {
+          throw new Error('Redis production configuration is incomplete: password is required in production');
+        }
+
+        return {
+          type: 'single',
+          options: {
+            host,
+            port,
+            ...(password ? { password } : {}),
+          },
+        };
+      },
       inject: [ConfigService],
     }),
 
@@ -87,6 +110,7 @@ import { RatingModule } from './features/ratings/rating.module';
     ImageUploadModule,
     RatingModule,
     HealthModule,
+    PublicSubmissionsModule,
   ],
   controllers: [AppController],
   providers: [

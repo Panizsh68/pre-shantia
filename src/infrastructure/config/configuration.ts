@@ -83,7 +83,7 @@ export default (): AppConfiguration => {
   const SUPERADMIN_MELICODE = process.env.SUPERADMIN_MELICODE || '';
   const ZIBAL_MERCHANT_ID = process.env.ZIBAL_MERCHANT_ID || '68b44a2ca45c720011a852e0';
   const ZIBAL_SANDBOX = (process.env.ZIBAL_SANDBOX || '').toLowerCase() === 'true';
-  const ZIBAL_CALLBACK_URL = process.env.ZIBAL_CALLBACK_URL || 'http://localhost:3000/payment/callback';
+  const ZIBAL_CALLBACK_URL = process.env.ZIBAL_CALLBACK_URL || 'http://localhost:3001/api/payment/callback';
   const ZIBAL_SECRET_KEY = process.env.ZIBAL_SECRET_KEY || '';
   const ZIBAL_LOG_LEVEL = parseNumber(process.env.ZIBAL_LOG_LEVEL, 2);
   const APP_URL = process.env.APP_URL || 'http://localhost:3000';
