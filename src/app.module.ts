@@ -30,6 +30,7 @@ import configuration from './infrastructure/config/configuration';
 import productionConfiguration from './infrastructure/config/configuration.prod';
 import { RatingModule } from './features/ratings/rating.module';
 import { PublicSubmissionsModule } from './features/public-submissions/public-submissions.module';
+import { AbuseControlModule } from './common/abuse/abuse-control.module';
 
 const configFactory = process.env.NODE_ENV === 'production'
   ? productionConfiguration
@@ -111,6 +112,7 @@ const configFactory = process.env.NODE_ENV === 'production'
     RatingModule,
     HealthModule,
     PublicSubmissionsModule,
+    AbuseControlModule,
   ],
   controllers: [AppController],
   providers: [

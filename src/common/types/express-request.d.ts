@@ -5,6 +5,7 @@ import type { RequestContext } from './request-context.interface';
 declare global {
   namespace Express {
     interface Request {
+      id?: string;
       user?: TokenPayload;
       context?: RequestContext;
     }

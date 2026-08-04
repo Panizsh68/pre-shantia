@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { OtpService } from 'src/utils/services/otp/otp.service';
 import { OrderFactoryService } from 'src/features/orders/order-factory.service';
+import { OTP_GENERATOR } from 'src/utils/services/otp/constants';
 
 // A central list of common provider tokens used across the app. Tests can
 // import and spread this array into their TestingModule providers to avoid
@@ -68,7 +69,7 @@ export function defaultTestProviders(): Provider[] {
     },
     {
       provide: CachingService,
-      useValue: { get: jest.fn(), set: jest.fn(), delete: jest.fn(), del: jest.fn() },
+      useValue: { get: jest.fn(), set: jest.fn(), setRaw: jest.fn(), setIfAbsent: jest.fn().mockResolvedValue(true), verifyOtpChallenge: jest.fn().mockResolvedValue('valid'), delete: jest.fn(), del: jest.fn(), incrementRateLimit: jest.fn() },
     },
     {
       provide: 'JwtService',
@@ -90,6 +91,10 @@ export function defaultTestProviders(): Provider[] {
     {
       provide: OtpService,
       useValue: { send: jest.fn(), verify: jest.fn() },
+    },
+    {
+      provide: OTP_GENERATOR,
+      useValue: { generate: jest.fn().mockReturnValue('1234') },
     },
     {
       provide: OrderFactoryService,

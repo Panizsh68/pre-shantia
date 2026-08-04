@@ -1,5 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { HealthService } from './health.service';
+import { HealthReadinessGuard } from './health-readiness.guard';
 
 @Controller('health')
 export class HealthController {
@@ -11,6 +12,7 @@ export class HealthController {
   }
 
   @Get('ready')
+  @UseGuards(HealthReadinessGuard)
   async getReadiness() {
     return this.healthService.checkReadiness();
   }

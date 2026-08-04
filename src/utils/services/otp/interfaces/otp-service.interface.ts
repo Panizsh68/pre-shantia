@@ -1,5 +1,5 @@
 export interface IOtpService {
-  sendOtpToPhone(phoneNumber: string): Promise<string>;
+  sendOtpToPhone(phoneNumber: string): Promise<void>;
   verifyOtp(identifier: string, otp: string): Promise<boolean>;
 }
 

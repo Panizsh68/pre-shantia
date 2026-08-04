@@ -1,11 +1,12 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
+import { RedactingLogger } from 'src/infrastructure/logging/redacting-logger';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CartStatus } from '../carts/enums/cart-status.enum';
 import { ICartRepository } from '../carts/repositories/carts.repository';
 
 @Injectable()
 export class CartAbandonJob {
-  private readonly logger = new Logger(CartAbandonJob.name);
+  private readonly logger = new RedactingLogger(CartAbandonJob.name);
 
   constructor(@Inject('CartRepository') private readonly cartRepository: ICartRepository) { }
 

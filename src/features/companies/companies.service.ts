@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { RedactingLogger } from 'src/infrastructure/logging/redacting-logger';
 import { ICompanyRepository } from './repositories/company.repository';
 import { Company } from './entities/company.entity';
 import { ICompany } from './interfaces/company.interface';
@@ -16,7 +17,7 @@ import { CreatePresignResponseDto } from '../image-upload/dto/presign-response.d
 
 @Injectable()
 export class CompaniesService implements ICompanyService {
-  private readonly logger = new Logger(CompaniesService.name);
+  private readonly logger = new RedactingLogger(CompaniesService.name);
 
   constructor(
     @Inject('CompanyRepository') private readonly companyRepository: ICompanyRepository,

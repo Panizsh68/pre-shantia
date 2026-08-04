@@ -1,5 +1,6 @@
 
 import { Inject, Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
+import { RedactingLogger } from 'src/infrastructure/logging/redacting-logger';
 import { Types, ClientSession, PipelineStage, FilterQuery } from 'mongoose';
 import { toPlain, toPlainArray } from 'src/libs/repository/utils/doc-mapper';
 import { Product } from './entities/product.entity';
@@ -26,7 +27,7 @@ import { SearchProductParams } from './interfaces/search-params.interface';
 
 @Injectable()
 export class ProductsService implements IProductService {
-  private readonly logger = new Logger(ProductsService.name);
+  private readonly logger = new RedactingLogger(ProductsService.name);
   async searchByPriceAndCompany(
     params: SearchProductParams,
     options: FindManyOptions = {},
@@ -160,7 +161,7 @@ export class ProductsService implements IProductService {
 
       // Integration: if the DTO contains files metadata to presign (client wants to upload images)
       const imagesMeta = (dto as CreateProductDto).imagesMeta;
-      if (imagesMeta && imagesMeta.length > 0 && this.imageUploadService) {
+      if (imagesMeta && imagesMeta.length > 0 && this.imageUploadService && !(data.images && data.images.length > 0)) {
         this.logger.log(`[create] Image upload requested: ${imagesMeta.length} file(s)`);
         try {
           this.logger.debug(`[create] Images to presign: ${imagesMeta.map(m => m.filename).join(', ')}`);

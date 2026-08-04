@@ -2,9 +2,10 @@ import { Provider } from '@nestjs/common';
 import { S3Client } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
+import { RedactingLogger } from 'src/infrastructure/logging/redacting-logger';
 import { IMAGE_UPLOAD_TOKEN } from '../constants/image-upload.constants';
 
-const logger = new Logger('S3ClientProvider');
+const logger = new RedactingLogger('S3ClientProvider');
 
 export const S3ClientProvider: Provider = {
   provide: IMAGE_UPLOAD_TOKEN.S3_CLIENT,

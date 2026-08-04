@@ -1,4 +1,8 @@
-import { Inject, Injectable, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
+/* global Express */
+import { Inject, Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { RedactingLogger } from 'src/infrastructure/logging/redacting-logger';
 import { ConfigService } from '@nestjs/config';
 import { IMAGE_UPLOAD_TOKEN, DEFAULTS } from './constants/image-upload.constants';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -6,20 +10,25 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { CreatePresignDto, ImageMetaDto } from './dto/create-presign.dto';
 import { CreatePresignResponseDto, PresignItemDto } from './dto/presign-response.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { ImageFileValidationService, UnavailableMalwareScanner } from './security/image-file-validation.service';
 
 @Injectable()
 export class ImageUploadService {
-  private readonly logger = new Logger(ImageUploadService.name);
+  private readonly logger = new RedactingLogger(ImageUploadService.name);
   private bucket: string;
   private publicBaseUrl?: string;
   private maxImageBytes: number;
   private presignExpiresSeconds: number;
   private maxProductImages: number;
   private maxCompanyImages: number;
+  private readonly localUploadEnabled: boolean;
+  private readonly appUrl: string;
 
   constructor(
     @Inject(IMAGE_UPLOAD_TOKEN.S3_CLIENT) private readonly s3: S3Client | null,
     private readonly configService: ConfigService,
+    private readonly imageValidator: ImageFileValidationService,
+    private readonly malwareScanner: UnavailableMalwareScanner,
   ) {
     const r2Config = this.configService.get('config.r2');
     this.logger.log(`[constructor] Loading R2 config...`);
@@ -27,6 +36,8 @@ export class ImageUploadService {
 
     this.bucket = r2Config?.bucket || '';
     this.publicBaseUrl = r2Config?.publicBaseUrl;
+    this.localUploadEnabled = this.configService.get<string>('NODE_ENV') !== 'production' && !this.s3;
+    this.appUrl = (this.configService.get<string>('APP_URL') || 'http://localhost:3001').replace(/\/$/, '');
 
     this.logger.log(`[constructor] bucket=${this.bucket || 'EMPTY'}, publicBaseUrl=${this.publicBaseUrl || 'EMPTY'}`);
     this.logger.log(`[constructor] s3Client available: ${this.s3 ? 'YES' : 'NO'}`);
@@ -43,12 +54,12 @@ export class ImageUploadService {
   async createPresignedUrls(dto: CreatePresignDto): Promise<CreatePresignResponseDto> {
     this.logger.log(`[createPresignedUrls] ENTRY: type=${dto.type} fileCount=${dto.files?.length || 0}`);
 
-    if (!this.s3) {
+    if (!this.s3 && !this.localUploadEnabled) {
       this.logger.error('[createPresignedUrls] FAIL: R2 S3 client is null');
       throw new InternalServerErrorException('R2 S3 client is not configured. Please set R2 endpoint and credentials.');
     }
 
-    if (!this.bucket) {
+    if (!this.bucket && !this.localUploadEnabled) {
       this.logger.error('[createPresignedUrls] FAIL: R2 bucket is empty');
       throw new InternalServerErrorException('R2 bucket is not configured (R2_BUCKET)');
     }
@@ -62,6 +73,10 @@ export class ImageUploadService {
       this.logger.log(`[createPresignedUrls] Processing file: ${file.filename} (${file.size} bytes, ${file.contentType})`);
       this.validateFileSize(file);
       const key = this.buildKey(dto.type, file.filename);
+      if (this.localUploadEnabled) {
+        items.push({ filename: file.filename, contentType: file.contentType, presignedUrl: null, publicUrl: this.buildLocalPublicUrl(key) });
+        continue;
+      }
       this.logger.debug(`[createPresignedUrls] Built key: ${key}`);
       const presignedUrl = await this.getPresignedPutUrl(key, file.contentType);
       const publicUrl = this.buildPublicUrl(key);
@@ -86,9 +101,12 @@ export class ImageUploadService {
   }
 
   private validateFileSize(file: ImageMetaDto) {
-    if (file.size > this.maxImageBytes) {
+    if (!Number.isSafeInteger(file.size) || file.size <= 0 || file.size > this.maxImageBytes) {
       this.logger.warn(`[validateFileSize] file ${file.filename} size ${file.size} exceeds limit ${this.maxImageBytes}`);
       throw new BadRequestException(`File ${file.filename} exceeds maximum size of ${this.maxImageBytes} bytes`);
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.contentType)) {
+      throw new BadRequestException('Unsupported image format');
     }
   }
 
@@ -103,6 +121,7 @@ export class ImageUploadService {
    * Ensures HTTPS for external domains to prevent Mixed Content errors.
    */
   private buildPublicUrl(key: string) {
+    if (this.localUploadEnabled) return this.buildLocalPublicUrl(key);
     if (this.publicBaseUrl) {
       let baseUrl = this.publicBaseUrl.replace(/\/$/, '');
       // Ensure HTTPS if protocol is missing and it's not a local test
@@ -145,6 +164,18 @@ export class ImageUploadService {
     return key;
   }
 
+  private buildLocalPublicUrl(key: string): string {
+    return `${this.appUrl}/uploads/${key.split('/').map(encodeURIComponent).join('/')}`;
+  }
+
+  private async saveLocally(key: string, buffer: Buffer): Promise<void> {
+    const root = path.resolve(process.cwd(), 'uploads');
+    const target = path.resolve(root, key);
+    if (!target.startsWith(`${root}${path.sep}`)) throw new BadRequestException('Invalid upload path');
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(target, buffer, { flag: 'wx' });
+  }
+
   private async getPresignedPutUrl(key: string, contentType: string) {
     try {
       if (!this.s3) {
@@ -182,12 +213,12 @@ export class ImageUploadService {
   async uploadFiles(files: Express.Multer.File[], type: 'product' | 'company'): Promise<CreatePresignResponseDto> {
     this.logger.log(`[uploadFiles] ENTRY: type=${type} fileCount=${files.length}`);
 
-    if (!this.s3) {
+    if (!this.s3 && !this.localUploadEnabled) {
       this.logger.error('[uploadFiles] FAIL: R2 S3 client is null');
       throw new InternalServerErrorException('R2 S3 client is not configured. Please set R2 endpoint and credentials.');
     }
 
-    if (!this.bucket) {
+    if (!this.bucket && !this.localUploadEnabled) {
       this.logger.error('[uploadFiles] FAIL: R2 bucket is empty');
       throw new InternalServerErrorException('R2 bucket is not configured (R2_BUCKET)');
     }
@@ -211,22 +242,28 @@ export class ImageUploadService {
       }
 
       try {
+        const normalized = await this.imageValidator.validateAndNormalize(file.buffer, file.mimetype);
+        await this.malwareScanner.scan(normalized.buffer);
         const key = this.buildKey(type, file.originalname);
         this.logger.debug(`[uploadFiles] Built key: ${key}`);
 
         const command = new PutObjectCommand({
           Bucket: this.bucket,
           Key: key,
-          Body: file.buffer,
-          ContentType: file.mimetype,
+          Body: normalized.buffer,
+          ContentType: normalized.contentType,
         });
 
-        await this.s3.send(command);
+        if (this.localUploadEnabled) {
+          await this.saveLocally(key, normalized.buffer);
+        } else {
+          await this.s3!.send(command);
+        }
         const publicUrl = this.buildPublicUrl(key);
 
         items.push({
           filename: file.originalname,
-          contentType: file.mimetype,
+          contentType: normalized.contentType,
           publicUrl,
           presignedUrl: '',
         });

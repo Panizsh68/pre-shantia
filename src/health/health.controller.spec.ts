@@ -31,8 +31,7 @@ describe('HealthController', () => {
   describe('getLiveness', () => {
     it('should return ok: true', async () => {
       const result = await controller.getLiveness();
-      expect(result.ok).toBe(true);
-      expect(result.timestamp).toBeDefined();
+      expect(result.status).toBe('ok');
     });
   });
 
@@ -40,19 +39,18 @@ describe('HealthController', () => {
     it('should check all components', async () => {
       const result = await controller.getReadiness();
       expect(result).toHaveProperty('ok');
-      expect(result).toHaveProperty('mongo');
-      expect(result).toHaveProperty('cache');
-      expect(result).toHaveProperty('redis');
-      expect(result).toHaveProperty('config');
-      expect(result).toHaveProperty('jwt');
+      expect(result).toHaveProperty('checks.mongo');
+      expect(result).toHaveProperty('checks.cache');
+      expect(result).toHaveProperty('checks.redis');
+      expect(result).toHaveProperty('checks.jwt');
+      expect(JSON.stringify(result)).not.toMatch(/MONGO_URL|REDIS_PASSWORD|JWT_SECRET|config|stack|message/i);
     });
   });
 
   describe('getHealth', () => {
     it('should return ok: true (alias for liveness)', async () => {
       const result = await controller.getHealth();
-      expect(result.ok).toBe(true);
-      expect(result.timestamp).toBeDefined();
+      expect(result.status).toBe('ok');
     });
   });
 });

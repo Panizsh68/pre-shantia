@@ -1,8 +1,8 @@
-import { IsIn, IsNotEmpty, IsString, IsArray, ArrayMaxSize, IsInt, Min } from 'class-validator';
+import { IsIn, IsNotEmpty, IsString, IsArray, ArrayMaxSize, ArrayMinSize, IsInt, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ImageMetaDto {
-  @IsString()
+  @IsIn(['image/jpeg', 'image/png', 'image/webp'])
   @IsNotEmpty()
   @ApiProperty({
     description: 'Original filename (without path)',
@@ -39,6 +39,7 @@ export class CreatePresignDto {
   type: 'product' | 'company';
 
   @IsArray()
+  @ArrayMinSize(1)
   @ArrayMaxSize(5)
   @ApiProperty({
     type: [ImageMetaDto],

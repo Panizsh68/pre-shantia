@@ -14,6 +14,8 @@ import { PermissionsGuard } from '../permissions/guard/permission.guard';
 import { Permission } from '../permissions/decorators/permissions.decorators';
 import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
+import { AbuseRateLimit } from 'src/common/abuse/abuse-rate-limit.decorator';
+import { AbuseRateLimitGuard } from 'src/common/abuse/abuse-rate-limit.guard';
 
 @ApiTags('Payment')
 @ApiBearerAuth()
@@ -25,7 +27,8 @@ export class PaymentController {
   ) { }
 
   @Post('initiate')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard, AbuseRateLimitGuard)
+  @AbuseRateLimit({ name: 'payment-initiate', identity: 'user', config: 'PAYMENT' })
   @Permission(Resource.PAYMENT, Action.CREATE)
   @ApiOperation({ summary: 'Initiate a payment via Zibal', description: 'This route is open for default users.' })
   @ApiBody({ type: InitiatePaymentDto })
@@ -46,7 +49,8 @@ export class PaymentController {
   }
 
   @Post('pay')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @UseGuards(AuthenticationGuard, PermissionsGuard, AbuseRateLimitGuard)
+  @AbuseRateLimit({ name: 'payment-pay', identity: 'user', config: 'PAYMENT' })
   @Permission(Resource.PAYMENT, Action.CREATE)
   @ApiOperation({ summary: 'Pay for an order using wallet or gateway', description: 'Choose method GATEWAY (external) or WALLET (internal).' })
   @ApiBody({ type: PayDto })

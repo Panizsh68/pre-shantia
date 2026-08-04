@@ -1,14 +1,13 @@
 import {
   Injectable,
-  ConflictException,
   NotFoundException,
   HttpException,
   HttpStatus,
   Inject,
   UnauthorizedException,
-  Logger,
   BadRequestException,
 } from '@nestjs/common';
+import { RedactingLogger } from 'src/infrastructure/logging/redacting-logger';
 import { TokenPayload } from './interfaces/token-payload.interface';
 import { ShahkarService } from 'src/utils/services/shahkar/shahkar.service';
 import { OtpService } from 'src/utils/services/otp/otp.service';
@@ -44,7 +43,7 @@ interface RefreshSessionInfo {
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
+  private readonly logger = new RedactingLogger(AuthService.name);
 
   constructor(
     @Inject('IUsersService') private readonly usersService: IUsersService,
@@ -65,15 +64,23 @@ export class AuthService {
     try {
       const exists = await this.usersService.findUserByPhoneNumber(createUserDto.phoneNumber);
       if (exists) {
-        throw new ConflictException('User already exists')
+        await this.otpService.sendOtpToPhone(createUserDto.phoneNumber);
+        return { phoneNumber: createUserDto.phoneNumber };
       }
 
-      const valid = await this.shahkarService.verifyMelicodeWithPhonenumber(
-        createUserDto.nationalId,
-        createUserDto.phoneNumber,
-      );
-      if (!valid) { 
-        throw new BadRequestException('Phone and National ID mismatch'); 
+      let valid = true;
+      try {
+        valid = await this.shahkarService.verifyMelicodeWithPhonenumber(
+          createUserDto.nationalId,
+          createUserDto.phoneNumber,
+        );
+      } catch (error) {
+        // Shahkar is optional during the current onboarding phase. A provider
+        // outage must not prevent a user from creating an account.
+        this.logger.warn(`[signUp] Shahkar unavailable; continuing without identity verification: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      if (!valid) {
+        throw new BadRequestException('Phone and National ID mismatch');
       }
 
       const ttl = this.configService.get<number>('OTP_TTL') ?? 300;
@@ -105,7 +112,9 @@ export class AuthService {
   async signIn(signInDto: SignInDto): Promise<SignInResponseDto> {
     try {
       const user = await this.usersService.findUserByPhoneNumber(signInDto.phoneNumber);
-      if (!user) { throw new NotFoundException('User not found'); }
+      if (!user) {
+        throw new NotFoundException('این شماره در سامانه ثبت نشده است. لطفاً ابتدا عضو شوید.');
+      }
 
       await this.otpService.sendOtpToPhone(signInDto.phoneNumber);
 

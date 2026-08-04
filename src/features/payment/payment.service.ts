@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { RedactingLogger } from 'src/infrastructure/logging/redacting-logger';
 import { TransactionStatus } from '../transaction/enums/transaction.status.enum';
 import { IZibalService } from 'src/utils/services/zibal/interfaces/zibal.service.interface';
 import { ITransactionService } from '../transaction/interfaces/transaction.service.interface';
@@ -23,7 +24,7 @@ export const ORDERS_SERVICE = 'IOrdersService';
 
 @Injectable()
 export class PaymentService {
-  private readonly logger = new Logger(PaymentService.name);
+  private readonly logger = new RedactingLogger(PaymentService.name);
   constructor(
     @Inject(IZIBAL_SERVICE) private readonly zibalService: IZibalService,
     @Inject(TRANSACTIONS_SERVICE) private readonly transactionService: ITransactionService,

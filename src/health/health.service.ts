@@ -1,9 +1,13 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
+
+export interface HealthReadinessResponse {
+  ok: boolean;
+  checks: { mongo: boolean; cache: boolean; redis: boolean; jwt: boolean };
+}
 
 @Injectable()
 export class HealthService {
@@ -11,89 +15,29 @@ export class HealthService {
     @InjectConnection() private readonly connection: Connection,
     private readonly cachingService: CachingService,
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
-  async checkLiveness(): Promise<{
-    ok: boolean;
-    timestamp: string;
-  }> {
-    return {
-      ok: true,
-      timestamp: new Date().toISOString(),
-    };
+  async checkLiveness(): Promise<{ status: 'ok' }> {
+    return { status: 'ok' };
   }
 
-  async checkReadiness(): Promise<{
-    ok: boolean;
-    mongo: { ok: boolean; readyState: number };
-    cache: { ok: boolean; store: string | null };
-    redis: { ok: boolean; error: string | null };
-    config: { ok: boolean; env: string | null; config: any };
-    jwt: { ok: boolean };
-  }> {
-    // Mongo
-    const mongo = { readyState: this.connection.readyState };
-    const mongoOk = mongo.readyState === 1;
-
-    // Cache
-    let cacheStore: string | null = null;
+  async checkReadiness(): Promise<HealthReadinessResponse> {
+    const mongoOk = this.connection.readyState === 1;
     let cacheOk = false;
-    try {
-      cacheStore = this.cachingService.getStoreName();
-      cacheOk = !!cacheStore;
-    } catch (e) {
-      cacheStore = null;
-      cacheOk = false;
-    }
+    try { cacheOk = Boolean(this.cachingService.getStoreName()); } catch { cacheOk = false; }
 
-    // Redis
     let redisOk = false;
-    let redisError = null;
     try {
       const key = `health-check-${Date.now()}`;
       const expected = `value-${Math.random()}`;
       await this.cachingService.set(key, expected, 300);
-      const stored = await this.cachingService.get(key);
-      redisOk = stored === expected;
-    } catch (err) {
-      redisOk = false;
-      redisError = err.message;
-    }
+      redisOk = (await this.cachingService.get(key)) === expected;
+    } catch { redisOk = false; }
 
-    // Config
-    let configOk = false;
-    const configEnv = process.env.NODE_ENV || null;
-    let configFull = null;
-    try {
-      const appConfig = this.configService.get('app');
-      const prodConfig = this.configService.get('config');
-      configFull = appConfig || prodConfig;
-      configOk = !!configFull;
-    } catch (e) {
-      configOk = false;
-    }
-
-    // JWT
     let jwtOk = false;
-    try {
-      const jwtToken = this.jwtService.sign({ user: 'test' });
-      const jwtDecoded = this.jwtService.decode(jwtToken);
-      jwtOk = !!jwtDecoded;
-    } catch (e) {
-      jwtOk = false;
-    }
+    try { jwtOk = Boolean(this.jwtService.decode(this.jwtService.sign({ health: true }))); } catch { jwtOk = false; }
 
-    // Overall
-    const allOk = mongoOk && cacheOk && redisOk && configOk && jwtOk;
-
-    return {
-      ok: allOk,
-      mongo: { ok: mongoOk, readyState: mongo.readyState },
-      cache: { ok: cacheOk, store: cacheStore },
-      redis: { ok: redisOk, error: redisError },
-      config: { ok: configOk, env: configEnv, config: configFull },
-      jwt: { ok: jwtOk },
-    };
+    const checks = { mongo: mongoOk, cache: cacheOk, redis: redisOk, jwt: jwtOk };
+    return { ok: Object.values(checks).every(Boolean), checks };
   }
 }

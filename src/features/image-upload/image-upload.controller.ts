@@ -1,10 +1,16 @@
-import { Body, Controller, Post, HttpCode, HttpStatus, Inject, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
+/* global Express */
+import { Body, Controller, Post, HttpCode, HttpStatus, Inject, UseInterceptors, UploadedFiles, BadRequestException, UseGuards } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ImageUploadService } from './image-upload.service';
 import { CreatePresignDto } from './dto/create-presign.dto';
 import { CreatePresignResponseDto } from './dto/presign-response.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiConsumes } from '@nestjs/swagger';
 import { IImageUploadServiceToken, IImageUploadService } from './interfaces/image-upload.service.interface';
+import { AuthenticationGuard } from 'src/features/auth/guards/auth.guard';
+import { UploadAuthorizationGuard } from './security/upload-authorization.guard';
+import { DEFAULTS } from './constants/image-upload.constants';
+import { Public } from 'src/common/decorators/public.decorator';
+import { AbuseRateLimit } from 'src/common/abuse/abuse-rate-limit.decorator';
+import { AbuseRateLimitGuard } from 'src/common/abuse/abuse-rate-limit.guard';
 
 @ApiTags('images')
 @Controller('images')
@@ -15,6 +21,7 @@ export class ImageUploadController {
   ) { }
 
   @Post('presign')
+  @UseGuards(AuthenticationGuard, UploadAuthorizationGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Generate presigned URLs for direct file uploads to cloud storage',
@@ -97,9 +104,52 @@ export class ImageUploadController {
     return this.service.createPresignedUrls(dto);
   }
 
-  @Post('upload')
+  @Post('public-company-upload')
+  @Public()
+  @UseGuards(AbuseRateLimitGuard)
+  @AbuseRateLimit({ name: 'vendor-image-upload', identity: 'ip', config: 'PUBLIC_FORM' })
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FilesInterceptor('files', 5))
+  @UseInterceptors(FilesInterceptor('files', 1, {
+    limits: {
+      files: 1,
+      fileSize: DEFAULTS.MAX_IMAGE_BYTES,
+      fields: 1,
+      fieldSize: 64 * 1024,
+      parts: 2,
+    },
+    fileFilter: (_request, file, callback) => {
+      callback(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype));
+    },
+  }))
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload a company image for a public vendor request',
+    description: 'Unauthenticated endpoint intended only for the public vendor application. The image is validated and normalized server-side.',
+  })
+  async uploadPublicCompanyImage(
+    @UploadedFiles() files: Express.Multer.File[],
+  ): Promise<CreatePresignResponseDto> {
+    if (!files || files.length !== 1) {
+      throw new BadRequestException('Exactly one company image is required');
+    }
+    return this.service.uploadFiles(files, 'company');
+  }
+
+  @Post('upload')
+  @UseGuards(AuthenticationGuard, UploadAuthorizationGuard)
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(FilesInterceptor('files', 5, {
+    limits: {
+      files: 5,
+      fileSize: DEFAULTS.MAX_IMAGE_BYTES,
+      fields: 4,
+      fieldSize: 64 * 1024,
+      parts: 10,
+    },
+    fileFilter: (_request, file, callback) => {
+      callback(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype));
+    },
+  }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Upload files directly to cloud storage (no presign needed)',

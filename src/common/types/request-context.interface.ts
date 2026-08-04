@@ -4,4 +4,5 @@ export interface RequestContext {
   userAgent: string;
   ip: string;
   user?: TokenPayload;
+  requestId?: string;
 }

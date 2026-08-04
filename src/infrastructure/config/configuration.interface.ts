@@ -12,6 +12,9 @@ export interface Config {
   KAVENEGAR_API_KEY?: string;
   KAVENEGAR_TEMPLATE?: string;
   KAVENEGAR_SENDER?: string;
+  SHAHKAR_BASE_URL?: string;
+  SHAHKAR_API_KEY?: string;
+  MOCK_PROVIDERS_ENABLED?: boolean;
   SUPERADMIN_PHONE?: string;
   SUPERADMIN_MELICODE?: string;
   ZIBAL_MERCHANT_ID?: string;
@@ -21,6 +24,14 @@ export interface Config {
   ZIBAL_SECRET_KEY?: string;
   ZIBAL_LOG_LEVEL?: number;
   APP_URL: string;
+  PAYMENT_CALLBACK_SECRET?: string;
+  ENABLE_SWAGGER?: boolean;
+  SWAGGER_USERNAME?: string;
+  SWAGGER_PASSWORD?: string;
+  HEALTH_READINESS_TOKEN?: string;
+  LOG_LEVEL?: string;
+  RATE_LIMITS?: Record<string, number>;
+  TRUSTED_PROXY_HOPS?: number;
   R2_ENDPOINT?: string;
   R2_ACCESS_KEY?: string;
   R2_SECRET_KEY?: string;

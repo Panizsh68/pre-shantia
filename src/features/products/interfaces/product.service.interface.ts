@@ -9,6 +9,7 @@ import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interfa
 export interface IProductService {
   advancedSearchAggregate(params: {
     query?: string;
+    minPrice?: number;
     maxPrice?: number;
     companyName?: string;
     categoryIds?: string[];

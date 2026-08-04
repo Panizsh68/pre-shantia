@@ -26,6 +26,8 @@ import { AuthenticationGuard } from './guards/auth.guard';
 import { IUsersService } from '../users/interfaces/user.service.interface';
 import { UpdateUserPermissionsDto } from 'src/features/users/dto/update-user-permissions.dto';
 import { randomBytes } from 'crypto';
+import { AbuseRateLimit } from 'src/common/abuse/abuse-rate-limit.decorator';
+import { AbuseRateLimitGuard } from 'src/common/abuse/abuse-rate-limit.guard';
 
 const CSRF_COOKIE = 'csrfToken';
 const CSRF_HEADER = 'x-csrf-token';
@@ -77,6 +79,8 @@ export class AuthController {
 
   @Public()
   @Post('signup')
+  @UseGuards(AbuseRateLimitGuard)
+  @AbuseRateLimit({ name: 'signup-phone', identity: 'phone', config: 'OTP_REQUEST_PHONE' }, { name: 'signup-ip', identity: 'ip', config: 'OTP_REQUEST_IP' })
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({
     status: 201,
@@ -89,6 +93,8 @@ export class AuthController {
 
   @Public()
   @Post('signin')
+  @UseGuards(AbuseRateLimitGuard)
+  @AbuseRateLimit({ name: 'login', identity: 'phone-ip', config: 'LOGIN' }, { name: 'otp-request-ip', identity: 'ip', config: 'OTP_REQUEST_IP' })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Sign in with credentials' })
   @ApiResponse({ status: 200, description: 'User signed in successfully', type: SignInResponseDto })
@@ -98,6 +104,8 @@ export class AuthController {
 
   @Public()
   @Post('verify-otp')
+  @UseGuards(AbuseRateLimitGuard)
+  @AbuseRateLimit({ name: 'otp-verify', identity: 'phone', config: 'OTP_VERIFY' })
   @ApiOperation({ summary: 'Verify OTP code' })
   @ApiResponse({
     status: 200,
@@ -146,6 +154,8 @@ export class AuthController {
 
   @Public()
   @Post('refresh')
+  @UseGuards(AbuseRateLimitGuard)
+  @AbuseRateLimit({ name: 'refresh', identity: 'session', config: 'REFRESH' })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token using a refresh token' })
   @ApiBody({

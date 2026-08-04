@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { HealthController } from './health.controller';
 import { HealthService } from './health.service';
 import { CachingModule } from 'src/infrastructure/caching/caching.module';
+import { HealthReadinessGuard } from './health-readiness.guard';
 
 @Module({
   imports: [
@@ -14,6 +15,6 @@ import { CachingModule } from 'src/infrastructure/caching/caching.module';
     CachingModule,
   ],
   controllers: [HealthController],
-  providers: [HealthService],
+  providers: [HealthService, HealthReadinessGuard],
 })
 export class HealthModule { }

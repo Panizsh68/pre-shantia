@@ -18,6 +18,7 @@ export interface IProductRepository extends IBaseCrudRepository<Product>, IBaseA
   advancedSearchAggregate(
     params: {
       query?: string;
+      minPrice?: number;
       maxPrice?: number;
       companyName?: string;
       categoryIds?: string[];
@@ -117,6 +118,7 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
   async advancedSearchAggregate(
     params: {
       query?: string;
+      minPrice?: number;
       maxPrice?: number;
       companyName?: string;
       categoryIds?: string[];
@@ -128,6 +130,7 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
   ): Promise<Product[]> {
     const {
       query,
+      minPrice,
       maxPrice,
       companyName,
       categoryIds,
@@ -144,8 +147,11 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
         },
       });
     }
-    if (maxPrice !== undefined) {
-      pipeline.push({ $match: { basePrice: { $lte: maxPrice } } });
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      const priceRange: Record<string, number> = {};
+      if (minPrice !== undefined) priceRange.$gte = minPrice;
+      if (maxPrice !== undefined) priceRange.$lte = maxPrice;
+      pipeline.push({ $match: { basePrice: priceRange } });
     }
     if (companyName && companyName.trim()) {
       pipeline.push({

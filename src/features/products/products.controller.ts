@@ -67,6 +67,13 @@ export class ProductsController {
     example: 'laptop',
   })
   @ApiQuery({
+    name: 'minPrice',
+    required: false,
+    type: Number,
+    description: 'Minimum basePrice (>= 0).',
+    example: 100,
+  })
+  @ApiQuery({
     name: 'maxPrice',
     required: false,
     type: Number,
@@ -112,6 +119,7 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'Advanced search results returned', type: ProductResponseDto, isArray: true })
   async advancedSearch(
     @Query('query') query?: string,
+    @Query('minPrice') minPrice?: string,
     @Query('maxPrice') maxPrice?: string,
     @Query('companyName') companyName?: string,
     @Query('categoryIds') categoryIds?: string[],
@@ -120,13 +128,21 @@ export class ProductsController {
     @Query('sort') sort?: string,
   ) {
     // eslint-disable-next-line no-console
-    console.log('[ProductsController.advancedSearch] entry', { query, maxPrice, companyName, categoryIds, page, limit, sort });
+    console.log('[ProductsController.advancedSearch] entry', { query, minPrice, maxPrice, companyName, categoryIds, page, limit, sort });
     const params: Record<string, unknown> = {};
     if (query) { params.query = query; }
+    if (minPrice !== undefined) {
+      const parsedMinPrice = parseFloat(minPrice);
+      if (isNaN(parsedMinPrice) || parsedMinPrice < 0) { throw new BadRequestException('minPrice must be a non-negative number'); }
+      params.minPrice = parsedMinPrice;
+    }
     if (maxPrice !== undefined) {
       const parsedMaxPrice = parseFloat(maxPrice);
       if (isNaN(parsedMaxPrice) || parsedMaxPrice < 0) { throw new BadRequestException('maxPrice must be a non-negative number'); }
       params.maxPrice = parsedMaxPrice;
+    }
+    if (params.minPrice !== undefined && params.maxPrice !== undefined && (params.minPrice as number) > (params.maxPrice as number)) {
+      throw new BadRequestException('minPrice cannot be greater than maxPrice');
     }
     if (companyName) { params.companyName = companyName; }
     if (categoryIds) { params.categoryIds = Array.isArray(categoryIds) ? categoryIds : [categoryIds]; }
