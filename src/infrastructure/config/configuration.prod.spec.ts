@@ -18,6 +18,13 @@ describe('production configuration validation', () => {
   it('accepts complete runtime configuration', () => {
     expect(validateProductionEnvironment(validEnvironment()).PAYMENT_CALLBACK_SECRET).toBeDefined();
   });
+  it('allows Shahkar to be disabled without provider credentials', () => {
+    const env = validEnvironment();
+    env.SHAHKAR_ENABLED = 'false';
+    delete env.SHAHKAR_BASE_URL;
+    delete env.SHAHKAR_API_KEY;
+    expect(validateProductionEnvironment(env).SHAHKAR_ENABLED).toBe(false);
+  });
   it('rejects missing callback secret', () => {
     const env = validEnvironment(); delete env.PAYMENT_CALLBACK_SECRET;
     expect(() => validateProductionEnvironment(env)).toThrow(/PAYMENT_CALLBACK_SECRET/);

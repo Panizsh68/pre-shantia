@@ -7,7 +7,7 @@ export interface ProductionCoreConfig {
   JWT_ACCESS_SECRET: string; JWT_REFRESH_SECRET: string; JWT_SECRET_KEY: string;
   REDIS_HOST: string; REDIS_PORT: number; REDIS_PASSWORD: string; OTP_TTL: number;
   KAVENEGAR_API_KEY: string; KAVENEGAR_TEMPLATE: string; KAVENEGAR_SENDER: string;
-  SHAHKAR_BASE_URL: string; SHAHKAR_API_KEY: string; MOCK_PROVIDERS_ENABLED: boolean;
+  SHAHKAR_ENABLED: boolean; SHAHKAR_BASE_URL: string; SHAHKAR_API_KEY: string; MOCK_PROVIDERS_ENABLED: boolean;
   ZIBAL_MERCHANT_ID: string; ZIBAL_SANDBOX: boolean; ZIBAL_CALLBACK_URL: string;
   ZIBAL_SECRET_KEY: string; ZIBAL_LOG_LEVEL: number; APP_URL: string;
   PAYMENT_CALLBACK_SECRET: string; SUPERADMIN_MELICODE: string; SUPERADMIN_PHONE: string;
@@ -65,8 +65,9 @@ export function validateProductionEnvironment(env: NodeJS.ProcessEnv = process.e
     KAVENEGAR_API_KEY: requiredSecret('KAVENEGAR_API_KEY', env, 5),
     KAVENEGAR_TEMPLATE: requiredEnv('KAVENEGAR_TEMPLATE', env),
     KAVENEGAR_SENDER: requiredEnv('KAVENEGAR_SENDER', env),
-    SHAHKAR_BASE_URL: requiredEnv('SHAHKAR_BASE_URL', env),
-    SHAHKAR_API_KEY: requiredSecret('SHAHKAR_API_KEY', env, 16),
+    SHAHKAR_ENABLED: parseBoolean('SHAHKAR_ENABLED', env, false),
+    SHAHKAR_BASE_URL: parseBoolean('SHAHKAR_ENABLED', env, false) ? requiredEnv('SHAHKAR_BASE_URL', env) : (env.SHAHKAR_BASE_URL?.trim() || ''),
+    SHAHKAR_API_KEY: parseBoolean('SHAHKAR_ENABLED', env, false) ? requiredSecret('SHAHKAR_API_KEY', env, 16) : (env.SHAHKAR_API_KEY?.trim() || ''),
     MOCK_PROVIDERS_ENABLED: parseBoolean('MOCK_PROVIDERS_ENABLED', env, false),
     ZIBAL_MERCHANT_ID: requiredEnv('ZIBAL_MERCHANT_ID', env),
     ZIBAL_SANDBOX: parseBoolean('ZIBAL_SANDBOX', env, false),
