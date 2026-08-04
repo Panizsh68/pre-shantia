@@ -118,8 +118,8 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  // Use BACKEND_PORT to avoid conflict with Nuxt on 9002
-  const port = process.env.BACKEND_PORT || 3001;
+  // Keep the container port aligned with Docker healthchecks; allow a local override.
+  const port = Number(process.env.BACKEND_PORT || configService.get<number>('port') || 3000);
   await app.listen(port, '0.0.0.0');
   
   logger.log(`🚀 Backend API is running on: http://localhost:${port}/api`);
