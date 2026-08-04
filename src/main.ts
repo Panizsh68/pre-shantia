@@ -86,7 +86,10 @@ async function bootstrap(): Promise<void> {
   );
   app.useGlobalFilters(new ProductionExceptionFilter());
 
-  const swaggerEnabled = configService.get<boolean>('ENABLE_SWAGGER') ?? process.env.NODE_ENV !== 'production';
+  const swaggerSetting = configService.get<string | boolean>('ENABLE_SWAGGER');
+  const swaggerEnabled = swaggerSetting === undefined || swaggerSetting === null
+    ? process.env.NODE_ENV !== 'production'
+    : swaggerSetting === true || swaggerSetting === 'true';
   if (swaggerEnabled) {
     const production = process.env.NODE_ENV === 'production';
     const swaggerUsername = configService.get<string>('SWAGGER_USERNAME') || '';
