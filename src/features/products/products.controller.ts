@@ -12,6 +12,7 @@ import {
   Inject,
   UseGuards,
   BadRequestException,
+  ForbiddenException,
   Header,
 } from '@nestjs/common';
 import { SortOrder } from 'src/libs/repository/interfaces/base-repo-options.interface';
@@ -24,6 +25,7 @@ import {
   ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { Types } from 'mongoose';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -127,8 +129,6 @@ export class ProductsController {
     @Query('limit') limit?: string,
     @Query('sort') sort?: string,
   ) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.advancedSearch] entry', { query, minPrice, maxPrice, companyName, categoryIds, page, limit, sort });
     const params: Record<string, unknown> = {};
     if (query) { params.query = query; }
     if (minPrice !== undefined) {
@@ -145,7 +145,15 @@ export class ProductsController {
       throw new BadRequestException('minPrice cannot be greater than maxPrice');
     }
     if (companyName) { params.companyName = companyName; }
-    if (categoryIds) { params.categoryIds = Array.isArray(categoryIds) ? categoryIds : [categoryIds]; }
+    if (categoryIds) {
+      const normalizedCategoryIds = [...new Set(Array.isArray(categoryIds) ? categoryIds : [categoryIds])]
+        .map((id) => id.trim())
+        .filter(Boolean);
+      if (normalizedCategoryIds.some((id) => !Types.ObjectId.isValid(id))) {
+        throw new BadRequestException('categoryIds شامل شناسه دسته‌بندی نامعتبر است.');
+      }
+      params.categoryIds = normalizedCategoryIds;
+    }
     if (page !== undefined) {
       const parsedPage = parseInt(page, 10);
       if (isNaN(parsedPage) || parsedPage < 1) { throw new BadRequestException('Page must be a positive integer'); }
@@ -159,12 +167,8 @@ export class ProductsController {
     if (sort) { params.sort = sort; }
     try {
       const result = await this.productsService.advancedSearchAggregate(params);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.advancedSearch] success count=', Array.isArray(result) ? result.length : 0);
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.advancedSearch] error', err);
       throw err;
     }
   }
@@ -185,8 +189,6 @@ export class ProductsController {
     @Query('page') page?: string,
     @Query('sort') sort?: string,
   ) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.searchByPriceAndCompany] entry', { maxPrice, companyName, limit, page, sort });
     const options: FindManyOptions = {};
     if (limit) {
       const parsedLimit = parseInt(limit, 10);
@@ -219,12 +221,8 @@ export class ProductsController {
     }
     try {
       const result = await this.productsService.searchByPriceAndCompany({ maxPrice: max, companyName }, options);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.searchByPriceAndCompany] success count=', Array.isArray(result) ? result.length : 0);
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.searchByPriceAndCompany] error', err);
       throw err;
     }
   }
@@ -241,11 +239,7 @@ export class ProductsController {
     @Query('limit') limit?: string,
     @Query('page') page?: string,
   ) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.searchProducts] entry', { query, limit, page });
     if (!query || typeof query !== 'string' || !query.trim()) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.searchProducts] bad request missing query');
       throw new BadRequestException('Query parameter is required');
     }
     const options: FindManyOptions = {};
@@ -265,12 +259,8 @@ export class ProductsController {
     }
     try {
       const result = await this.productsService.searchProducts(query, options);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.searchProducts] success count=', Array.isArray(result) ? result.length : 0);
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.searchProducts] error', err);
       throw err;
     }
   }
@@ -290,17 +280,10 @@ export class ProductsController {
     @CurrentUser() user: TokenPayload,
     @RequestContext() ctx: IRequestContext,
   ) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.create] entry userId=', user?.userId, 'dtoKeys=', Object.keys(dto || {}).join(','));
     try {
       const result = this.productsService.create(dto, user.userId, user as TokenPayload);
-      // Note: result may be a Promise; controller can return it directly. Log after resolution if needed inside service.
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.create] forwarded to service');
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.create] error', err);
       throw err;
     }
   }
@@ -316,8 +299,6 @@ export class ProductsController {
     @Query('limit') limit?: string,
     @Query('page') page?: string,
   ) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.findAll] entry', { limit, page });
     const options: FindManyOptions = {};
     if (limit) {
       const parsedLimit = parseInt(limit, 10);
@@ -335,12 +316,8 @@ export class ProductsController {
     }
     try {
       const result = this.productsService.findAll(options);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.findAll] forwarded to service');
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.findAll] error', err);
       throw err;
     }
   }
@@ -348,7 +325,7 @@ export class ProductsController {
   @Get('admin/all-products')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
   @ApiBearerAuth()
-  @Permission(Resource.PRODUCTS, Action.CREATE)
+  @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({
     summary: 'Get all products (all statuses) for admin/editor',
     description: 'Retrieves all products including ACTIVE, DRAFT, DELETED, etc. Only accessible to users with CREATE or UPDATE permission on PRODUCTS.'
@@ -356,6 +333,7 @@ export class ProductsController {
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'sort', required: false, type: String, example: 'createdAt:desc' })
+  @ApiQuery({ name: 'filter', required: false, type: String, description: 'Search by product name, slug, or SKU' })
   @ApiResponse({ status: 200, description: 'List of all products returned (all statuses)' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
@@ -363,18 +341,16 @@ export class ProductsController {
     @Query('limit') limit?: string,
     @Query('page') page?: string,
     @Query('sort') sort?: string,
+    @Query('filter') filter?: string,
     @CurrentUser() user?: TokenPayload,
   ) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.findAllForAdmin] entry', { limit, page, sort, userId: user?.userId });
-
-    // Additional permission check: user must have CREATE or UPDATE on PRODUCTS
+    // The route guard checks READ; this explicit check also supports editors.
     const hasPermission = user?.permissions?.some(p =>
       p.resource === Resource.PRODUCTS &&
-      (p.actions.includes(Action.CREATE) || p.actions.includes(Action.UPDATE))
+      (p.actions.includes(Action.READ) || p.actions.includes(Action.CREATE) || p.actions.includes(Action.UPDATE))
     );
     if (!hasPermission) {
-      throw new Error('Forbidden: insufficient permissions');
+      throw new ForbiddenException('برای مشاهده محصولات مجوز کافی ندارید.');
     }
 
     const options: FindManyOptions = {};
@@ -399,14 +375,20 @@ export class ProductsController {
       }
       options.sort = [{ field, order: order.toLowerCase() === 'asc' ? SortOrder.ASC : SortOrder.DESC }];
     }
+    if (filter?.trim()) {
+      const escapedFilter = filter.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      options.conditions = {
+        $or: [
+          { name: { $regex: escapedFilter, $options: 'i' } },
+          { slug: { $regex: escapedFilter, $options: 'i' } },
+          { sku: { $regex: escapedFilter, $options: 'i' } },
+        ],
+      };
+    }
     try {
-      const result = await this.productsService.findAllForAdmin(options);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.findAllForAdmin] forwarded to service');
+      const result = await this.productsService.findAllForAdminPage(options);
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.findAllForAdmin] error', err);
       throw err;
     }
   }
@@ -423,8 +405,6 @@ export class ProductsController {
     @Query('page') page?: string,
     @Query('sort') sort?: string,
   ) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.findByCompanyId] entry', { companyId, limit, page, sort });
     const options: FindManyOptions = {};
     if (limit) {
       const parsedLimit = parseInt(limit, 10);
@@ -443,12 +423,8 @@ export class ProductsController {
     }
     try {
       const result = await this.productsService.findByCompanyId(companyId, options);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.findByCompanyId] success count=', Array.isArray(result) ? result.length : 0);
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.findByCompanyId] error', err);
       throw err;
     }
   }
@@ -461,22 +437,14 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'Top products returned', type: [ProductResponseDto] })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getTopProducts(@Query('limit') limit?: string) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.getTopProducts] entry limit=', limit);
     const lim = limit ? parseInt(limit, 10) : 5;
     if (isNaN(lim) || lim < 1) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.getTopProducts] bad request invalid limit=', limit);
       throw new BadRequestException('Limit must be a positive integer');
     }
     try {
       const result = await this.productsService.getTopProductsByRating(lim);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.getTopProducts] forwarded to service limit=', lim);
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.getTopProducts] error', err);
       throw err;
     }
   }
@@ -491,8 +459,6 @@ export class ProductsController {
     @Query('limit') limit?: string,
     @Query('page') page?: string,
   ) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.getOffers] entry', { limit, page });
     const options: FindManyOptions = {};
     if (limit) {
       const parsedLimit = parseInt(limit, 10);
@@ -506,12 +472,8 @@ export class ProductsController {
     }
     try {
       const result = await this.productsService.getOffers(options);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.getOffers] success count=', Array.isArray(result) ? result.length : 0);
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.getOffers] error', err);
       throw err;
     }
   }
@@ -523,16 +485,10 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'Product found', type: ProductResponseDto })
   @ApiResponse({ status: 404, description: 'Product not found' })
   findOne(@Param('id') id: string) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.findOne] entry id=', id);
     try {
       const result = this.productsService.findOne(id);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.findOne] forwarded to service id=', id);
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.findOne] error', err);
       throw err;
     }
   }
@@ -553,16 +509,10 @@ export class ProductsController {
     @Body() dto: UpdateProductDto,
     @CurrentUser() user: TokenPayload,
   ) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.update] entry id=', id, 'userId=', user?.userId, 'dtoKeys=', Object.keys(dto || {}).join(','));
     try {
       const result = this.productsService.transactionalUpdate(id, dto, user.userId, user as TokenPayload);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.update] forwarded to service id=', id);
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.update] error', err);
       throw err;
     }
   }
@@ -583,16 +533,10 @@ export class ProductsController {
     @Body() dto: UpdateProductStatusDto,
     @CurrentUser() user: TokenPayload,
   ) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.updateStatus] entry id=', id, 'userId=', user?.userId, 'status=', dto?.status);
     try {
       const updated = await this.productsService.updateStatus(id, dto.status, user.userId, user);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.updateStatus] success id=', id, 'status=', dto.status);
       return updated;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.updateStatus] error', err);
       throw err;
     }
   }
@@ -611,16 +555,10 @@ export class ProductsController {
     @Param('id') id: string,
     @CurrentUser() user: TokenPayload,
   ) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.remove] entry id=', id, 'userId=', user?.userId);
     try {
       const result = await this.productsService.transactionalRemove(id, user.userId, user as TokenPayload);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.remove] success id=', id);
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.remove] error', err);
       throw err;
     }
   }
@@ -631,16 +569,10 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'Number of products returned', type: CountDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   countByCategory(@Param('categoryId') categoryId: string) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.countByCategory] entry categoryId=', categoryId);
     try {
       const result = this.productsService.countByCategory(categoryId);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.countByCategory] forwarded to service');
       return result;
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.countByCategory] error', err);
       throw err;
     }
   }
@@ -654,16 +586,10 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'Existence result', type: ExistsDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async existsByName(@Param('name') name: string) {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.existsByName] entry name=', name);
     try {
       const exists = await this.productsService.existsByName(name);
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.existsByName] result=', exists);
       return { exists };
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.existsByName] error', err);
       throw err;
     }
   }
@@ -673,16 +599,10 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'Total count returned', type: CountDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async count() {
-    // eslint-disable-next-line no-console
-    console.log('[ProductsController.count] entry');
     try {
       const count = await this.productsService.count();
-      // eslint-disable-next-line no-console
-      console.log('[ProductsController.count] result=', count);
       return { count };
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductsController.count] error', err);
       throw err;
     }
   }

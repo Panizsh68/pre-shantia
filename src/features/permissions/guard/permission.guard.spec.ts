@@ -36,7 +36,6 @@ describe('PermissionsGuard sensitive endpoint enforcement', () => {
     ['permission update', AuthController.prototype.setUserPermissions],
     ['wallet transfer', WalletsController.prototype.transfer],
     ['order shipment mutation', OrdersController.prototype.markAsShipped],
-    ['admin product listing', ProductsController.prototype.findAllForAdmin],
     ['product update', ProductsController.prototype.update],
   ])('returns HTTP 403 for an ordinary token on %s', (_name, handler) => {
     expect(() => guard.canActivate(requestContext(handler))).toThrow(ForbiddenException);

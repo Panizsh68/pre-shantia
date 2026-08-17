@@ -70,7 +70,7 @@ export function checkResourceAccess(
 export function canAccessOwnResource(
   user: TokenPayload | undefined,
   resourceOwnerId: string,
-  throwError = true
+  throwError = false
 ): boolean {
   if (!user) {
     if (throwError) throw new BadRequestException('User not authenticated');
@@ -121,9 +121,16 @@ export function canAccessCompanyResource(
   // Superadmin always has access
   if (isSuperAdmin(user)) return true;
 
-  // Check if user has company-scoped permission
+  // A global companies permission applies to every company. A scoped
+  // permission must match the requested company exactly.
   return user.permissions?.some(
-    p => p.companyId && p.companyId.toString() === companyId
+    p => p.resource === Resource.COMPANIES &&
+      (p.actions.includes(Action.MANAGE) ||
+        p.actions.includes(Action.READ) ||
+        p.actions.includes(Action.CREATE) ||
+        p.actions.includes(Action.UPDATE) ||
+        p.actions.includes(Action.DELETE)) &&
+      (!p.companyId || p.companyId.toString() === companyId)
   ) || false;
 }
 

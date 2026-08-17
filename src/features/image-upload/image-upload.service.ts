@@ -31,16 +31,13 @@ export class ImageUploadService {
     private readonly malwareScanner: UnavailableMalwareScanner,
   ) {
     const r2Config = this.configService.get('config.r2');
-    this.logger.log(`[constructor] Loading R2 config...`);
-    this.logger.debug(`[constructor] r2Config: ${r2Config ? 'found' : 'not found'}`);
 
     this.bucket = r2Config?.bucket || '';
     this.publicBaseUrl = r2Config?.publicBaseUrl;
-    this.localUploadEnabled = this.configService.get<string>('NODE_ENV') !== 'production' && !this.s3;
-    this.appUrl = (this.configService.get<string>('APP_URL') || 'http://localhost:3001').replace(/\/$/, '');
+    const nodeEnv = String(this.configService.get('NODE_ENV') || '').toLowerCase();
+    this.localUploadEnabled = nodeEnv !== 'production' && !this.s3;
+    this.appUrl = String(this.configService.get('APP_URL') || 'http://localhost:3001').replace(/\/$/, '');
 
-    this.logger.log(`[constructor] bucket=${this.bucket || 'EMPTY'}, publicBaseUrl=${this.publicBaseUrl || 'EMPTY'}`);
-    this.logger.log(`[constructor] s3Client available: ${this.s3 ? 'YES' : 'NO'}`);
 
     // Load configurable limits from env or use defaults
     this.maxImageBytes = parseInt(process.env.MAX_IMAGE_BYTES || String(DEFAULTS.MAX_IMAGE_BYTES), 10);
@@ -48,12 +45,9 @@ export class ImageUploadService {
     this.maxProductImages = parseInt(process.env.MAX_PRODUCT_IMAGES || String(DEFAULTS.MAX_PRODUCT_IMAGES), 10);
     this.maxCompanyImages = parseInt(process.env.MAX_COMPANY_IMAGES || String(DEFAULTS.MAX_COMPANY_IMAGES), 10);
 
-    this.logger.log(`[constructor] Limits: maxImageBytes=${this.maxImageBytes}, presignSeconds=${this.presignExpiresSeconds}, maxProduct=${this.maxProductImages}, maxCompany=${this.maxCompanyImages}`);
   }
 
   async createPresignedUrls(dto: CreatePresignDto): Promise<CreatePresignResponseDto> {
-    this.logger.log(`[createPresignedUrls] ENTRY: type=${dto.type} fileCount=${dto.files?.length || 0}`);
-
     if (!this.s3 && !this.localUploadEnabled) {
       this.logger.error('[createPresignedUrls] FAIL: R2 S3 client is null');
       throw new InternalServerErrorException('R2 S3 client is not configured. Please set R2 endpoint and credentials.');
@@ -64,13 +58,11 @@ export class ImageUploadService {
       throw new InternalServerErrorException('R2 bucket is not configured (R2_BUCKET)');
     }
 
-    this.logger.log(`[createPresignedUrls] S3 client ready, bucket=${this.bucket}`);
     this.validateDto(dto);
 
     const items: PresignItemDto[] = [];
 
     for (const file of dto.files) {
-      this.logger.log(`[createPresignedUrls] Processing file: ${file.filename} (${file.size} bytes, ${file.contentType})`);
       this.validateFileSize(file);
       const key = this.buildKey(dto.type, file.filename);
       if (this.localUploadEnabled) {
@@ -84,7 +76,6 @@ export class ImageUploadService {
       items.push({ filename: file.filename, contentType: file.contentType, presignedUrl, publicUrl });
     }
 
-    this.logger.log(`[createPresignedUrls] SUCCESS: Generated ${items.length} presigned URLs`);
     return { items };
   }
 

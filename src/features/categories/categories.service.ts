@@ -65,8 +65,6 @@ export class CategoriesService implements ICategoryService {
       populate: Object.keys(conditions).length > 0 ? ['companyId', 'parentId'] : undefined
     };
 
-    console.log('findAll service - sanitized options:', sanitizedOptions);
-
     return this.categoryRepository.findAll(sanitizedOptions);
   }
 

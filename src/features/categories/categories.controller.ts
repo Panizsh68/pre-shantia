@@ -90,7 +90,6 @@ export class CategoriesController {
     @Query('_id') _id?: string,
     @Query('parentId') parentId?: string,
   ): Promise<ICategory[]> {
-    console.log('findAll - raw query:', { limit, page, _id, parentId });
     const options: FindManyOptions = {};
     options.conditions = {};
 
@@ -127,11 +126,9 @@ export class CategoriesController {
         options.conditions.parentId = new Types.ObjectId(parentId);
       }
 
-      console.log('findAll - final options:', options);
       return await this.categoriesService.findAll(options);
 
     } catch (error) {
-      console.error('findAll - error:', error);
       if (error instanceof BadRequestException) {
         throw error;
       }
@@ -169,8 +166,6 @@ export class CategoriesController {
     @Body() dto: UpdateCategoryDto,
     @CurrentUser() user: TokenPayload,
   ): Promise<ICategory> {
-    console.log('update - request:', { id, dto, userId: user.userId });
-
     try {
       // Validate ID first
       if (!Types.ObjectId.isValid(id)) {
@@ -193,10 +188,8 @@ export class CategoriesController {
       }
 
       const result = await this.categoriesService.update(id, categoryData, user.userId);
-      console.log('update - success:', { id: result._id });
       return result;
     } catch (error) {
-      console.error('update - error:', error);
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }
@@ -221,8 +214,6 @@ export class CategoriesController {
     @Param('id') id: string,
     @CurrentUser() user: TokenPayload,
   ): Promise<void> {
-    console.log('remove - request:', { id, userId: user.userId });
-
     try {
       // Validate ID first
       if (!Types.ObjectId.isValid(id)) {
@@ -230,9 +221,7 @@ export class CategoriesController {
       }
 
       await this.categoriesService.remove(id, user.userId);
-      console.log('remove - success:', { id });
     } catch (error) {
-      console.error('remove - error:', error);
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }
@@ -268,8 +257,6 @@ export class CategoriesController {
     @Param('id') id: string,
     @Body('status') status: CategoryStatus,
   ): Promise<ICategory> {
-    console.log('setStatus - request:', { id, status, userId: user.userId });
-
     try {
       // Validate ID first
       if (!Types.ObjectId.isValid(id)) {
@@ -282,10 +269,8 @@ export class CategoriesController {
       }
 
       const result = await this.categoriesService.setStatus(id, status, user.userId);
-      console.log('setStatus - success:', { id: result._id, status: result.status });
       return result;
     } catch (error) {
-      console.error('setStatus - error:', error);
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }

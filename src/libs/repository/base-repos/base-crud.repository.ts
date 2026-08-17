@@ -91,10 +91,6 @@ export class BaseCrudRepository<T extends Document> implements IBaseCrudReposito
       });
     }
 
-    // Debug logs for conditions
-    console.log('findManyByCondition - original condition:', condition);
-    console.log('findManyByCondition - sanitized condition:', sanitizedCondition);
-
     return this.handleOperation(
       () =>
         this.applyQueryOptions(this.model.find(sanitizedCondition as FilterQuery<T>), options)

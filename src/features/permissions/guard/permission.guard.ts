@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@
 import { Reflector } from '@nestjs/core';
 import { PERMISSION_KEY, PermissionMeta } from '../decorators/permissions.decorators';
 import { PermissionsService } from '../permissions.service';
+import { Action } from '../enums/actions.enum';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -21,7 +22,10 @@ export class PermissionsGuard implements CanActivate {
     let companyId = request.body?.companyId || request.params?.companyId || request.query?.companyId || undefined;
 
     if (!companyId && user?.permissions) {
-      const perm = user.permissions.find(p => p.resource === permissionMeta.resource && p.actions.includes(permissionMeta.action));
+      const perm = user.permissions.find(p =>
+        p.resource === permissionMeta.resource &&
+        (p.actions.includes(permissionMeta.action) || p.actions.includes(Action.MANAGE)),
+      );
       companyId = perm?.companyId;
     }
     if (!this.permissionsService.hasPermission(user?.permissions, permissionMeta.resource, permissionMeta.action, companyId)) {

@@ -37,8 +37,8 @@ export class OtpService {
     const otp = this.otpGenerator.generate();
     const challengeId = randomUUID();
     await this.cachingService.setRaw(challengeKey, `${challengeId}|${this.digest(phoneNumber, otp)}|0`, this.ttlSeconds);
-    const nodeEnv = this.configService.get<string>('NODE_ENV')?.toLowerCase();
-    const debugOtpLogs = this.configService.get<string>('OTP_DEBUG_LOGS') === 'true';
+    const nodeEnv = String(this.configService.get('NODE_ENV') || '').toLowerCase();
+    const debugOtpLogs = String(this.configService.get('OTP_DEBUG_LOGS') || '').toLowerCase() === 'true';
     const shouldLogOtp = nodeEnv === 'development' || (debugOtpLogs && nodeEnv !== 'production');
     if (shouldLogOtp) this.logger.debugOtp(otp, true);
     try {

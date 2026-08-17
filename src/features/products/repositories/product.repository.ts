@@ -168,7 +168,11 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
     if (categoryIds && Array.isArray(categoryIds) && categoryIds.length > 0) {
       pipeline.push({
         $match: {
-          categories: { $in: categoryIds.map(id => id.length === 24 ? new Types.ObjectId(id) : id) },
+          categories: {
+            $in: categoryIds
+              .filter((id) => Types.ObjectId.isValid(id))
+              .map((id) => new Types.ObjectId(id)),
+          },
         },
       });
     }
