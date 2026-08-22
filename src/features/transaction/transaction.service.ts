@@ -4,6 +4,7 @@ import { Transaction } from './schema/transaction.schema';
 import { CreateTransactionDto } from './dtos/create-transaction.dto';
 import { ITransactionRepository } from './repositories/transaction.repository';
 import { ITransactionService } from './interfaces/transaction.service.interface';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class TransactionService implements ITransactionService {
@@ -16,7 +17,12 @@ export class TransactionService implements ITransactionService {
     session?: ClientSession,
   ): Promise<Transaction> {
     // normalize nullable trackId to undefined to satisfy schema typing
-    const normalized = { ...createTransactionDto } as any;
+    const normalized = {
+      ...createTransactionDto,
+      // localId is generated server-side for every transaction path. It is
+      // intentionally not accepted from the public wallet request.
+      localId: createTransactionDto.localId || uuidv4(),
+    } as any;
     if (normalized.trackId === null) { normalized.trackId = undefined; }
     const transaction = await this.transactionRepository.createOne(normalized, session);
     return transaction;
