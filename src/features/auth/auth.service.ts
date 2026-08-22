@@ -240,7 +240,7 @@ export class AuthService {
       const payload = await this.tokensService.validateRefreshToken(refreshToken, context);
       const sessionInfo = await this.cacheService.get<RefreshSessionInfo>(`refresh-info:${refreshToken}`);
       
-      if (!sessionInfo || sessionInfo.ip !== context.ip) {
+      if (!sessionInfo) {
         throw new UnauthorizedException('Session mismatch');
       }
 

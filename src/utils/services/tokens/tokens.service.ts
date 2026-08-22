@@ -154,7 +154,6 @@ export class TokensService<
       }>(`refresh-info:${token}`);
       if (
         !sessionInfo ||
-        sessionInfo.ip !== context.ip ||
         sessionInfo.userAgent !== context.userAgent
       ) {
         throw new UnauthorizedException('Session context mismatch.');
