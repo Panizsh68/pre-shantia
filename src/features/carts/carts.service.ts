@@ -23,7 +23,23 @@ export class CartsService implements ICartsService {
   ) { }
 
   async getUserActiveCart(userId: string, session?: any): Promise<ICart> {
-    return this.cartRepository.findActiveCartByUserId(userId, session);
+    try {
+      return await this.cartRepository.findActiveCartByUserId(userId, session);
+    } catch (error) {
+      // An account without a cart yet has a valid empty-cart state. Keep the
+      // repository's NotFound behavior for update/remove flows, but expose a
+      // stable read contract to the cart page so an empty cart is not treated
+      // as an API failure.
+      if (error instanceof NotFoundException) {
+        return {
+          userId,
+          items: [],
+          totalAmount: 0,
+          status: CartStatus.ACTIVE,
+        };
+      }
+      throw error;
+    }
   }
 
   async getPopulatedCartsForUserById(userId: string): Promise<Cart[]> {

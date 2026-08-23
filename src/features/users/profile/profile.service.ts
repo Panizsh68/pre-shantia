@@ -86,6 +86,13 @@ export class ProfileService {
     return updatedProfileResult;
   }
 
+  async updateFavorites(userId: string, favorites: string[]): Promise<Profile> {
+    return this.profileRepository.updateOneByCondition(
+      { userId },
+      { favorites },
+    );
+  }
+
   async deleteByUserId(userId: string): Promise<boolean> {
     const result = await this.profileRepository.deleteById(userId);
     return result;

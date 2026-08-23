@@ -5,6 +5,7 @@ import {
   IsPhoneNumber,
   IsString,
   IsIdentityCard,
+  IsUrl,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ImageMetaDto } from '../../image-upload/dto/create-presign.dto';
@@ -61,6 +62,14 @@ export class CreateCompanyDto {
   })
   @IsOptional()
   imageMeta?: ImageMetaDto;
+
+  @ApiPropertyOptional({
+    description: 'Public URL of an already uploaded company logo',
+    example: 'https://cdn.example.com/company/logo.png',
+  })
+  @IsOptional()
+  @IsUrl({ require_protocol: true })
+  image?: string;
 
   @ApiPropertyOptional({
     description: 'National ID (company national identifier)',

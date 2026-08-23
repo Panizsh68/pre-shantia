@@ -6,10 +6,16 @@ import { Profile, ProfileSchema } from './entities/profile.entity';
 import { Model } from 'mongoose';
 import { IProfileRepository, ProfileRepository } from './repositories/profille.repository';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
+import { ProductsModule } from 'src/features/products/products.module';
+import { FavoritesController } from './favorites.controller';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Profile.name, schema: ProfileSchema }]), forwardRef(() => PermissionsModule)],
-  controllers: [ProfileController],
+  imports: [
+    MongooseModule.forFeature([{ name: Profile.name, schema: ProfileSchema }]),
+    forwardRef(() => PermissionsModule),
+    forwardRef(() => ProductsModule),
+  ],
+  controllers: [ProfileController, FavoritesController],
   providers: [
     {
       provide: 'ProfileRepository',

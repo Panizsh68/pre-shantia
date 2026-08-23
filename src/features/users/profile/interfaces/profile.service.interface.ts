@@ -16,5 +16,7 @@ export interface IProfileService {
 
   update(id: string, updateProfileDto: UpdateProfileDto): Promise<Profile>;
 
+  updateFavorites(userId: string, favorites: string[]): Promise<Profile>;
+
   deleteByUserId(userId: string): Promise<boolean>;
 }
