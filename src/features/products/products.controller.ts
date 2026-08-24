@@ -346,8 +346,9 @@ export class ProductsController {
   ) {
     // The route guard checks READ; this explicit check also supports editors.
     const hasPermission = user?.permissions?.some(p =>
-      p.resource === Resource.PRODUCTS &&
-      (p.actions.includes(Action.READ) || p.actions.includes(Action.CREATE) || p.actions.includes(Action.UPDATE))
+      (p.resource === Resource.ALL && p.actions.includes(Action.MANAGE)) ||
+      (p.resource === Resource.PRODUCTS &&
+        (p.actions.includes(Action.READ) || p.actions.includes(Action.CREATE) || p.actions.includes(Action.UPDATE)))
     );
     if (!hasPermission) {
       throw new ForbiddenException('برای مشاهده محصولات مجوز کافی ندارید.');
