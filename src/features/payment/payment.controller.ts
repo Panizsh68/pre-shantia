@@ -16,6 +16,8 @@ import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
 import { AbuseRateLimit } from 'src/common/abuse/abuse-rate-limit.decorator';
 import { AbuseRateLimitGuard } from 'src/common/abuse/abuse-rate-limit.guard';
+import { InitiateWalletTopUpDto } from './dto/initiate-wallet-top-up.dto';
+import { determineOwnerTypeFromPermissions } from 'src/utils/wallet-owner.util';
 
 @ApiTags('Payment')
 @ApiBearerAuth()
@@ -46,6 +48,24 @@ export class PaymentController {
   })
   async initiatePayment(@Body() dto: InitiatePaymentDto, @CurrentUser() user: TokenPayload) {
     return this.paymentService.initiatePayment(user.userId, dto.orderId, dto.amount);
+  }
+
+  @Post('wallet/initiate')
+  @UseGuards(AuthenticationGuard, PermissionsGuard, AbuseRateLimitGuard)
+  @AbuseRateLimit({ name: 'wallet-top-up-initiate', identity: 'user', config: 'PAYMENT' })
+  @Permission(Resource.WALLETS, Action.UPDATE)
+  @ApiOperation({
+    summary: 'Initiate an online wallet top-up via Zibal',
+    description: 'Creates a pending wallet transaction and returns the Zibal payment URL. The balance is updated only after callback verification.',
+  })
+  @ApiBody({ type: InitiateWalletTopUpDto })
+  @ApiResponse({ status: 201, description: 'Wallet top-up payment created' })
+  async initiateWalletTopUp(
+    @Body() dto: InitiateWalletTopUpDto,
+    @CurrentUser() user: TokenPayload,
+  ) {
+    const ownerType = determineOwnerTypeFromPermissions(user.permissions);
+    return this.paymentService.initiateWalletTopUp(user.userId, ownerType, dto.amount);
   }
 
   @Post('pay')
@@ -84,21 +104,20 @@ export class PaymentController {
       throw new BadRequestException('trackId is required');
     }
 
+    // Zibal sends the callback as a plain GET/POST according to the selected
+    // flow and does not send our private header. Authenticity is established
+    // by looking up the pending trackId and calling Zibal verify server-side.
+    // Keep the optional secret compatibility path for internal callbacks, but
+    // never make it a requirement for the real Zibal callback.
     const configuredSecret = (this.configService.get<string>('PAYMENT_CALLBACK_SECRET') || '').trim();
     const headerSecret = req?.headers?.['x-callback-secret'] || req?.headers?.['X-Callback-Secret'];
     const providedSecret = (secret || headerSecret || '').toString().trim();
-
-    if (!configuredSecret) {
-      throw new BadRequestException('Payment callback security secret is not configured');
-    }
-
-    const providedBuffer = Buffer.from(providedSecret);
-    const configuredBuffer = Buffer.from(configuredSecret);
-    const isValidSecret = providedBuffer.length === configuredBuffer.length
-      && timingSafeEqual(providedBuffer, configuredBuffer);
-
-    if (!isValidSecret) {
-      throw new BadRequestException('Invalid or missing callback security secret');
+    if (configuredSecret && providedSecret) {
+      const providedBuffer = Buffer.from(providedSecret);
+      const configuredBuffer = Buffer.from(configuredSecret);
+      const isValidSecret = providedBuffer.length === configuredBuffer.length
+        && timingSafeEqual(providedBuffer, configuredBuffer);
+      if (!isValidSecret) throw new BadRequestException('Invalid callback security secret');
     }
 
     // proceed to business logic

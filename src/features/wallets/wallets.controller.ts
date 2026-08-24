@@ -58,10 +58,12 @@ export class WalletsController {
 
   @Post('credit')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.WALLETS, Action.UPDATE)
+  // Direct balance credit is an administrative adjustment only. User-facing
+  // top-ups must go through /payment/wallet/initiate and Zibal verification.
+  @Permission(Resource.WALLETS, Action.MANAGE)
   @ApiOperation({
     summary: 'Credit wallet',
-    description: 'Credits the authenticated owner wallet; owner is derived from permissions.',
+    description: 'Administrative wallet adjustment. Online user top-ups must use the payment flow.',
   })
   @ApiBody({ type: CreditWalletRequestDto })
   @ApiResponse({ status: 200, description: 'Wallet credited', type: Wallet })

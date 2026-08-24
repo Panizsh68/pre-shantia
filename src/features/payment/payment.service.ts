@@ -16,6 +16,8 @@ import { VerifyZibalPaymentResponseType } from 'src/utils/services/zibal/types/v
 import { UpdateTransactionDto } from '../transaction/dtos/update-transaction.dto';
 import { ClientSession } from 'mongoose';
 import { getIntermediaryWalletId } from 'src/utils/intermediary-wallet.util';
+import { TransactionType } from '../transaction/enums/transaction.type.enum';
+import { GetWalletDto } from '../wallets/dto/get-wallet.dto';
 
 // Local tokens to avoid brittle string literals inside this file. These map to providers configured in modules.
 export const TRANSACTIONS_SERVICE = 'ITransactionsService';
@@ -93,6 +95,69 @@ export class PaymentService {
     } catch (error) {
       this.logger.error('initiatePayment error', JSON.stringify({ userId, orderId, amount, err: String(error) }));
       throw new BadRequestException('Failed to initiate payment');
+    }
+  }
+
+  async initiateWalletTopUp(userId: string, ownerType: WalletOwnerType, amount: number) {
+    const payableAmount = Math.round(Number(amount));
+    if (!Number.isInteger(payableAmount) || payableAmount <= 1000) {
+      throw new BadRequestException('Wallet top-up amount must be greater than 1,000 IRR');
+    }
+
+    const callbackUrl = this.configService.get<string>('ZIBAL_CALLBACK_URL');
+    if (!callbackUrl) {
+      this.logger.error('ZIBAL_CALLBACK_URL not configured');
+      throw new BadRequestException('Payment provider not configured');
+    }
+
+    // Resolve the wallet from the authenticated owner on the server. The
+    // client never supplies ownerId or ownerType for the balance mutation.
+    const wallet = await this.walletsService.getWallet({
+      ownerId: userId,
+      ownerType,
+    } as GetWalletDto);
+    const localId = uuidv4();
+    const transaction = await this.transactionService.create({
+      localId,
+      trackId: null,
+      amount: payableAmount,
+      description: `Wallet top-up ${localId}`,
+      status: TransactionStatus.PENDING,
+      type: TransactionType.CREDIT,
+      currency: wallet.currency,
+      createdAt: new Date(),
+      userId,
+      metadata: {
+        kind: 'wallet_top_up',
+        walletOwnerId: wallet.ownerId,
+        walletOwnerType: wallet.ownerType,
+      },
+    });
+
+    try {
+      const paymentRequest: InitiateZibalPaymentType = {
+        amount: payableAmount,
+        callbackUrl,
+        description: `شارژ کیف پول ${localId}`,
+        orderId: localId,
+        userId,
+      };
+      const { trackId, paymentUrl } = await this.zibalService.createPayment(paymentRequest);
+      await this.transactionService.updateByLocalId!(localId, { trackId: String(trackId) });
+      return {
+        transactionId: (transaction as any).id ?? (transaction as any)._id,
+        localId,
+        trackId: String(trackId),
+        paymentUrl,
+      };
+    } catch (error) {
+      this.logger.error('initiateWalletTopUp error', JSON.stringify({ userId, amount: payableAmount, err: String(error) }));
+      try {
+        await this.transactionService.updateByLocalId!(localId, { status: TransactionStatus.FAILED });
+      } catch (updateError) {
+        this.logger.error('Failed to mark wallet top-up as failed', String(updateError));
+      }
+      throw new BadRequestException('Failed to initiate wallet top-up');
     }
   }
 
@@ -176,6 +241,11 @@ export class PaymentService {
         throw new BadRequestException('Verification failed');
       }
 
+      if (verificationResult.amount !== undefined
+        && Math.round(Number(verificationResult.amount)) !== Math.round(Number(transaction.amount))) {
+        throw new BadRequestException('Payment amount mismatch');
+      }
+
       const updateDto: UpdateTransactionDto = {
         ref_id: verificationResult.ref_id ?? verificationResult.refNumber,
         status: TransactionStatus.COMPLETED,
@@ -202,6 +272,31 @@ export class PaymentService {
       } else {
         // Fallback: update normally (non-atomic). Best-effort in tests or older implementations.
         updatedTransaction = await this.transactionService.update(trackId, updateDto, session);
+      }
+
+      const metadata = transaction.metadata ?? {};
+      if (metadata.kind === 'wallet_top_up') {
+        const walletOwnerId = metadata.walletOwnerId;
+        const walletOwnerType = metadata.walletOwnerType;
+        if (typeof walletOwnerId !== 'string' || typeof walletOwnerType !== 'string'
+          || !Object.values(WalletOwnerType).includes(walletOwnerType as WalletOwnerType)) {
+          throw new BadRequestException('Wallet top-up owner metadata is invalid');
+        }
+
+        // The correlation id makes the wallet credit idempotent even if the
+        // provider retries the callback after the transaction update.
+        await this.walletsService.creditWallet(
+          {
+            ownerId: walletOwnerId,
+            ownerType: walletOwnerType as WalletOwnerType,
+            amount: transaction.amount,
+            correlationId: `zibal-wallet-top-up:${trackId}`,
+          },
+          session,
+        );
+        await this.transactionService.commitSession(session);
+        committed = true;
+        return updatedTransaction;
       }
 
       // For external gateway payments we only credit the platform/intermediary wallet.

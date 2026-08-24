@@ -26,23 +26,37 @@ export class ZibalService implements IZibalService {
   async createPayment(
     dto: InitiateZibalPaymentType,
   ): Promise<InitiateZibalPaymentResponseType> {
-    // zibal.request(amount, extras)
     const callbackUrl = this.configService.get<string>('ZIBAL_CALLBACK_URL') ?? dto.callbackUrl;
     if (!callbackUrl || typeof callbackUrl !== 'string' || callbackUrl.trim() === '') {
       // For payments we require a valid callback URL; defensive programming to avoid misrouted payments
       throw new Error('Missing Zibal callback URL (set ZIBAL_CALLBACK_URL or provide callbackUrl in DTO)');
     }
+    try {
+      if (new URL(callbackUrl).protocol !== 'https:') throw new Error('Zibal callback URL must use HTTPS');
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Invalid Zibal callback URL');
+    }
 
-    const extras: { mobile?: string; description?: string; callbackUrl: string } = {
+    const extras: { mobile?: string; description?: string; callbackUrl: string; orderId?: string } = {
       mobile: dto.mobile,
       description: dto.description,
       callbackUrl,
+      orderId: dto.orderId,
     };
 
-    const result = await this.zibal.request(dto.amount, extras);
-    // SDK returns result.trackId (number) or track_id
-    const trackId = String(result.trackId ?? result.track_id ?? '');
-    const paymentUrl = typeof this.zibal.startURL === 'function' ? this.zibal.startURL(result.trackId ?? result.track_id) : '';
+    // zibal@1.x accepts one payload object. Passing amount/extras as two
+    // positional arguments silently drops the amount and callbackUrl.
+    const result = await this.zibal.request({ amount: dto.amount, ...extras });
+    if (Number(result.result) !== 100) {
+      throw new Error(String(result.message ?? result.persianMessage ?? 'Zibal request failed'));
+    }
+
+    // zibal@1.x returns paymentUrl itself; it does not expose startURL on the
+    // SDK instance. Keep the documented URL as a defensive fallback.
+    const rawTrackId = result.trackId ?? result.track_id;
+    const trackId = String(rawTrackId ?? '');
+    if (!trackId) throw new Error('Zibal did not return a trackId');
+    const paymentUrl = String(result.paymentUrl ?? `https://gateway.zibal.ir/start/${trackId}`);
     return { trackId, paymentUrl, raw: result };
   }
 
@@ -62,7 +76,8 @@ export class ZibalService implements IZibalService {
     const trackArg: number | string = Number.isFinite(maybeNum) ? maybeNum : String(trackIdParam);
 
     try {
-      const res = await this.zibal.verify(trackArg as any);
+      // zibal@1.x also expects an object payload for verify.
+      const res = await this.zibal.verify({ trackId: trackArg as any });
 
       // Map the SDK response into a normalized shape. Some SDKs swap `result`/`status` naming or use strings.
       const rawResult = res as any;
