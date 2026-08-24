@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, UnauthorizedException } from '@nestjs/common';
+import { Injectable, OnModuleInit, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { ITokensModels } from './Itokens.interface';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
@@ -6,6 +6,8 @@ import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interfa
 import { ConfigService } from '@nestjs/config';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { RequestContext } from 'src/common/types/request-context.interface';
+
+export const authVersionKey = (userId: string): string => `auth-version:${userId}`;
 
 function isTokenPayload(obj: unknown): obj is TokenPayload {
   return (
@@ -101,8 +103,9 @@ export class TokensService<
     if (!secret) {
       throw new Error('JWT_ACCESS_SECRET is missing in configuration.');
     }
+    const authVersion = await this.getAuthVersion(data.userId);
     return this.signToken(
-      data,
+      { ...data, authVersion },
       secret,
       'HS256',
       this.configService.get<string>('JWT_ACCESS_EXPIRES') || '10m',
@@ -131,10 +134,53 @@ export class TokensService<
       delete (decoded as any).exp;
       const decrypted = this.decryptPayload(decoded);
       if (!isTokenPayload(decrypted)) {throw new UnauthorizedException('Invalid token structure');}
+      const tokenVersion = Number((decrypted as TokenPayload & { authVersion?: unknown }).authVersion ?? 0);
+      const currentVersion = await this.getAuthVersion(decrypted.userId);
+      if (!Number.isInteger(tokenVersion) || tokenVersion !== currentVersion) {
+        throw new UnauthorizedException('Access token has been revoked');
+      }
       return decrypted;
     } catch {
       throw new UnauthorizedException('Invalid token');
     }
+  }
+
+  async bumpAuthVersion(userId: string): Promise<number> {
+    const ttlSeconds = this.getAuthVersionTtlSeconds();
+    const nextVersion = await this.cachingService.increment(authVersionKey(userId), ttlSeconds);
+    if (nextVersion === null) {
+      throw new ServiceUnavailableException('Authentication session store is unavailable');
+    }
+    return nextVersion;
+  }
+
+  private async getAuthVersion(userId: string): Promise<number> {
+    let currentVersion: number | null;
+    try {
+      currentVersion = await this.cachingService.getStrict<number>(authVersionKey(userId));
+    } catch {
+      throw new UnauthorizedException('Authentication session store is unavailable');
+    }
+
+    if (currentVersion === null) {
+      return 0;
+    }
+    if (!Number.isInteger(currentVersion) || currentVersion < 0) {
+      throw new UnauthorizedException('Invalid authentication session state');
+    }
+    return currentVersion;
+  }
+
+  private getAuthVersionTtlSeconds(): number {
+    const configuredRefreshTtl = Number(this.configService.get<string>('JWT_REFRESH_TTL_SECONDS'));
+    const configuredAccessTtl = Number(this.configService.get<string>('JWT_ACCESS_TTL_SECONDS'));
+    const refreshTtl = Number.isFinite(configuredRefreshTtl) && configuredRefreshTtl > 0
+      ? configuredRefreshTtl
+      : 48 * 3600;
+    const accessTtl = Number.isFinite(configuredAccessTtl) && configuredAccessTtl > 0
+      ? configuredAccessTtl
+      : 10 * 60;
+    return refreshTtl + accessTtl + 3600;
   }
 
   async validateRefreshToken(token: string, context: RequestContext): Promise<TokenPayload> {

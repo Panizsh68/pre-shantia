@@ -52,7 +52,7 @@ export function defaultTestProviders(): Provider[] {
     // infra / utility services (class tokens)
     {
       provide: TokensService,
-      useValue: { validateAccessToken: jest.fn(), getAccessToken: jest.fn(), getRefreshToken: jest.fn() },
+      useValue: { validateAccessToken: jest.fn(), getAccessToken: jest.fn(), getRefreshToken: jest.fn(), bumpAuthVersion: jest.fn().mockResolvedValue(1) },
     },
     // permissions and image upload
     {
@@ -69,7 +69,7 @@ export function defaultTestProviders(): Provider[] {
     },
     {
       provide: CachingService,
-      useValue: { get: jest.fn(), set: jest.fn(), setRaw: jest.fn(), setIfAbsent: jest.fn().mockResolvedValue(true), verifyOtpChallenge: jest.fn().mockResolvedValue('valid'), delete: jest.fn(), del: jest.fn(), incrementRateLimit: jest.fn() },
+      useValue: { get: jest.fn(), getStrict: jest.fn(), set: jest.fn(), setRaw: jest.fn(), setIfAbsent: jest.fn().mockResolvedValue(true), verifyOtpChallenge: jest.fn().mockResolvedValue('valid'), delete: jest.fn(), del: jest.fn(), increment: jest.fn().mockResolvedValue(1), incrementRateLimit: jest.fn() },
     },
     {
       provide: 'JwtService',

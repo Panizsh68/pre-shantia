@@ -57,9 +57,11 @@ export class ProductsController {
   ) { }
 
   @Get('advanced-search')
+  @Public()
   @ApiOperation({
     summary: 'Advanced search for products with multiple filters',
     description: 'Returns ACTIVE products. All filters are query params (no request body).',
+    security: [],
   })
   @ApiQuery({
     name: 'query',
@@ -174,14 +176,14 @@ export class ProductsController {
   }
   
   @Get('search-by-price-company')
-  @ApiOperation({ summary: 'Search products by max price and company name' })
+  @Public()
+  @ApiOperation({ summary: 'Search products by max price and company name', security: [] })
   @ApiQuery({ name: 'maxPrice', required: false, type: Number, example: 500000 })
   @ApiQuery({ name: 'companyName', required: false, type: String, example: 'Nike' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'sort', required: false, type: String, example: 'basePrice:desc' })
   @ApiResponse({ status: 200, description: 'Search results returned' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async searchByPriceAndCompany(
     @Query('maxPrice') maxPrice?: string,
     @Query('companyName') companyName?: string,
@@ -228,12 +230,12 @@ export class ProductsController {
   }
 
   @Get('search')
-  @ApiOperation({ summary: 'Search products by name, company, or category' })
+  @Public()
+  @ApiOperation({ summary: 'Search products by name, company, or category', security: [] })
   @ApiQuery({ name: 'query', required: true, type: String, example: 'کفش' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiResponse({ status: 200, description: 'Search results returned' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async searchProducts(
     @Query('query') query: string,
     @Query('limit') limit?: string,
@@ -289,11 +291,11 @@ export class ProductsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get a paginated list of products' })
+  @Public()
+  @ApiOperation({ summary: 'Get a paginated list of products', security: [] })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiResponse({ status: 200, description: 'List of products returned' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   @Header('Cache-Control', 'public, max-age=300')
   findAll(
     @Query('limit') limit?: string,
@@ -395,7 +397,8 @@ export class ProductsController {
   }
 
   @Get('company/:companyId')
-  @ApiOperation({ summary: 'Get products by company ID' })
+  @Public()
+  @ApiOperation({ summary: 'Get products by company ID', security: [] })
   @ApiParam({ name: 'companyId', type: String })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
@@ -433,10 +436,10 @@ export class ProductsController {
 
 
   @Get('top-sales')
-  @ApiOperation({ summary: 'Get top-rated products' })
+  @Public()
+  @ApiOperation({ summary: 'Get top-rated products', security: [] })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 5 })
   @ApiResponse({ status: 200, description: 'Top products returned', type: [ProductResponseDto] })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getTopProducts(@Query('limit') limit?: string) {
     const lim = limit ? parseInt(limit, 10) : 5;
     if (isNaN(lim) || lim < 1) {
@@ -474,6 +477,22 @@ export class ProductsController {
     try {
       const result = await this.productsService.getOffers(options);
       return result;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  @Get('count')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @Permission(Resource.PRODUCTS, Action.READ)
+  @ApiOperation({ summary: 'Get total number of products' })
+  @ApiResponse({ status: 200, description: 'Total count returned', type: CountDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async count() {
+    try {
+      const count = await this.productsService.count();
+      return { count };
     } catch (err) {
       throw err;
     }
@@ -565,10 +584,10 @@ export class ProductsController {
   }
 
   @Get('count/category/:categoryId')
-  @ApiOperation({ summary: 'Count products by category ID' })
+  @Public()
+  @ApiOperation({ summary: 'Count products by category ID', security: [] })
   @ApiParam({ name: 'categoryId', type: String, description: 'Category ID' })
   @ApiResponse({ status: 200, description: 'Number of products returned', type: CountDto })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   countByCategory(@Param('categoryId') categoryId: string) {
     try {
       const result = this.productsService.countByCategory(categoryId);
@@ -582,6 +601,9 @@ export class ProductsController {
 
 
   @Get('exists/name/:name')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @Permission(Resource.PRODUCTS, Action.READ)
   @ApiOperation({ summary: 'Check if a product exists by name' })
   @ApiParam({ name: 'name', type: String, description: 'Product name' })
   @ApiResponse({ status: 200, description: 'Existence result', type: ExistsDto })
@@ -595,16 +617,4 @@ export class ProductsController {
     }
   }
 
-  @Get('count')
-  @ApiOperation({ summary: 'Get total number of products' })
-  @ApiResponse({ status: 200, description: 'Total count returned', type: CountDto })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async count() {
-    try {
-      const count = await this.productsService.count();
-      return { count };
-    } catch (err) {
-      throw err;
-    }
-  }
 }

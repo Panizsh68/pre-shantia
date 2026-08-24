@@ -9,5 +9,6 @@ export interface TokenPayload extends ITokensModels {
   tokenType: TokenType;
   iat?: number;
   exp?: number;
+  authVersion?: number;
   permissions: IPermission[];
 }

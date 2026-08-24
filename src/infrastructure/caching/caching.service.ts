@@ -31,6 +31,33 @@ export class CachingService {
     }
   }
 
+  /**
+   * Read a value without converting infrastructure failures into cache misses.
+   * Authentication code uses this variant so Redis outages fail closed.
+   */
+  async getStrict<T>(key: string): Promise<T | null> {
+    const value = await this.redis.get(key);
+    return value ? JSON.parse(value) : null;
+  }
+
+  /** Atomically increments a counter and gives it a bounded lifetime. */
+  async increment(key: string, ttlSeconds: number): Promise<number | null> {
+    try {
+      if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0) {
+        throw new Error(`Invalid TTL passed: ${ttlSeconds}`);
+      }
+
+      const value = Number(await this.redis.incr(key));
+      if (value === 1) {
+        await this.redis.expire(key, ttlSeconds);
+      }
+      return value;
+    } catch (e) {
+      console.error(`Increment failed for ${key}`, e);
+      return null;
+    }
+  }
+
   async delete(key: string): Promise<void> {
     try {
       await this.redis.del(key);

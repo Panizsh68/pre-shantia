@@ -10,6 +10,7 @@ import { CreateProfileDto } from './profile/dto/create-profile.dto';
 import { ClientSession } from 'mongoose';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { IPermission } from 'src/features/permissions/interfaces/permissions.interface';
+import { TokensService } from 'src/utils/services/tokens/tokens.service';
 
 @Injectable()
 export class UsersService {
@@ -17,6 +18,7 @@ export class UsersService {
     @Inject('UserRepository') private readonly usersRepository: IUserRepository,
     @Inject('IProfileService') private readonly profileService: IProfileService,
     private readonly cacheService: CachingService,
+    private readonly tokensService: TokensService,
     @Inject('ICompanyService') private readonly companiesService: import('../companies/interfaces/company.service.interface').ICompanyService,
   ) { }
 
@@ -123,6 +125,10 @@ export class UsersService {
     }
 
     const mergedPermissions: IPermission[] = Array.from(map.values());
+
+    // Revoke tokens before changing permissions so a Redis failure cannot
+    // leave an old permission-bearing access token active.
+    await this.tokensService.bumpAuthVersion(existing.id.toString());
 
     const updated = await this.usersRepository.updateById(targetId, { permissions: mergedPermissions });
     if (!updated) {

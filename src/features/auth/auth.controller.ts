@@ -178,7 +178,12 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<SignUpResponseDto & { csrfToken?: string }> {
     this.assertCsrf(req);
-    const refreshToken = readCookie(req, 'refreshToken');
+    const cookieRefreshToken = readCookie(req, 'refreshToken');
+    const bodyRefreshToken = body?.refreshToken?.trim();
+    if (cookieRefreshToken && bodyRefreshToken && cookieRefreshToken !== bodyRefreshToken) {
+      throw new BadRequestException('Refresh token mismatch');
+    }
+    const refreshToken = cookieRefreshToken || bodyRefreshToken;
     if (!refreshToken) {throw new BadRequestException('Refresh token not provided');}
     const result = await this.authService.refreshAccessTokenByRefreshToken(refreshToken, context);
     try {
@@ -214,12 +219,15 @@ export class AuthController {
   ): Promise<{ message: string }> {
     this.assertCsrf(req);
     const refreshToken = readCookie(req, 'refreshToken');
-    // حذف کوکی refreshToken سمت کلاینت
+    const result = await this.authService.signOut(user.userId, refreshToken);
+    // Clear cookies only after server-side revocation succeeds. Otherwise a
+    // Redis outage could make the browser look logged out while its access
+    // token remained active.
     if (res) {
       res.clearCookie('refreshToken');
       res.clearCookie(CSRF_COOKIE);
     }
-    return this.authService.signOut(user.userId, refreshToken);
+    return result;
   }
 
   @Get('me')

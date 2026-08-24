@@ -6,6 +6,7 @@ import {
   Inject,
   UnauthorizedException,
   BadRequestException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { RedactingLogger } from 'src/infrastructure/logging/redacting-logger';
 import { TokenPayload } from './interfaces/token-payload.interface';
@@ -75,16 +76,18 @@ export class AuthService {
           createUserDto.phoneNumber,
         );
       } catch (error) {
-        // Shahkar is optional during the current onboarding phase. A provider
-        // outage must not prevent a user from creating an account.
-        this.logger.warn(`[signUp] Shahkar unavailable; continuing without identity verification: ${error instanceof Error ? error.message : String(error)}`);
+        // Identity verification is a security gate. Never turn a Shahkar
+        // outage into an implicit approval of an unverified identity.
+        if (error instanceof HttpException) throw error;
+        this.logger.error(`[signUp] Shahkar verification failed: ${error instanceof Error ? error.message : String(error)}`);
+        throw new ServiceUnavailableException('Identity verification is temporarily unavailable');
       }
       if (!valid) {
         throw new BadRequestException('Phone and National ID mismatch');
       }
 
       const ttl = this.configService.get<number>('OTP_TTL') ?? 300;
-      await this.cacheService.set(
+      const signupSessionStored = await this.cacheService.set(
         `signup:${createUserDto.phoneNumber}`,
         {
           phoneNumber: createUserDto.phoneNumber,
@@ -92,6 +95,9 @@ export class AuthService {
         },
         ttl,
       );
+      if (!signupSessionStored) {
+        throw new ServiceUnavailableException('Authentication session store is unavailable');
+      }
 
       // Trigger OTP send - the provider now has a safety timeout to avoid stalling the request
       this.logger.debug(`[signUp] Triggering SMS...`);
@@ -208,11 +214,14 @@ export class AuthService {
       const accessToken = await this.tokensService.getAccessToken(payload);
       const refreshToken = await this.tokensService.getRefreshToken({ ...payload, tokenType: TokenType.refresh });
 
-      await this.cacheService.set(
+      const refreshSessionStored = await this.cacheService.set(
         `refresh-info:${refreshToken}`,
         { ip: context.ip, userAgent: context.userAgent, userId: user.id.toString() }, 
         Number(this.configService.get<string>('JWT_REFRESH_TTL_SECONDS') || 48 * 3600),
       );
+      if (!refreshSessionStored) {
+        throw new ServiceUnavailableException('Authentication session store is unavailable');
+      }
 
       const profile = await this.profileService.getByUserId(user.id.toString());
 
@@ -261,6 +270,9 @@ export class AuthService {
   }
 
   async signOut(userId: string, refreshToken?: string): Promise<{ message: string }> {
+    // Invalidate all access tokens issued before this logout before deleting
+    // the refresh session. The guard checks this version on every request.
+    await this.tokensService.bumpAuthVersion(userId);
     if (refreshToken) await this.cacheService.delete(`refresh-info:${refreshToken}`);
     await this.cacheService.delete(`permissions:${userId}`);
     return { message: 'Signed out successfully' };
@@ -277,11 +289,14 @@ export class AuthService {
       const accessToken = await this.tokensService.getAccessToken(payload);
       const refreshToken = await this.tokensService.getRefreshToken({ ...payload, tokenType: TokenType.refresh });
 
-      await this.cacheService.set(
+      const refreshSessionStored = await this.cacheService.set(
         `refresh-info:${refreshToken}`,
         { ip: context?.ip || '', userAgent: context?.userAgent || '', userId: user.id.toString() }, 
         Number(this.configService.get<string>('JWT_REFRESH_TTL_SECONDS') || 48 * 3600),
       );
+      if (!refreshSessionStored) {
+        throw new ServiceUnavailableException('Authentication session store is unavailable');
+      }
 
       return { phoneNumber: user.phoneNumber, accessToken, refreshToken };
     } catch (error) {
