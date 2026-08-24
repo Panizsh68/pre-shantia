@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpStatus, HttpCode, Get, Res, Req, UseGuards, Inject, BadRequestException, Patch, Param } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, HttpCode, Get, Res, Req, UseGuards, Inject, BadRequestException, UnauthorizedException, Patch, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthProfileDto } from './dto/auth-profile.dto';
 import { IProfileService } from '../users/profile/interfaces/profile.service.interface';
@@ -66,7 +66,10 @@ export class AuthController {
     const cookieToken = readCookie(request, CSRF_COOKIE);
     const headerToken = request.headers[CSRF_HEADER] as string | undefined;
     if (!cookieToken || !headerToken || cookieToken !== headerToken) {
-      throw new BadRequestException('Invalid CSRF token');
+      throw new BadRequestException({
+        message: 'Invalid CSRF token',
+        code: 'AUTH_CSRF_INVALID',
+      });
     }
   }
 
@@ -184,7 +187,12 @@ export class AuthController {
       throw new BadRequestException('Refresh token mismatch');
     }
     const refreshToken = cookieRefreshToken || bodyRefreshToken;
-    if (!refreshToken) {throw new BadRequestException('Refresh token not provided');}
+    if (!refreshToken) {
+      throw new UnauthorizedException({
+        message: 'Refresh token not provided',
+        code: 'AUTH_SESSION_INVALID',
+      });
+    }
     const result = await this.authService.refreshAccessTokenByRefreshToken(refreshToken, context);
     try {
       if (result.accessToken) {

@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { HttpException, Injectable, OnModuleInit, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { ITokensModels } from './Itokens.interface';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
@@ -140,7 +140,8 @@ export class TokensService<
         throw new UnauthorizedException('Access token has been revoked');
       }
       return decrypted;
-    } catch {
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new UnauthorizedException('Invalid token');
     }
   }
@@ -159,14 +160,14 @@ export class TokensService<
     try {
       currentVersion = await this.cachingService.getStrict<number>(authVersionKey(userId));
     } catch {
-      throw new UnauthorizedException('Authentication session store is unavailable');
+      throw new ServiceUnavailableException('Authentication session store is unavailable');
     }
 
     if (currentVersion === null) {
       return 0;
     }
     if (!Number.isInteger(currentVersion) || currentVersion < 0) {
-      throw new UnauthorizedException('Invalid authentication session state');
+      throw new ServiceUnavailableException('Invalid authentication session state');
     }
     return currentVersion;
   }
@@ -184,6 +185,7 @@ export class TokensService<
   }
 
   async validateRefreshToken(token: string, context: RequestContext): Promise<TokenPayload> {
+    let decrypted: TokenPayload;
     try {
       const decoded = await this.jwtService.verifyAsync<Record<string, string>>(token, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
@@ -191,23 +193,33 @@ export class TokensService<
       });
       delete (decoded as any).iat;
       delete (decoded as any).exp;
-      const decrypted = this.decryptPayload(decoded);
-      if (!isTokenPayload(decrypted)) {throw new UnauthorizedException('Invalid token structure');}
-      const sessionInfo = await this.cachingService.get<{
-        ip: string;
-        userAgent: string;
-        userId: string;
-      }>(`refresh-info:${token}`);
-      if (
-        !sessionInfo ||
-        sessionInfo.userAgent !== context.userAgent
-      ) {
-        throw new UnauthorizedException('Session context mismatch.');
-      }
-      return decrypted;
-    } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+      const payload = this.decryptPayload(decoded);
+      if (!isTokenPayload(payload)) {throw new UnauthorizedException('Invalid token structure');}
+      decrypted = payload;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new UnauthorizedException({
+        message: 'Invalid refresh token',
+        code: 'AUTH_SESSION_INVALID',
+      });
     }
+
+    let sessionInfo: { ip: string; userAgent: string; userId: string } | null;
+    try {
+      sessionInfo = await this.cachingService.getStrict<{ ip: string; userAgent: string; userId: string }>(
+        `refresh-info:${token}`,
+      );
+    } catch {
+      throw new ServiceUnavailableException('Authentication session store is unavailable');
+    }
+
+    if (!sessionInfo || sessionInfo.userAgent !== context.userAgent) {
+      throw new UnauthorizedException({
+        message: 'Session context mismatch.',
+        code: 'AUTH_SESSION_INVALID',
+      });
+    }
+    return decrypted;
   }
 
   private async signToken(

@@ -247,10 +247,13 @@ export class AuthService {
   async refreshAccessTokenByRefreshToken(refreshToken: string, context: RequestContext): Promise<{ accessToken: string }> {
     try {
       const payload = await this.tokensService.validateRefreshToken(refreshToken, context);
-      const sessionInfo = await this.cacheService.get<RefreshSessionInfo>(`refresh-info:${refreshToken}`);
+      const sessionInfo = await this.cacheService.getStrict<RefreshSessionInfo>(`refresh-info:${refreshToken}`);
       
       if (!sessionInfo) {
-        throw new UnauthorizedException('Session mismatch');
+        throw new UnauthorizedException({
+          message: 'Session mismatch',
+          code: 'AUTH_SESSION_INVALID',
+        });
       }
 
       const user = await this.usersService.findOne(payload.userId);
@@ -265,7 +268,8 @@ export class AuthService {
       return { accessToken };
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      throw new UnauthorizedException('Refresh failed');
+      this.logger.error(`Refresh failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new ServiceUnavailableException('Authentication session store is unavailable');
     }
   }
 

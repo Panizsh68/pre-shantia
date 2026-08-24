@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, HttpException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { TokenPayload } from '../interfaces/token-payload.interface';
@@ -33,6 +33,7 @@ export class AuthenticationGuard implements CanActivate {
       request['user'] = payload;
       return true;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new UnauthorizedException('Invalid authorization token');
     }
   }
