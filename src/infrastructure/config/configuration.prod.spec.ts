@@ -25,9 +25,19 @@ describe('production configuration validation', () => {
     delete env.SHAHKAR_API_KEY;
     expect(validateProductionEnvironment(env).SHAHKAR_ENABLED).toBe(false);
   });
-  it('rejects missing callback secret', () => {
+  it('allows the optional internal callback secret to be omitted', () => {
     const env = validEnvironment(); delete env.PAYMENT_CALLBACK_SECRET;
+    expect(validateProductionEnvironment(env).PAYMENT_CALLBACK_SECRET).toBeUndefined();
+  });
+
+  it('rejects a weak optional internal callback secret when configured', () => {
+    const env = validEnvironment(); env.PAYMENT_CALLBACK_SECRET = 'too-short';
     expect(() => validateProductionEnvironment(env)).toThrow(/PAYMENT_CALLBACK_SECRET/);
+  });
+
+  it('allows the legacy unused Zibal secret to be omitted', () => {
+    const env = validEnvironment(); delete env.ZIBAL_SECRET_KEY;
+    expect(validateProductionEnvironment(env).ZIBAL_SECRET_KEY).toBeUndefined();
   });
   it('rejects placeholder and weak JWT secrets', () => {
     const env = validEnvironment(); env.JWT_ACCESS_SECRET = 'change-me';
@@ -37,5 +47,12 @@ describe('production configuration validation', () => {
   it('rejects mock providers in production', () => {
     const env = validEnvironment(); env.MOCK_PROVIDERS_ENABLED = 'true';
     expect(() => validateProductionEnvironment(env)).toThrow(/Mock providers/);
+  });
+
+  it('rejects insecure production application and callback URLs', () => {
+    const env = validEnvironment(); env.APP_URL = 'http://example.invalid';
+    expect(() => validateProductionEnvironment(env)).toThrow(/APP_URL/);
+    env.APP_URL = 'https://example.invalid'; env.ZIBAL_CALLBACK_URL = 'http://example.invalid/payment/callback';
+    expect(() => validateProductionEnvironment(env)).toThrow(/ZIBAL_CALLBACK_URL/);
   });
 });

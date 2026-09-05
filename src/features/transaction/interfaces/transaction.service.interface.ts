@@ -5,6 +5,7 @@ import { Transaction } from '../schema/transaction.schema';
 export interface ITransactionService {
   create(createTransactionDto: CreateTransactionDto, session?: ClientSession): Promise<Transaction>;
   findOne(trackId: string, session?: ClientSession): Promise<Transaction>;
+  findPendingByOrderId?(orderId: string, session?: ClientSession): Promise<Transaction | null>;
   update(
     trackId: string,
     updateData: Partial<CreateTransactionDto>,

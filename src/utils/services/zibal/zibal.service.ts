@@ -26,7 +26,7 @@ export class ZibalService implements IZibalService {
   async createPayment(
     dto: InitiateZibalPaymentType,
   ): Promise<InitiateZibalPaymentResponseType> {
-    const callbackUrl = this.configService.get<string>('ZIBAL_CALLBACK_URL') ?? dto.callbackUrl;
+    const callbackUrl = String(this.configService.get<string>('ZIBAL_CALLBACK_URL') ?? dto.callbackUrl ?? '').trim();
     if (!callbackUrl || typeof callbackUrl !== 'string' || callbackUrl.trim() === '') {
       // For payments we require a valid callback URL; defensive programming to avoid misrouted payments
       throw new Error('Missing Zibal callback URL (set ZIBAL_CALLBACK_URL or provide callbackUrl in DTO)');
@@ -71,38 +71,58 @@ export class ZibalService implements IZibalService {
       trackIdParam = trackOrDto.trackId;
     }
 
-    // Prefer numeric id for SDK if possible
-    const maybeNum = Number(trackIdParam);
-    const trackArg: number | string = Number.isFinite(maybeNum) ? maybeNum : String(trackIdParam);
+    const normalizedTrackId = String(trackIdParam ?? '').trim();
+    if (!/^\d+$/.test(normalizedTrackId)) {
+      throw new Error('Invalid Zibal trackId');
+    }
 
-    try {
-      // zibal@1.x also expects an object payload for verify.
-      const res = await this.zibal.verify({ trackId: trackArg as any });
+    // Zibal track IDs are numeric. Keep the numeric form for the SDK while
+    // retaining the string form in our database correlation record.
+    const trackArg = Number(normalizedTrackId);
 
-      // Map the SDK response into a normalized shape. Some SDKs swap `result`/`status` naming or use strings.
-      const rawResult = res as any;
-      const normalizedResult = Number(rawResult.result ?? rawResult.status ?? -1);
+    const mapVerifyResponse = (value: unknown): VerifyZibalPaymentResponseType => {
+      const rawResult = (value && typeof value === 'object' ? value : {}) as Record<string, any>;
+      const rawStatus = rawResult.result ?? rawResult.status;
+      const normalizedResult = rawStatus === undefined ? undefined : Number(rawStatus);
       const refNumber = String(rawResult.refNumber ?? rawResult.ref_id ?? rawResult.refnumber ?? '') || undefined;
       const paidAt = rawResult.paidAt ?? rawResult.paid_at;
 
-      const mapped: VerifyZibalPaymentResponseType = {
-        raw: res,
-        // prefer numeric normalized result, but keep original strings if parsing failed
-        result: Number.isFinite(normalizedResult) ? normalizedResult : rawResult.result ?? rawResult.status,
+      return {
+        raw: value,
+        result: normalizedResult !== undefined && Number.isFinite(normalizedResult) ? normalizedResult : rawStatus,
         status: rawResult.status ?? rawResult.result,
         refNumber,
         paidAt,
         amount: rawResult.amount,
       };
+    };
+
+    try {
+      // zibal@1.x also expects an object payload for verify.
+      const res = await this.zibal.verify({ trackId: trackArg });
+      const mapped = mapVerifyResponse(res);
+      if (mapped.result === undefined) {
+        throw new Error('Zibal returned no verification result');
+      }
 
       // Structured log for auditing (server-side only)
-      console.info('Zibal verify', { trackArg: String(trackArg), result: mapped.result, refNumber });
+      console.info('Zibal verify', { trackArg: String(trackArg), result: mapped.result, refNumber: mapped.refNumber });
 
       return mapped;
     } catch (err) {
+      // The installed SDK rejects the promise for gateway result 201
+      // (already verified). Preserve the provider result for the payment
+      // service to handle safely instead of turning it into a transport error.
+      const providerResult = Number((err as any)?.result ?? (err as any)?.status);
+      if (Number.isFinite(providerResult)) {
+        const mapped = mapVerifyResponse(err);
+        console.info('Zibal verify', { trackArg: String(trackArg), result: mapped.result, refNumber: mapped.refNumber });
+        return mapped;
+      }
+
       // structured server-side logging for easier auditing and alerting
       console.error('Zibal SDK verify error', {
-        trackId: String(trackIdParam),
+        trackId: normalizedTrackId,
         message: (err as Error).message,
         stack: (err as Error).stack,
       });

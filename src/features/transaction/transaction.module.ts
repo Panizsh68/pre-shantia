@@ -35,7 +35,7 @@ function requiredTransactionEnv(name: string): string {
     ZibalModule.register({
       merchant: requiredTransactionEnv('ZIBAL_MERCHANT_ID'),
       callbackUrl: requiredTransactionEnv('ZIBAL_CALLBACK_URL'),
-      sandbox: (process.env.ZIBAL_SANDBOX || '').toLowerCase() === 'true',
+      sandbox: (process.env.ZIBAL_SANDBOX || '').trim().toLowerCase() === 'true',
       logLevel: parseInt(process.env.ZIBAL_LOG_LEVEL || '2', 10),
     }),
     forwardRef(() => PermissionsModule),

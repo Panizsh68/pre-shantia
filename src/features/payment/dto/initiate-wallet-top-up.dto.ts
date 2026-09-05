@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsNumber, Min } from 'class-validator';
+import { IsInt, IsNumber, Max, Min } from 'class-validator';
 
 export class InitiateWalletTopUpDto {
   @ApiProperty({
@@ -10,5 +10,6 @@ export class InitiateWalletTopUpDto {
   @IsNumber()
   @IsInt()
   @Min(1001)
+  @Max(499999999)
   amount: number;
 }

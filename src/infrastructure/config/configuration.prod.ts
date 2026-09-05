@@ -9,8 +9,8 @@ export interface ProductionCoreConfig {
   KAVENEGAR_API_KEY: string; KAVENEGAR_TEMPLATE: string; KAVENEGAR_SENDER: string;
   SHAHKAR_ENABLED: boolean; SHAHKAR_BASE_URL: string; SHAHKAR_API_KEY: string; MOCK_PROVIDERS_ENABLED: boolean;
   ZIBAL_MERCHANT_ID: string; ZIBAL_SANDBOX: boolean; ZIBAL_CALLBACK_URL: string;
-  ZIBAL_SECRET_KEY: string; ZIBAL_LOG_LEVEL: number; APP_URL: string;
-  PAYMENT_CALLBACK_SECRET: string; SUPERADMIN_MELICODE: string; SUPERADMIN_PHONE: string;
+  ZIBAL_SECRET_KEY?: string; ZIBAL_LOG_LEVEL: number; APP_URL: string;
+  PAYMENT_CALLBACK_SECRET?: string; SUPERADMIN_MELICODE: string; SUPERADMIN_PHONE: string;
   R2_ENDPOINT: string; R2_ACCESS_KEY: string; R2_SECRET_KEY: string;
   R2_BUCKET: string; R2_PUBLIC_BASE_URL: string;
   ENABLE_SWAGGER: boolean; SWAGGER_USERNAME: string; SWAGGER_PASSWORD: string;
@@ -25,8 +25,27 @@ function requiredEnv(name: string, env: NodeJS.ProcessEnv): string {
   return value;
 }
 
+function requiredHttpsUrl(name: string, env: NodeJS.ProcessEnv): string {
+  const value = requiredEnv(name, env);
+  try {
+    if (new URL(value).protocol !== 'https:') throw new Error('must use HTTPS');
+  } catch (error) {
+    throw new Error(`Invalid production URL for ${name}: ${error instanceof Error ? error.message : 'must use HTTPS'}`);
+  }
+  return value;
+}
+
 function requiredSecret(name: string, env: NodeJS.ProcessEnv, minimumLength = 16): string {
   const value = requiredEnv(name, env);
+  if (value.length < minimumLength || PLACEHOLDER_SECRET.test(value)) {
+    throw new Error(`Production secret ${name} is weak, default, or placeholder-like`);
+  }
+  return value;
+}
+
+function optionalSecret(name: string, env: NodeJS.ProcessEnv, minimumLength = 32): string | undefined {
+  const value = env[name]?.trim();
+  if (!value) return undefined;
   if (value.length < minimumLength || PLACEHOLDER_SECRET.test(value)) {
     throw new Error(`Production secret ${name} is weak, default, or placeholder-like`);
   }
@@ -71,11 +90,16 @@ export function validateProductionEnvironment(env: NodeJS.ProcessEnv = process.e
     MOCK_PROVIDERS_ENABLED: parseBoolean('MOCK_PROVIDERS_ENABLED', env, false),
     ZIBAL_MERCHANT_ID: requiredEnv('ZIBAL_MERCHANT_ID', env),
     ZIBAL_SANDBOX: parseBoolean('ZIBAL_SANDBOX', env, false),
-    ZIBAL_CALLBACK_URL: requiredEnv('ZIBAL_CALLBACK_URL', env),
-    ZIBAL_SECRET_KEY: requiredSecret('ZIBAL_SECRET_KEY', env),
+    ZIBAL_CALLBACK_URL: requiredHttpsUrl('ZIBAL_CALLBACK_URL', env),
+    // zibal@1.x authenticates with the merchant value. It does not consume a
+    // ZIBAL_SECRET_KEY, so keep this legacy variable optional for compatibility.
+    ZIBAL_SECRET_KEY: env.ZIBAL_SECRET_KEY?.trim() || undefined,
     ZIBAL_LOG_LEVEL: parseNumber('ZIBAL_LOG_LEVEL', env, 2),
-    APP_URL: requiredEnv('APP_URL', env),
-    PAYMENT_CALLBACK_SECRET: requiredSecret('PAYMENT_CALLBACK_SECRET', env, 32),
+    APP_URL: requiredHttpsUrl('APP_URL', env),
+    // Normal Zibal callbacks are authenticated by local trackId lookup and a
+    // server-to-server verify call. This optional value is only for trusted
+    // internal callbacks sent with X-Callback-Secret.
+    PAYMENT_CALLBACK_SECRET: optionalSecret('PAYMENT_CALLBACK_SECRET', env),
     SUPERADMIN_MELICODE: env.SUPERADMIN_MELICODE?.trim() || '',
     SUPERADMIN_PHONE: env.SUPERADMIN_PHONE?.trim() || '',
     R2_ENDPOINT: env.R2_ENDPOINT?.trim() || '', R2_ACCESS_KEY: env.R2_ACCESS_KEY?.trim() || '',

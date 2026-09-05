@@ -28,7 +28,7 @@ function requiredPaymentEnv(name: string): string {
       merchant: requiredPaymentEnv('ZIBAL_MERCHANT_ID'),
       callbackUrl: requiredPaymentEnv('ZIBAL_CALLBACK_URL'),
       // sandbox should only be true when explicitly set to 'true'
-      sandbox: (process.env.ZIBAL_SANDBOX || '').toLowerCase() === 'true',
+      sandbox: (process.env.ZIBAL_SANDBOX || '').trim().toLowerCase() === 'true',
       logLevel: parseInt(process.env.ZIBAL_LOG_LEVEL || '2', 10),
     }),
   ],

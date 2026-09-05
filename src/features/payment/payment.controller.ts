@@ -89,29 +89,34 @@ export class PaymentController {
   @ApiQuery({ name: 'trackId', required: true, type: String, description: 'Zibal trackId' })
   @ApiQuery({ name: 'success', required: true, type: String, enum: ['1', '0'], description: 'Payment success flag (1 = success)' })
   @ApiResponse({
-    status: 200,
-    description: 'Payment verified or failed',
+    status: 303,
+    description: 'Redirects to the frontend payment status page after processing',
     type: HandleCallbackResponseDto,
   })
   async handleCallback(
     @Query('trackId') trackId: string,
     @Query('success') success: string,
-    @Query('secret') secret?: string,
     @Req() req?: any,
     @Res() res?: Response,
   ) {
     if (!trackId) {
       throw new BadRequestException('trackId is required');
     }
+    if (success !== '0' && success !== '1') {
+      throw new BadRequestException('success must be 0 or 1');
+    }
 
-    // Zibal sends the callback as a plain GET/POST according to the selected
-    // flow and does not send our private header. Authenticity is established
-    // by looking up the pending trackId and calling Zibal verify server-side.
+    // This integration handles Zibal's callback as a GET query route. Zibal
+    // does not send our private header. Authenticity is established by looking
+    // up the pending trackId and calling Zibal verify server-side.
     // Keep the optional secret compatibility path for internal callbacks, but
     // never make it a requirement for the real Zibal callback.
     const configuredSecret = (this.configService.get<string>('PAYMENT_CALLBACK_SECRET') || '').trim();
     const headerSecret = req?.headers?.['x-callback-secret'] || req?.headers?.['X-Callback-Secret'];
-    const providedSecret = (secret || headerSecret || '').toString().trim();
+    // Never accept a callback secret in the query string. Query parameters can
+    // leak through browser history, access logs and referrer headers. The
+    // optional header remains available for trusted internal callbacks.
+    const providedSecret = (headerSecret || '').toString().trim();
     if (configuredSecret && providedSecret) {
       const providedBuffer = Buffer.from(providedSecret);
       const configuredBuffer = Buffer.from(configuredSecret);
@@ -120,12 +125,19 @@ export class PaymentController {
       if (!isValidSecret) throw new BadRequestException('Invalid callback security secret');
     }
 
-    // proceed to business logic
-    await this.paymentService.handleCallback(trackId, success);
-    const appUrl = this.configService.get<string>('APP_URL')?.trim();
+    const appUrl = this.configService.get<string>('APP_URL')?.trim().replace(/\/+$/, '');
     if (!appUrl) {
       throw new InternalServerErrorException('APP_URL is not configured');
     }
-    return res?.redirect(303, `${appUrl}/payment/status?trackId=${encodeURIComponent(trackId)}&success=${encodeURIComponent(success)}`);
+
+    try {
+      await this.paymentService.handleCallback(trackId, success);
+      return res?.redirect(303, `${appUrl}/payment/status?trackId=${encodeURIComponent(trackId)}&success=${encodeURIComponent(success)}`);
+    } catch {
+      // Known failed/cancelled payments and retryable verification failures
+      // should land on the application result page instead of exposing a raw
+      // JSON error response from the callback endpoint.
+      return res?.redirect(303, `${appUrl}/payment/status?trackId=${encodeURIComponent(trackId)}&success=0`);
+    }
   }
 }

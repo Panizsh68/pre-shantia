@@ -5,6 +5,7 @@ import { CreateTransactionDto } from './dtos/create-transaction.dto';
 import { ITransactionRepository } from './repositories/transaction.repository';
 import { ITransactionService } from './interfaces/transaction.service.interface';
 import { v4 as uuidv4 } from 'uuid';
+import { TransactionStatus } from './enums/transaction.status.enum';
 
 @Injectable()
 export class TransactionService implements ITransactionService {
@@ -37,6 +38,13 @@ export class TransactionService implements ITransactionService {
       throw new NotFoundException('Transaction not found');
     }
     return transaction;
+  }
+
+  async findPendingByOrderId(orderId: string, session?: ClientSession): Promise<Transaction | null> {
+    return this.transactionRepository.findOneByCondition(
+      { orderId, status: TransactionStatus.PENDING },
+      { session },
+    );
   }
 
   async update(

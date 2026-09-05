@@ -98,3 +98,15 @@ export const TransactionSchema = SchemaFactory.createForClass(Transaction);
 // Indexes for fast lookup
 TransactionSchema.index({ userId: 1 });
 TransactionSchema.index({ localId: 1 }, { unique: true });
+// A pending order may have only one gateway payment attempt. Failed attempts
+// become retryable, while completed attempts are prevented by the order state.
+TransactionSchema.index(
+  { orderId: 1, status: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      orderId: { $type: 'string' },
+      status: TransactionStatus.PENDING,
+    },
+  },
+);

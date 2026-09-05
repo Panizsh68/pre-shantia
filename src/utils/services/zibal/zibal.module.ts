@@ -7,11 +7,15 @@ import { IZIBAL_SERVICE, ZIBAL_SDK } from './constants/zibal.constants';
 @Module({})
 export class ZibalModule {
   static register(options: IZibalModuleOptions): DynamicModule {
-    // Create new instance of Zibal SDK with options
+    // zibal@1.x selects its sandbox by using the special `zibal` merchant.
+    // The SDK does not consume a `sandbox` constructor option, so passing it
+    // through silently leaves a sandbox request on the production merchant.
+    const configuredMerchant = String(options.merchant ?? '').trim();
+    const merchant = options.sandbox === true ? 'zibal' : configuredMerchant;
+
     const sdk = new Zibal({
-      merchant: options.merchant,
-      callbackUrl: options.callbackUrl,
-      sandbox: options.sandbox,
+      merchant,
+      callbackUrl: options.callbackUrl?.trim(),
     });
 
     return {
