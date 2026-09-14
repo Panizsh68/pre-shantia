@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { ImageUploadService } from './image-upload.service';
 import { ImageFileValidationService, UnavailableMalwareScanner } from './security/image-file-validation.service';
 
@@ -20,5 +20,38 @@ describe('ImageUploadService upload limits and object keys', () => {
     expect(key).not.toContain('/../');
     expect(key).toContain('.._.._overwrite.png');
     expect((service as any).buildKey('product', '../../overwrite.png')).not.toBe(key);
+  });
+
+  it('preserves image validation errors as client errors', async () => {
+    const validator = {
+      validateAndNormalize: jest.fn().mockRejectedValue(new BadRequestException('Invalid image')),
+    };
+    const productionService = new ImageUploadService(
+      { send: jest.fn() } as any,
+      { get: (key: string) => key === 'config.r2'
+        ? { bucket: 'private-test-bucket', publicBaseUrl: '' }
+        : key === 'NODE_ENV' ? 'production' : undefined } as any,
+      validator as any,
+      new UnavailableMalwareScanner(),
+    );
+
+    await expect(productionService.uploadFiles([
+      { originalname: 'logo.png', mimetype: 'image/png', size: 1, buffer: Buffer.from('x') },
+    ] as any, 'company')).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('maps storage provider failures to a safe service-unavailable response', async () => {
+    const productionService = new ImageUploadService(
+      { send: jest.fn().mockRejectedValue(new Error('Access Denied')) } as any,
+      { get: (key: string) => key === 'config.r2'
+        ? { bucket: 'private-test-bucket', publicBaseUrl: '' }
+        : key === 'NODE_ENV' ? 'production' : undefined } as any,
+      { validateAndNormalize: jest.fn().mockResolvedValue({ buffer: Buffer.from('x'), contentType: 'image/png' }) } as any,
+      { scan: jest.fn().mockResolvedValue({ status: 'unavailable' }) } as any,
+    );
+
+    await expect(productionService.uploadFiles([
+      { originalname: 'logo.png', mimetype: 'image/png', size: 1, buffer: Buffer.from('x') },
+    ] as any, 'company')).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 });

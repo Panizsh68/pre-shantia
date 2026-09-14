@@ -107,7 +107,7 @@ export class ImageUploadController {
   @Post('public-company-upload')
   @Public()
   @UseGuards(AbuseRateLimitGuard)
-  @AbuseRateLimit({ name: 'vendor-image-upload', identity: 'ip', config: 'PUBLIC_FORM' })
+  @AbuseRateLimit({ name: 'vendor-image-upload-v2', identity: 'ip', config: 'VENDOR_IMAGE_UPLOAD' })
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FilesInterceptor('files', 1, {
     limits: {

@@ -1,5 +1,12 @@
 /* global Express */
-import { Inject, Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  BadRequestException,
+  HttpException,
+  InternalServerErrorException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { RedactingLogger } from 'src/infrastructure/logging/redacting-logger';
@@ -260,7 +267,10 @@ export class ImageUploadService {
         });
       } catch (err) {
         this.logger.error(`[uploadFiles] Upload failed for ${file.originalname}: ${err instanceof Error ? err.message : String(err)}`);
-        throw new InternalServerErrorException(`Failed to upload file ${file.originalname}`);
+        // Preserve validation errors as client errors. Storage/provider failures
+        // are operational errors and must not expose provider details to clients.
+        if (err instanceof HttpException) throw err;
+        throw new ServiceUnavailableException('Image storage is temporarily unavailable');
       }
     }
 
