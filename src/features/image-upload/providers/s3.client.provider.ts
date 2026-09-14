@@ -13,6 +13,15 @@ export const S3ClientProvider: Provider = {
   useFactory: (configService: ConfigService) => {
     logger.log('[S3ClientProvider] Attempting to initialize S3 client...');
 
+    const localUploadSetting = configService.get<boolean | string>('LOCAL_UPLOAD_ENABLED')
+      ?? configService.get<boolean | string>('config.LOCAL_UPLOAD_ENABLED');
+    const localUploadEnabled = localUploadSetting === true
+      || String(localUploadSetting || '').trim().toLowerCase() === 'true';
+    if (localUploadEnabled) {
+      logger.log('[S3ClientProvider] Local uploads are enabled; S3/R2 client initialization skipped');
+      return null;
+    }
+
     // Try to get r2 config from nested config.r2
     let r2Config = configService.get('config.r2');
     logger.debug(`[S3ClientProvider] config.r2 result: ${r2Config ? 'found' : 'not found'}`);

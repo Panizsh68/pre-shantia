@@ -42,7 +42,11 @@ export class ImageUploadService {
     this.bucket = r2Config?.bucket || '';
     this.publicBaseUrl = r2Config?.publicBaseUrl;
     const nodeEnv = String(this.configService.get('NODE_ENV') || '').toLowerCase();
-    this.localUploadEnabled = nodeEnv !== 'production' && !this.s3;
+    const localUploadSetting = this.configService.get<boolean | string>('LOCAL_UPLOAD_ENABLED')
+      ?? this.configService.get<boolean | string>('config.LOCAL_UPLOAD_ENABLED');
+    const explicitlyEnabled = localUploadSetting === true
+      || String(localUploadSetting || '').trim().toLowerCase() === 'true';
+    this.localUploadEnabled = explicitlyEnabled || (nodeEnv !== 'production' && !this.s3);
     this.appUrl = String(this.configService.get('APP_URL') || 'http://localhost:3001').replace(/\/$/, '');
 
 
@@ -221,7 +225,9 @@ export class ImageUploadService {
       throw new InternalServerErrorException('R2 bucket is not configured (R2_BUCKET)');
     }
 
-    this.logger.log(`[uploadFiles] S3 client ready, bucket=${this.bucket}`);
+    this.logger.log(this.localUploadEnabled
+      ? '[uploadFiles] Local disk storage ready'
+      : `[uploadFiles] S3/R2 storage ready, bucket=${this.bucket}`);
 
     const maxImages = type === 'product' ? this.maxProductImages : this.maxCompanyImages;
     if (files.length > maxImages) {

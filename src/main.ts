@@ -73,7 +73,11 @@ async function bootstrap(): Promise<void> {
   expressApp.set('trust proxy', Number.isInteger(trustedProxyHops) && trustedProxyHops >= 0 ? trustedProxyHops : 0);
   expressApp.use(express.json({ limit: '10mb' }));
   expressApp.use(express.urlencoded({ extended: true, limit: '50mb' }));
-  if (process.env.NODE_ENV !== 'production') {
+  const localUploadSetting = configService.get<boolean | string>('LOCAL_UPLOAD_ENABLED')
+    ?? configService.get<boolean | string>('config.LOCAL_UPLOAD_ENABLED');
+  const localUploadEnabled = localUploadSetting === true
+    || String(localUploadSetting || '').trim().toLowerCase() === 'true';
+  if (localUploadEnabled) {
     expressApp.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads'), { index: false, maxAge: '1h' }));
   }
 

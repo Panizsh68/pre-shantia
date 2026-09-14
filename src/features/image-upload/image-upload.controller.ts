@@ -152,14 +152,14 @@ export class ImageUploadController {
   }))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
-    summary: 'Upload files directly to cloud storage (no presign needed)',
+    summary: 'Upload files directly to configured storage (no presign needed)',
     description: `
       Direct file upload endpoint that handles CORS automatically.
       Use this instead of presign if you encounter CORS issues.
       
       **Workflow:**
       1. Frontend POSTs multipart/form-data with files
-      2. Backend uploads directly to S3/R2
+      2. Backend uploads directly to local disk or S3/R2, depending on configuration
       3. Backend returns public URLs
       
       **Limits:**

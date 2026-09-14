@@ -18,6 +18,14 @@ describe('production configuration validation', () => {
   it('accepts complete runtime configuration', () => {
     expect(validateProductionEnvironment(validEnvironment()).PAYMENT_CALLBACK_SECRET).toBeDefined();
   });
+  it('supports local upload mode without R2 credentials', () => {
+    const env = validEnvironment();
+    env.LOCAL_UPLOAD_ENABLED = 'true';
+    delete env.R2_ENDPOINT;
+    delete env.R2_ACCESS_KEY;
+    delete env.R2_SECRET_KEY;
+    expect(validateProductionEnvironment(env).LOCAL_UPLOAD_ENABLED).toBe(true);
+  });
   it('allows Shahkar to be disabled without provider credentials', () => {
     const env = validEnvironment();
     env.SHAHKAR_ENABLED = 'false';

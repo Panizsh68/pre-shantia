@@ -9,7 +9,7 @@ export interface ProductionCoreConfig {
   KAVENEGAR_API_KEY: string; KAVENEGAR_TEMPLATE: string; KAVENEGAR_SENDER: string;
   SHAHKAR_ENABLED: boolean; SHAHKAR_BASE_URL: string; SHAHKAR_API_KEY: string; MOCK_PROVIDERS_ENABLED: boolean;
   ZIBAL_MERCHANT_ID: string; ZIBAL_SANDBOX: boolean; ZIBAL_CALLBACK_URL: string;
-  ZIBAL_SECRET_KEY?: string; ZIBAL_LOG_LEVEL: number; APP_URL: string;
+  ZIBAL_SECRET_KEY?: string; ZIBAL_LOG_LEVEL: number; APP_URL: string; LOCAL_UPLOAD_ENABLED: boolean;
   AUTH_FIXED_OTP_ENABLED: boolean; AUTH_FIXED_OTP: string; AUTH_FIXED_OTP_ALLOWED_PHONES: string;
   PAYMENT_CALLBACK_SECRET?: string; SUPERADMIN_MELICODE: string; SUPERADMIN_PHONE: string;
   R2_ENDPOINT: string; R2_ACCESS_KEY: string; R2_SECRET_KEY: string;
@@ -110,6 +110,7 @@ export function validateProductionEnvironment(env: NodeJS.ProcessEnv = process.e
     ZIBAL_SECRET_KEY: env.ZIBAL_SECRET_KEY?.trim() || undefined,
     ZIBAL_LOG_LEVEL: parseNumber('ZIBAL_LOG_LEVEL', env, 2),
     APP_URL: requiredHttpsUrl('APP_URL', env),
+    LOCAL_UPLOAD_ENABLED: parseBoolean('LOCAL_UPLOAD_ENABLED', env, false),
     AUTH_FIXED_OTP_ENABLED: fixedOtpEnabled,
     AUTH_FIXED_OTP: fixedOtp,
     AUTH_FIXED_OTP_ALLOWED_PHONES: fixedOtpAllowedPhones,

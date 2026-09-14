@@ -8,7 +8,7 @@ interface AppConfig {
   REDIS_HOST: string; REDIS_PORT: number; OTP_TTL: number;
   SUPERADMIN_PHONE: string; SUPERADMIN_MELICODE: string;
   ZIBAL_MERCHANT_ID: string; ZIBAL_SANDBOX: boolean; ZIBAL_CALLBACK_URL: string;
-  ZIBAL_SECRET_KEY: string; ZIBAL_LOG_LEVEL: number; APP_URL: string;
+  ZIBAL_SECRET_KEY: string; ZIBAL_LOG_LEVEL: number; APP_URL: string; LOCAL_UPLOAD_ENABLED: boolean;
   AUTH_FIXED_OTP_ENABLED: boolean; AUTH_FIXED_OTP: string; AUTH_FIXED_OTP_ALLOWED_PHONES: string;
   R2_ENDPOINT: string; R2_ACCESS_KEY: string; R2_SECRET_KEY: string;
   R2_BUCKET: string; R2_PUBLIC_BASE_URL: string;
@@ -55,6 +55,7 @@ export default (): AppConfiguration => {
     ZIBAL_SECRET_KEY: env('ZIBAL_SECRET_KEY'),
     ZIBAL_LOG_LEVEL: parseNumber(process.env.ZIBAL_LOG_LEVEL, 2),
     APP_URL: env('APP_URL', 'http://localhost:3001'),
+    LOCAL_UPLOAD_ENABLED: parseBoolean('LOCAL_UPLOAD_ENABLED', false),
     AUTH_FIXED_OTP_ENABLED: parseBoolean('AUTH_FIXED_OTP_ENABLED', false),
     AUTH_FIXED_OTP: env('AUTH_FIXED_OTP'),
     AUTH_FIXED_OTP_ALLOWED_PHONES: env('AUTH_FIXED_OTP_ALLOWED_PHONES'),

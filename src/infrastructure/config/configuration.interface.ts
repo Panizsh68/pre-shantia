@@ -25,6 +25,7 @@ export interface Config {
   ZIBAL_SECRET_KEY?: string;
   ZIBAL_LOG_LEVEL?: number;
   APP_URL: string;
+  LOCAL_UPLOAD_ENABLED?: boolean;
   PAYMENT_CALLBACK_SECRET?: string;
   ENABLE_SWAGGER?: boolean;
   SWAGGER_USERNAME?: string;

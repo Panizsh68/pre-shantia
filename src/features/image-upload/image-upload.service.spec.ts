@@ -54,4 +54,24 @@ describe('ImageUploadService upload limits and object keys', () => {
       { originalname: 'logo.png', mimetype: 'image/png', size: 1, buffer: Buffer.from('x') },
     ] as any, 'company')).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
+
+  it('uses local disk storage in production when explicitly enabled', async () => {
+    const productionService = new ImageUploadService(
+      null,
+      { get: (key: string) => key === 'config.r2'
+        ? { bucket: '', publicBaseUrl: '' }
+        : key === 'NODE_ENV' ? 'production'
+          : key === 'LOCAL_UPLOAD_ENABLED' ? true : undefined } as any,
+      { validateAndNormalize: jest.fn().mockResolvedValue({ buffer: Buffer.from('x'), contentType: 'image/png' }) } as any,
+      { scan: jest.fn().mockResolvedValue({ status: 'unavailable' }) } as any,
+    );
+    const saveLocally = jest.spyOn(productionService as any, 'saveLocally').mockResolvedValue(undefined);
+
+    const result = await productionService.uploadFiles([
+      { originalname: 'logo.png', mimetype: 'image/png', size: 1, buffer: Buffer.from('x') },
+    ] as any, 'company');
+
+    expect(saveLocally).toHaveBeenCalledTimes(1);
+    expect(result.items[0].publicUrl).toContain('/uploads/company/');
+  });
 });
