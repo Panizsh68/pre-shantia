@@ -17,6 +17,7 @@ import { User, UserSchema } from '../users/entities/user.entity';
 import { AuthRepository, IAuthRepository } from './repositories/auth.repository';
 import { Model } from 'mongoose';
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
+import { SettingsModule } from 'src/features/settings/settings.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { PermissionsModule } from 'src/features/permissions/permissions.module';
     forwardRef(() => CompaniesModule),
     WalletsModule,
     forwardRef(() => PermissionsModule),
+    SettingsModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -49,7 +51,6 @@ import { PermissionsModule } from 'src/features/permissions/permissions.module';
       inject: [getModelToken(User.name)],
     },
     AuthService,
-    ShahkarService,
     TokensService,
     JwtService,
   ],

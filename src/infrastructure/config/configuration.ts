@@ -9,9 +9,10 @@ interface AppConfig {
   SUPERADMIN_PHONE: string; SUPERADMIN_MELICODE: string;
   ZIBAL_MERCHANT_ID: string; ZIBAL_SANDBOX: boolean; ZIBAL_CALLBACK_URL: string;
   ZIBAL_SECRET_KEY: string; ZIBAL_LOG_LEVEL: number; APP_URL: string;
+  AUTH_FIXED_OTP_ENABLED: boolean; AUTH_FIXED_OTP: string; AUTH_FIXED_OTP_ALLOWED_PHONES: string;
   R2_ENDPOINT: string; R2_ACCESS_KEY: string; R2_SECRET_KEY: string;
   R2_BUCKET: string; R2_PUBLIC_BASE_URL: string;
-  SHAHKAR_BASE_URL: string; SHAHKAR_API_KEY: string; MOCK_PROVIDERS_ENABLED: boolean;
+  SHAHKAR_ENABLED: boolean; SHAHKAR_BASE_URL: string; SHAHKAR_API_KEY: string; MOCK_PROVIDERS_ENABLED: boolean;
   ENABLE_SWAGGER: boolean; SWAGGER_USERNAME: string; SWAGGER_PASSWORD: string;
   HEALTH_READINESS_TOKEN: string; LOG_LEVEL: string;
   RATE_LIMITS: Record<string, number>;
@@ -30,6 +31,10 @@ function parseNumber(val: string | undefined, fallback: number): number {
 }
 
 const env = (name: string, fallback = '') => process.env[name] || fallback;
+const parseBoolean = (name: string, fallback: boolean) => {
+  const value = process.env[name];
+  return value === undefined ? fallback : value.trim().toLowerCase() === 'true';
+};
 
 export default (): AppConfiguration => {
   const app: AppConfig = {
@@ -50,6 +55,9 @@ export default (): AppConfiguration => {
     ZIBAL_SECRET_KEY: env('ZIBAL_SECRET_KEY'),
     ZIBAL_LOG_LEVEL: parseNumber(process.env.ZIBAL_LOG_LEVEL, 2),
     APP_URL: env('APP_URL', 'http://localhost:3001'),
+    AUTH_FIXED_OTP_ENABLED: parseBoolean('AUTH_FIXED_OTP_ENABLED', false),
+    AUTH_FIXED_OTP: env('AUTH_FIXED_OTP'),
+    AUTH_FIXED_OTP_ALLOWED_PHONES: env('AUTH_FIXED_OTP_ALLOWED_PHONES'),
     R2_ENDPOINT: env('R2_ENDPOINT'), R2_ACCESS_KEY: env('R2_ACCESS_KEY'),
     R2_SECRET_KEY: env('R2_SECRET_KEY'), R2_BUCKET: env('R2_BUCKET'),
     R2_PUBLIC_BASE_URL: env('R2_PUBLIC_BASE_URL'),
@@ -58,6 +66,7 @@ export default (): AppConfiguration => {
     SWAGGER_PASSWORD: env('SWAGGER_PASSWORD'),
     HEALTH_READINESS_TOKEN: env('HEALTH_READINESS_TOKEN'),
     LOG_LEVEL: env('LOG_LEVEL', 'debug'),
+    SHAHKAR_ENABLED: parseBoolean('SHAHKAR_ENABLED', false),
     SHAHKAR_BASE_URL: env('SHAHKAR_BASE_URL'), SHAHKAR_API_KEY: env('SHAHKAR_API_KEY'),
     MOCK_PROVIDERS_ENABLED: env('MOCK_PROVIDERS_ENABLED').toLowerCase() === 'true',
     RATE_LIMITS: {}, TRUSTED_PROXY_HOPS: parseNumber(process.env.TRUSTED_PROXY_HOPS, 0),
@@ -69,6 +78,7 @@ export default (): AppConfiguration => {
     KAVENEGAR_API_KEY: env('KAVENEGAR_API_KEY'),
     KAVENEGAR_TEMPLATE: env('KAVENEGAR_TEMPLATE'),
     KAVENEGAR_SENDER: env('KAVENEGAR_SENDER'),
+    SHAHKAR_ENABLED: app.SHAHKAR_ENABLED,
     SHAHKAR_BASE_URL: env('SHAHKAR_BASE_URL'), SHAHKAR_API_KEY: env('SHAHKAR_API_KEY'),
     MOCK_PROVIDERS_ENABLED: env('MOCK_PROVIDERS_ENABLED').toLowerCase() === 'true',
     PAYMENT_CALLBACK_SECRET: process.env.PAYMENT_CALLBACK_SECRET || undefined,

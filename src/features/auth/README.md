@@ -100,7 +100,7 @@ All routes are under the `/auth` controller.
 
 - `VerifyOtpDto` (src/features/auth/dto/verify-otp.dto.ts)
   - phoneNumber: string
-  - otp: string (4 digits)
+  - otp: string (6 digits)
 
 - `SignUpDto` (src/features/auth/dto/sign-up.dto.ts) extends `CreateUserDto` and adds optional `permissions?: PermissionDto[]`.
 

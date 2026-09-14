@@ -55,4 +55,34 @@ describe('production configuration validation', () => {
     env.APP_URL = 'https://example.invalid'; env.ZIBAL_CALLBACK_URL = 'http://example.invalid/payment/callback';
     expect(() => validateProductionEnvironment(env)).toThrow(/ZIBAL_CALLBACK_URL/);
   });
+
+  it('requires an exact fixed OTP and an allowlist when the temporary bypass is enabled', () => {
+    const env = validEnvironment();
+    env.AUTH_FIXED_OTP_ENABLED = 'true';
+    env.AUTH_FIXED_OTP = '123456';
+    expect(() => validateProductionEnvironment(env)).toThrow(/AUTH_FIXED_OTP_ALLOWED_PHONES/);
+    env.AUTH_FIXED_OTP_ALLOWED_PHONES = '+989123456789';
+    expect(validateProductionEnvironment(env).AUTH_FIXED_OTP_ENABLED).toBe(true);
+  });
+
+  it('allows Kavenegar credentials to be omitted only during the fixed-OTP window', () => {
+    const env = validEnvironment();
+    env.AUTH_FIXED_OTP_ENABLED = 'true';
+    env.AUTH_FIXED_OTP = '123456';
+    env.AUTH_FIXED_OTP_ALLOWED_PHONES = '+989123456789';
+    delete env.KAVENEGAR_API_KEY;
+    delete env.KAVENEGAR_TEMPLATE;
+    delete env.KAVENEGAR_SENDER;
+
+    const config = validateProductionEnvironment(env);
+    expect(config.KAVENEGAR_API_KEY).toBe('');
+    expect(config.KAVENEGAR_TEMPLATE).toBe('');
+    expect(config.KAVENEGAR_SENDER).toBe('');
+  });
+
+  it('still requires Kavenegar credentials when the fixed-OTP window is disabled', () => {
+    const env = validEnvironment();
+    delete env.KAVENEGAR_API_KEY;
+    expect(() => validateProductionEnvironment(env)).toThrow(/KAVENEGAR_API_KEY/);
+  });
 });

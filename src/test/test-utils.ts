@@ -4,6 +4,7 @@ import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { PermissionsService } from 'src/features/permissions/permissions.service';
 import { ShahkarService } from 'src/utils/services/shahkar/shahkar.service';
+import { ShahkarSettingsService } from 'src/features/settings/shahkar-settings.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { OtpService } from 'src/utils/services/otp/otp.service';
@@ -65,7 +66,11 @@ export function defaultTestProviders(): Provider[] {
     },
     {
       provide: ShahkarService,
-      useValue: { verify: jest.fn() },
+      useValue: { verify: jest.fn(), verifyMelicodeWithPhonenumber: jest.fn().mockResolvedValue(true), getCapability: jest.fn().mockReturnValue({ available: true }) },
+    },
+    {
+      provide: ShahkarSettingsService,
+      useValue: { isEnabled: jest.fn().mockResolvedValue(false), getState: jest.fn(), setEnabled: jest.fn() },
     },
     {
       provide: CachingService,

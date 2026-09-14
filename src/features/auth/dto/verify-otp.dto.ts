@@ -15,11 +15,11 @@ export class VerifyOtpDto {
 
   @ApiProperty({
     description: 'One-time password (OTP) for verification',
-    example: '1234',
+    example: '123456',
   })
   @Transform(({ value }) => toEnglishDigits(String(value ?? '')))
   @IsNotEmpty()
-  @Length(4, 4)
+  @Length(6, 6)
   @IsNumberString()
   otp: string;
 }

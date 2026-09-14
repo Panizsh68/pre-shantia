@@ -10,6 +10,7 @@ export interface ProductionCoreConfig {
   SHAHKAR_ENABLED: boolean; SHAHKAR_BASE_URL: string; SHAHKAR_API_KEY: string; MOCK_PROVIDERS_ENABLED: boolean;
   ZIBAL_MERCHANT_ID: string; ZIBAL_SANDBOX: boolean; ZIBAL_CALLBACK_URL: string;
   ZIBAL_SECRET_KEY?: string; ZIBAL_LOG_LEVEL: number; APP_URL: string;
+  AUTH_FIXED_OTP_ENABLED: boolean; AUTH_FIXED_OTP: string; AUTH_FIXED_OTP_ALLOWED_PHONES: string;
   PAYMENT_CALLBACK_SECRET?: string; SUPERADMIN_MELICODE: string; SUPERADMIN_PHONE: string;
   R2_ENDPOINT: string; R2_ACCESS_KEY: string; R2_SECRET_KEY: string;
   R2_BUCKET: string; R2_PUBLIC_BASE_URL: string;
@@ -70,6 +71,17 @@ function parseBoolean(name: string, env: NodeJS.ProcessEnv, fallback: boolean): 
 export function validateProductionEnvironment(env: NodeJS.ProcessEnv = process.env): ProductionCoreConfig {
   if ((env.NODE_ENV || 'production') !== 'production') throw new Error('Production configuration requires NODE_ENV=production');
   if (parseBoolean('MOCK_PROVIDERS_ENABLED', env, false)) throw new Error('Mock providers cannot be enabled in production');
+  const fixedOtpEnabled = parseBoolean('AUTH_FIXED_OTP_ENABLED', env, false);
+  const fixedOtp = env.AUTH_FIXED_OTP?.trim() || '';
+  const fixedOtpAllowedPhones = env.AUTH_FIXED_OTP_ALLOWED_PHONES?.trim() || '';
+  if (fixedOtpEnabled) {
+    if (!/^\d{6}$/.test(fixedOtp)) {
+      throw new Error('AUTH_FIXED_OTP must be exactly 6 English digits when enabled');
+    }
+    if (!fixedOtpAllowedPhones) {
+      throw new Error('AUTH_FIXED_OTP_ALLOWED_PHONES is required when AUTH_FIXED_OTP_ENABLED=true');
+    }
+  }
   return {
     NODE_ENV: 'production',
     MONGO_URL: requiredEnv('MONGO_URL', env),
@@ -81,9 +93,11 @@ export function validateProductionEnvironment(env: NodeJS.ProcessEnv = process.e
     REDIS_PORT: parseNumber('REDIS_PORT', env, 6379),
     REDIS_PASSWORD: requiredSecret('REDIS_PASSWORD', env),
     OTP_TTL: parseNumber('OTP_TTL', env, 300),
-    KAVENEGAR_API_KEY: requiredSecret('KAVENEGAR_API_KEY', env, 5),
-    KAVENEGAR_TEMPLATE: requiredEnv('KAVENEGAR_TEMPLATE', env),
-    KAVENEGAR_SENDER: requiredEnv('KAVENEGAR_SENDER', env),
+    // During the temporary fixed-OTP window, Kavenegar may be omitted. The
+    // OTP module still fails closed for every non-allowlisted phone.
+    KAVENEGAR_API_KEY: fixedOtpEnabled ? (env.KAVENEGAR_API_KEY?.trim() || '') : requiredSecret('KAVENEGAR_API_KEY', env, 5),
+    KAVENEGAR_TEMPLATE: fixedOtpEnabled ? (env.KAVENEGAR_TEMPLATE?.trim() || '') : requiredEnv('KAVENEGAR_TEMPLATE', env),
+    KAVENEGAR_SENDER: fixedOtpEnabled ? (env.KAVENEGAR_SENDER?.trim() || '') : requiredEnv('KAVENEGAR_SENDER', env),
     SHAHKAR_ENABLED: parseBoolean('SHAHKAR_ENABLED', env, false),
     SHAHKAR_BASE_URL: parseBoolean('SHAHKAR_ENABLED', env, false) ? requiredEnv('SHAHKAR_BASE_URL', env) : (env.SHAHKAR_BASE_URL?.trim() || ''),
     SHAHKAR_API_KEY: parseBoolean('SHAHKAR_ENABLED', env, false) ? requiredSecret('SHAHKAR_API_KEY', env, 16) : (env.SHAHKAR_API_KEY?.trim() || ''),
@@ -96,6 +110,9 @@ export function validateProductionEnvironment(env: NodeJS.ProcessEnv = process.e
     ZIBAL_SECRET_KEY: env.ZIBAL_SECRET_KEY?.trim() || undefined,
     ZIBAL_LOG_LEVEL: parseNumber('ZIBAL_LOG_LEVEL', env, 2),
     APP_URL: requiredHttpsUrl('APP_URL', env),
+    AUTH_FIXED_OTP_ENABLED: fixedOtpEnabled,
+    AUTH_FIXED_OTP: fixedOtp,
+    AUTH_FIXED_OTP_ALLOWED_PHONES: fixedOtpAllowedPhones,
     // Normal Zibal callbacks are authenticated by local trackId lookup and a
     // server-to-server verify call. This optional value is only for trusted
     // internal callbacks sent with X-Callback-Secret.

@@ -14,6 +14,7 @@ export interface Config {
   KAVENEGAR_SENDER?: string;
   SHAHKAR_BASE_URL?: string;
   SHAHKAR_API_KEY?: string;
+  SHAHKAR_ENABLED?: boolean;
   MOCK_PROVIDERS_ENABLED?: boolean;
   SUPERADMIN_PHONE?: string;
   SUPERADMIN_MELICODE?: string;

@@ -33,6 +33,7 @@ import { Action } from '../permissions/enums/actions.enum';
 import { IPermission } from '../permissions/interfaces/permissions.interface';
 import { determineOwnerTypeFromPermissions } from 'src/utils/wallet-owner.util';
 import { User } from '../users/entities/user.entity';
+import { ShahkarSettingsService } from '../settings/shahkar-settings.service';
 
 import { VerifyOtpResponse } from './interfaces/auth-response.interface';
 
@@ -50,6 +51,7 @@ export class AuthService {
     @Inject('IUsersService') private readonly usersService: IUsersService,
     @Inject('ICompanyService') private readonly companiesService: import('../companies/interfaces/company.service.interface').ICompanyService,
     private readonly shahkarService: ShahkarService,
+    private readonly shahkarSettingsService: ShahkarSettingsService,
     private readonly otpService: OtpService,
     private readonly tokensService: TokensService,
     private readonly cacheService: CachingService,
@@ -69,12 +71,16 @@ export class AuthService {
         return { phoneNumber: createUserDto.phoneNumber };
       }
 
+      // The fixed OTP bypass is intentionally limited to server-side
+      // allowlisted phones. It also bypasses external identity verification
+      // only for those same temporary test accounts.
+      const fixedOtpBypass = this.otpService.isFixedOtpEnabledForPhone(createUserDto.phoneNumber);
+      const shahkarEnabled = fixedOtpBypass ? false : await this.shahkarSettingsService.isEnabled();
       let valid = true;
       try {
-        valid = await this.shahkarService.verifyMelicodeWithPhonenumber(
-          createUserDto.nationalId,
-          createUserDto.phoneNumber,
-        );
+        if (shahkarEnabled) {
+          valid = await this.shahkarService.verifyMelicodeWithPhonenumber(createUserDto.nationalId, createUserDto.phoneNumber);
+        }
       } catch (error) {
         // Identity verification is a security gate. Never turn a Shahkar
         // outage into an implicit approval of an unverified identity.
