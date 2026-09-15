@@ -14,6 +14,7 @@ import { toPlain, toPlainArray } from 'src/libs/repository/utils/doc-mapper';
 import { IImageUploadServiceToken, IImageUploadService } from '../image-upload/interfaces/image-upload.service.interface';
 import { CreatePresignDto } from '../image-upload/dto/create-presign.dto';
 import { CreatePresignResponseDto } from '../image-upload/dto/presign-response.dto';
+import { SellerType } from './enums/seller-type.enum';
 
 @Injectable()
 export class CompaniesService implements ICompanyService {
@@ -34,9 +35,11 @@ export class CompaniesService implements ICompanyService {
 
     const data: Partial<Company> = {
       ...createCompanyDto,
+      sellerType: createCompanyDto.sellerType || SellerType.LEGAL,
       createdBy: new Types.ObjectId(userId),
       updatedBy: new Types.ObjectId(userId),
       status: CompanyStatus.PENDING,
+      admins: [new Types.ObjectId(userId)],
     };
 
     // Integration: if frontend provides image metadata to be presigned, request presigns and persist public URL
@@ -70,11 +73,10 @@ export class CompaniesService implements ICompanyService {
     }
   }
 
-  async changeStatus(id: string, status: CompanyStatus, userId: string): Promise<ICompany> {
+  async changeStatus(id: string, status: CompanyStatus, userId: string, privileged = false): Promise<ICompany> {
     const existing = await this.companyRepository.findById(id);
     if (!existing) { throw new NotFoundException(`Company with id ${id} not found`); }
-    // only creator can change status (business rule) — keep existing authorization
-    if (existing.createdBy.toString() !== userId) {
+    if (!privileged && !this.isCompanyMember(existing, userId)) {
       throw new ForbiddenException('You do not have permission to change company status');
     }
     const data: Partial<Company> = { status, updatedBy: new Types.ObjectId(userId) };
@@ -100,10 +102,13 @@ export class CompaniesService implements ICompanyService {
     id: string,
     updateCompanyDto: UpdateCompanyDto,
     userId: string,
+    privileged = false,
   ): Promise<ICompany> {
     const existing = await this.companyRepository.findById(id);
     if (!existing) { throw new NotFoundException(`Company with id ${id} not found`); }
-    if (existing.createdBy.toString() !== userId) { throw new ForbiddenException('You do not have permission to update this company'); }
+    if (!privileged && !this.isCompanyMember(existing, userId)) {
+      throw new ForbiddenException('You do not have permission to update this company');
+    }
 
     const data: Partial<Company> = {
       ...updateCompanyDto,
@@ -124,10 +129,12 @@ export class CompaniesService implements ICompanyService {
     return toPlain<ICompany>(updatedDoc);
   }
 
-  async remove(id: string, userId: string): Promise<void> {
+  async remove(id: string, userId: string, privileged = false): Promise<void> {
     const existing = await this.companyRepository.findById(id);
     if (!existing) { throw new NotFoundException(`Company with id ${id} not found`); }
-    if (existing.createdBy.toString() !== userId) { throw new ForbiddenException('You do not have permission to delete this company'); }
+    if (!privileged && !this.isCompanyMember(existing, userId)) {
+      throw new ForbiddenException('You do not have permission to delete this company');
+    }
     await this.companyRepository.deleteById(id);
   }
 
@@ -146,6 +153,18 @@ export class CompaniesService implements ICompanyService {
     return toPlainArray<ICompany>(companies);
   }
 
+  async findAllWithTotal(options: FindManyOptions = {}): Promise<{ items: ICompany[]; total: number }> {
+    const queryOptions: FindManyOptions = {
+      ...options,
+      populate: options.populate || [],
+    };
+    const [companies, total] = await Promise.all([
+      this.companyRepository.findAll(queryOptions),
+      this.companyRepository.countByCondition(queryOptions.conditions || {}),
+    ]);
+    return { items: toPlainArray<ICompany>(companies), total };
+  }
+
   async existsByName(name: string): Promise<boolean> {
     return this.companyRepository.existsByCondition({ name });
   }
@@ -159,11 +178,15 @@ export class CompaniesService implements ICompanyService {
       const company = await this.companyRepository.findById(companyId);
       if (!company) return false;
       
-      // Check if user is the creator/admin of this company
-      return company.createdBy?.toString() === userId;
+      return this.isCompanyMember(company, userId);
     } catch (error) {
       this.logger.error(`[isUserAdmin] Error checking admin status: ${error.message}`);
       return false;
     }
+  }
+
+  private isCompanyMember(company: Company, userId: string): boolean {
+    return company.createdBy?.toString() === userId
+      || (Array.isArray(company.admins) && company.admins.some((admin) => admin.toString() === userId));
   }
 }

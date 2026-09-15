@@ -1,11 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { SellerType } from '../../companies/enums/seller-type.enum';
 
 export class CreateVendorRequestDto {
   @ApiProperty({ description: 'Company or business name', example: 'شرکت تجاریس' })
   @IsNotEmpty({ message: 'نام شرکت نمی‌تواند خالی باشد' })
   @IsString()
   companyName: string;
+
+  @ApiPropertyOptional({ enum: SellerType, default: SellerType.LEGAL })
+  @IsOptional()
+  @IsEnum(SellerType)
+  sellerType?: SellerType;
 
   @ApiProperty({ description: 'Contact email', example: 'contact@company.com' })
   @IsNotEmpty({ message: 'ایمیل نمی‌تواند خالی باشد' })

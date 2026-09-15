@@ -3,12 +3,17 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { PublicSubmission, PublicSubmissionSchema } from './entities/public-submission.entity';
 import { PublicSubmissionsController } from './public-submissions.controller';
 import { PublicSubmissionsService } from './public-submissions.service';
+import { forwardRef } from '@nestjs/common';
+import { CompaniesModule } from '../companies/companies.module';
+import { ProfileModule } from '../users/profile/profile.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: PublicSubmission.name, schema: PublicSubmissionSchema },
     ]),
+    forwardRef(() => CompaniesModule),
+    ProfileModule,
   ],
   controllers: [PublicSubmissionsController],
   providers: [PublicSubmissionsService],

@@ -5,10 +5,12 @@ import {
   IsPhoneNumber,
   IsString,
   IsIdentityCard,
+  IsEnum,
   IsUrl,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ImageMetaDto } from '../../image-upload/dto/create-presign.dto';
+import { SellerType } from '../enums/seller-type.enum';
 
 export class CreateCompanyDto {
   @ApiProperty({
@@ -18,6 +20,11 @@ export class CreateCompanyDto {
   @IsNotEmpty()
   @IsString()
   name: string;
+
+  @ApiPropertyOptional({ enum: SellerType, default: SellerType.LEGAL })
+  @IsOptional()
+  @IsEnum(SellerType)
+  sellerType?: SellerType;
 
   @ApiProperty({
     description: 'Email address of the company',
@@ -40,6 +47,7 @@ export class CreateCompanyDto {
     example: '1234567890',
   })
   @IsNotEmpty()
+  @IsString()
   registrationNumber: string;
 
   @ApiPropertyOptional({

@@ -1,7 +1,9 @@
 import { Types } from 'mongoose';
+import { SellerType } from '../enums/seller-type.enum';
 
 export interface ICompany {
   name: string;
+  sellerType: SellerType;
   address?: string;
   phone?: string;
   email: string;

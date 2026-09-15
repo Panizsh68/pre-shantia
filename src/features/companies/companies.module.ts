@@ -8,6 +8,7 @@ import { CompanyRepository, ICompanyRepository } from './repositories/company.re
 import { PermissionsModule } from 'src/features/permissions/permissions.module';
 import { ImageUploadModule } from 'src/features/image-upload/image-upload.module';
 import { GenericRepositoryModule } from 'src/libs/repository/generic-repository.module';
+import { ProfileModule } from '../users/profile/profile.module';
 import {
   BASE_AGGREGATE_REPOSITORY,
   BASE_TRANSACTION_REPOSITORY,
@@ -18,6 +19,7 @@ import {
     GenericRepositoryModule.forFeature<Company>(Company.name, Company, CompanySchema),
     forwardRef(() => PermissionsModule),
     forwardRef(() => ImageUploadModule),
+    forwardRef(() => ProfileModule),
   ],
   controllers: [CompaniesController],
   providers: [
@@ -33,6 +35,6 @@ import {
       useClass: CompaniesService,
     },
   ],
-  exports: ['ICompanyService'],
+  exports: ['ICompanyService', 'CompanyRepository'],
 })
 export class CompaniesModule { }

@@ -1,10 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { SellerType } from '../enums/seller-type.enum';
 
 @Schema({ timestamps: true })
 export class Company extends Document {
   @Prop({ required: true, unique: true })
   name: string;
+
+  @Prop({ enum: Object.values(SellerType), default: SellerType.LEGAL })
+  sellerType: SellerType;
 
   @Prop()
   address: string;

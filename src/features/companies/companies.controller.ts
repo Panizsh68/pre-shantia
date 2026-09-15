@@ -13,6 +13,7 @@ import {
   UseGuards,
   BadRequestException,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -41,6 +42,16 @@ import { RequestContext } from 'src/common/decorators/request-context.decorator'
 import { RequestContext as IRequestContext } from 'src/common/types/request-context.interface';
 import { isSuperAdmin } from 'src/common/utils/auth-helpers';
 import { Public } from 'src/common/decorators/public.decorator';
+import { IProfileService } from '../users/profile/interfaces/profile.service.interface';
+
+function hasGlobalCompanyUpdatePermission(user: TokenPayload): boolean {
+  if (isSuperAdmin(user)) return true;
+  return user.permissions?.some((permission) =>
+    permission.resource === Resource.COMPANIES
+    && !permission.companyId
+    && (permission.actions.includes(Action.UPDATE) || permission.actions.includes(Action.MANAGE)),
+  ) || false;
+}
 
 @ApiTags('Companies')
 @Controller('companies')
@@ -48,6 +59,8 @@ export class CompaniesController {
   constructor(
     @Inject('ICompanyService')
     private readonly companiesService: ICompanyService,
+    @Inject('IProfileService')
+    private readonly profileService: IProfileService,
   ) { }
 
   @Post()
@@ -66,6 +79,24 @@ export class CompaniesController {
     @RequestContext() ctx: IRequestContext,
   ) {
     return this.companiesService.create(createCompanyDto, user.userId, ctx);
+  }
+
+  @Get('mine')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @Permission(Resource.COMPANIES, Action.READ)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get the company linked to the authenticated user' })
+  @ApiResponse({ status: 200, description: 'Linked company or null', type: Company })
+  async findMine(@CurrentUser() user: TokenPayload) {
+    const profile = await this.profileService.getByUserId(user.userId);
+    if (!profile?.companyId) return null;
+    try {
+      return await this.companiesService.findOne(profile.companyId.toString());
+    } catch (error) {
+      if (error instanceof NotFoundException) return null;
+      throw error;
+    }
   }
 
   @Patch(':id')
@@ -96,7 +127,7 @@ export class CompaniesController {
         throw new ForbiddenException('You are not an admin of this company');
       }
     }
-    return this.companiesService.update(id, updateCompanyDto, user.userId);
+    return this.companiesService.update(id, updateCompanyDto, user.userId, isSuperAdmin(user));
   }
 
   @Patch(':id/status')
@@ -125,7 +156,7 @@ export class CompaniesController {
         throw new ForbiddenException('You are not an admin of this company');
       }
     }
-    return this.companiesService.changeStatus(id, body.status as CompanyStatus, user.userId);
+    return this.companiesService.changeStatus(id, body.status as CompanyStatus, user.userId, isSuperAdmin(user));
   }
 
   @Delete(':id')
@@ -153,47 +184,72 @@ export class CompaniesController {
         throw new ForbiddenException('You are not an admin of this company');
       }
     }
-    await this.companiesService.remove(id, user.userId);
+    await this.companiesService.remove(id, user.userId, isSuperAdmin(user));
   }
 
-  @Get(':id')
-  @Public()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get company by ID', security: [] })
-  @ApiParam({ name: 'id', type: String, description: 'Company ID' })
-  @ApiResponse({ status: 200, description: 'Company found', type: Company })
-  @ApiResponse({ status: 404, description: 'Company not found' })
-  findOne(@Param('id') id: string) {
-    return this.companiesService.findOne(id);
-  }
-
-  @Get()
-  @Public()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Get all companies', security: [] })
-  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @Get('manage')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @Permission(Resource.COMPANIES, Action.UPDATE)
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 25 })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
-  @ApiResponse({ status: 200, description: 'List of all companies', type: [Company] })
-  findAll(
+  @ApiQuery({ name: 'sort', required: false, type: String, example: 'createdAt:desc' })
+  @ApiQuery({ name: 'filter', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, enum: CompanyStatus })
+  @ApiOperation({ summary: 'List companies for authorized panel users' })
+  async manage(
+    @CurrentUser() user: TokenPayload,
     @Query('limit') limit?: string,
     @Query('page') page?: string,
+    @Query('sort') sort?: string,
+    @Query('filter') filter?: string,
+    @Query('status') status?: CompanyStatus,
   ) {
+    if (!hasGlobalCompanyUpdatePermission(user)) {
+      throw new ForbiddenException('مدیریت فهرست شرکت‌ها فقط برای ادمین مجاز است.');
+    }
     const options: FindManyOptions = {};
     if (limit) {
-      const parsedLimit = parseInt(limit, 10);
-      if (isNaN(parsedLimit) || parsedLimit < 1) {
-        throw new BadRequestException('Limit must be a positive integer');
+      const parsedLimit = Number(limit);
+      if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+        throw new BadRequestException('Limit must be an integer between 1 and 100');
       }
       options.perPage = parsedLimit;
     }
     if (page) {
-      const parsedPage = parseInt(page, 10);
-      if (isNaN(parsedPage) || parsedPage < 1) {
+      const parsedPage = Number(page);
+      if (!Number.isInteger(parsedPage) || parsedPage < 1) {
         throw new BadRequestException('Page must be a positive integer');
       }
       options.page = parsedPage;
     }
-    return this.companiesService.findAll(options);
+    if (status && !Object.values(CompanyStatus).includes(status)) {
+      throw new BadRequestException('Company status is invalid');
+    }
+    if (filter?.trim()) {
+      const escaped = filter.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      options.conditions = {
+        ...(status ? { status } : {}),
+        $or: [
+          { name: { $regex: escaped, $options: 'i' } },
+          { email: { $regex: escaped, $options: 'i' } },
+          { phone: { $regex: escaped, $options: 'i' } },
+          { registrationNumber: { $regex: escaped, $options: 'i' } },
+        ],
+      } as any;
+    } else if (status) {
+      options.conditions = { status } as any;
+    }
+    if (sort) {
+      const [field, order] = sort.split(':');
+      const allowedFields = new Set(['createdAt', 'name', 'email', 'status']);
+      if (!allowedFields.has(field) || !['asc', 'desc'].includes(order)) {
+        throw new BadRequestException('Sort is invalid');
+      }
+      options.sort = [{ field, order: order as any }];
+    }
+    const result = await this.companiesService.findAllWithTotal(options);
+    return { ...result, page: options.page || 1, limit: options.perPage || 10 };
   }
 
   @Get('exists/name/:name')
@@ -218,4 +274,54 @@ export class CompaniesController {
   async count() {
     return { count: await this.companiesService.count() };
   }
+
+  @Get(':id')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @Permission(Resource.COMPANIES, Action.READ)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get an authorized company by ID' })
+  @ApiParam({ name: 'id', type: String, description: 'Company ID' })
+  @ApiResponse({ status: 200, description: 'Company found', type: Company })
+  @ApiResponse({ status: 404, description: 'Company not found' })
+  async findOne(@Param('id') id: string, @CurrentUser() user: TokenPayload) {
+    if (!isSuperAdmin(user) && !(await this.companiesService.isUserAdmin(id, user.userId))) {
+      throw new ForbiddenException('You are not an admin of this company');
+    }
+    return this.companiesService.findOne(id);
+  }
+
+  @Get()
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get all companies', security: [] })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiResponse({ status: 200, description: 'List of all companies', type: [Company] })
+  findAll(
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+  ) {
+    const options: FindManyOptions = {
+      conditions: { status: CompanyStatus.ACTIVE } as any,
+      select: ['name', 'address', 'status', 'image', 'sellerType', 'createdAt'],
+      populate: [],
+    };
+    if (limit) {
+      const parsedLimit = parseInt(limit, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1) {
+        throw new BadRequestException('Limit must be a positive integer');
+      }
+      options.perPage = parsedLimit;
+    }
+    if (page) {
+      const parsedPage = parseInt(page, 10);
+      if (isNaN(parsedPage) || parsedPage < 1) {
+        throw new BadRequestException('Page must be a positive integer');
+      }
+      options.page = parsedPage;
+    }
+    return this.companiesService.findAll(options);
+  }
+
 }
