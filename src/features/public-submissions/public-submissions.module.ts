@@ -6,6 +6,7 @@ import { PublicSubmissionsService } from './public-submissions.service';
 import { forwardRef } from '@nestjs/common';
 import { CompaniesModule } from '../companies/companies.module';
 import { ProfileModule } from '../users/profile/profile.module';
+import { PermissionsModule } from '../permissions/permissions.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ProfileModule } from '../users/profile/profile.module';
     ]),
     forwardRef(() => CompaniesModule),
     ProfileModule,
+    PermissionsModule,
   ],
   controllers: [PublicSubmissionsController],
   providers: [PublicSubmissionsService],
