@@ -37,7 +37,8 @@ export class PublicSubmissionsService {
   }
 
   async createVendorRequest(dto: CreateVendorRequestDto, userId?: string): Promise<PublicSubmission> {
-    this.validateVendorRequest(dto);
+    const sellerType = this.resolveSellerType(dto);
+    this.validateVendorRequest(dto, sellerType);
 
     if (userId) {
       if (!Types.ObjectId.isValid(userId)) {
@@ -77,7 +78,7 @@ export class PublicSubmissionsService {
       type: PublicSubmissionType.VendorRequest,
       userId,
       companyName: dto.companyName.trim(),
-      sellerType: dto.sellerType || SellerType.LEGAL,
+      sellerType,
       email: dto.email.trim(),
       phone: dto.phone?.trim(),
       registrationNumber: dto.registrationNumber?.trim(),
@@ -275,8 +276,19 @@ export class PublicSubmissionsService {
     );
   }
 
-  private validateVendorRequest(dto: CreateVendorRequestDto): void {
-    const sellerType = dto.sellerType || SellerType.LEGAL;
+  private resolveSellerType(dto: CreateVendorRequestDto): SellerType {
+    if (dto.sellerType) return dto.sellerType;
+
+    // Keep older clients compatible: a request with a national ID and no
+    // registration number is unambiguously an individual seller request.
+    if (!dto.registrationNumber?.trim() && dto.nationalId?.trim()) {
+      return SellerType.INDIVIDUAL;
+    }
+
+    return SellerType.LEGAL;
+  }
+
+  private validateVendorRequest(dto: CreateVendorRequestDto, sellerType: SellerType): void {
     const registrationNumber = dto.registrationNumber?.trim();
     const nationalId = dto.nationalId?.trim();
 
