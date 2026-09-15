@@ -184,7 +184,7 @@ export class TokensService<
     return refreshTtl + accessTtl + 3600;
   }
 
-  async validateRefreshToken(token: string, context: RequestContext): Promise<TokenPayload> {
+  async validateRefreshToken(token: string, _context: RequestContext): Promise<TokenPayload> {
     let decrypted: TokenPayload;
     try {
       const decoded = await this.jwtService.verifyAsync<Record<string, string>>(token, {
@@ -213,7 +213,13 @@ export class TokensService<
       throw new ServiceUnavailableException('Authentication session store is unavailable');
     }
 
-    if (!sessionInfo || sessionInfo.userAgent !== context.userAgent) {
+    // A refresh token is already a signed, HttpOnly bearer credential and is
+    // additionally backed by this server-side Redis session. Binding it to
+    // an exact User-Agent causes legitimate browser updates, mobile WebView
+    // changes and SSR/proxy differences to log users out on refresh.
+    // Validate the session ownership instead; the token itself remains
+    // revocable through the Redis record and auth-version checks.
+    if (!sessionInfo || sessionInfo.userId !== decrypted.userId) {
       throw new UnauthorizedException({
         message: 'Session context mismatch.',
         code: 'AUTH_SESSION_INVALID',
