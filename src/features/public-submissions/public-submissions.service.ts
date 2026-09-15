@@ -93,12 +93,11 @@ export class PublicSubmissionsService {
       .find({ type: PublicSubmissionType.VendorRequest, userId })
       .sort({ createdAt: -1 })
       .limit(20)
-      .lean()
       .exec();
-    return requests.map((request) => ({
-      ...request,
-      status: request.status || VendorRequestStatus.PENDING,
-    })) as PublicSubmission[];
+    return requests.map((request) => {
+      if (!request.status) request.status = VendorRequestStatus.PENDING;
+      return request;
+    });
   }
 
   async listVendorRequests(options: {
@@ -118,15 +117,15 @@ export class PublicSubmissionsService {
     }
 
     const [items, total] = await Promise.all([
-      this.submissionModel.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean().exec(),
+      this.submissionModel.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).exec(),
       this.submissionModel.countDocuments(filter).exec(),
     ]);
 
     return {
-      items: items.map((request) => ({
-        ...request,
-        status: request.status || VendorRequestStatus.PENDING,
-      })) as PublicSubmission[],
+      items: items.map((request) => {
+        if (!request.status) request.status = VendorRequestStatus.PENDING;
+        return request;
+      }),
       total,
       page,
       limit,
@@ -179,9 +178,9 @@ export class PublicSubmissionsService {
           },
         },
         { new: true },
-      ).lean().exec();
+      ).exec();
       if (!rejected) throw new ConflictException('وضعیت درخواست هم‌زمان تغییر کرده است.');
-      return rejected as PublicSubmission;
+      return rejected;
     }
 
     return this.approveVendorRequest(existing, reviewerUserId);
@@ -242,12 +241,12 @@ export class PublicSubmissionsService {
           },
         },
         { new: true, session },
-      ).lean().exec();
+      ).exec();
 
       if (!approved) throw new ConflictException('وضعیت درخواست هم‌زمان تغییر کرده است.');
 
       await this.companyRepository.commitTransaction(session);
-      return approved as PublicSubmission;
+      return approved;
     } catch (error) {
       await this.companyRepository.abortTransaction(session);
       if (this.isDuplicateKeyError(error)) {
