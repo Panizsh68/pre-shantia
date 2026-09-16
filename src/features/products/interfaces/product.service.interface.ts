@@ -62,6 +62,7 @@ export interface IProductService {
   count(session?: ClientSession): Promise<number>;
   searchProducts(query: string, options?: FindManyOptions): Promise<IProduct[]>;
   findByCompanyId(companyId: string, options?: FindManyOptions, session?: ClientSession): Promise<IProduct[]>;
+  findByCompanyIdForManagement(companyId: string, options?: FindManyOptions, session?: ClientSession): Promise<IProduct[]>;
   /**
    * Get products that currently have a discount (offers).
    * Supports pagination and other FindManyOptions.

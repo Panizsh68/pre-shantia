@@ -297,6 +297,28 @@ export class ProductsService implements IProductService {
     }
   }
 
+  async findByCompanyIdForManagement(companyId: string, options: FindManyOptions = {}, session?: ClientSession): Promise<IProduct[]> {
+    try {
+      const conditions = {
+        ...(options.conditions || {}),
+        companyId: toObjectId(companyId),
+      };
+      const queryOptions: FindManyOptions = {
+        ...options,
+        conditions,
+        populate: options.populate || ['companyId', 'categories'],
+        session,
+      };
+      const typedConditions: FilterQuery<Product> = conditions as unknown as FilterQuery<Product>;
+      const products = await this.repo.findManyByCondition(typedConditions, queryOptions);
+      return toPlainArray<IProduct>(products);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.findByCompanyIdForManagement] error', err);
+      throw err;
+    }
+  }
+
   async getOffers(options: FindManyOptions = {}, session?: ClientSession): Promise<IProduct[]> {
     try {
       // Find products with discount greater than 0 and active status

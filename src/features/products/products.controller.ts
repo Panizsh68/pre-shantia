@@ -433,6 +433,43 @@ export class ProductsController {
     }
   }
 
+  @Get('company/:companyId/manage')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @ApiBearerAuth()
+  @Permission(Resource.PRODUCTS, Action.READ)
+  @ApiOperation({ summary: 'Get all products for the authenticated company manager' })
+  @ApiParam({ name: 'companyId', type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 25 })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'sort', required: false, type: String, example: 'createdAt:desc' })
+  @ApiResponse({ status: 200, description: 'Company products in every status returned' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - company permission is required' })
+  async findCompanyProductsForManagement(
+    @Param('companyId') companyId: string,
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+    @Query('sort') sort?: string,
+  ) {
+    const options: FindManyOptions = {};
+    if (limit) {
+      const parsedLimit = parseInt(limit, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1) { throw new BadRequestException('Limit must be a positive integer'); }
+      options.perPage = parsedLimit;
+    }
+    if (page) {
+      const parsedPage = parseInt(page, 10);
+      if (isNaN(parsedPage) || parsedPage < 1) { throw new BadRequestException('Page must be a positive integer'); }
+      options.page = parsedPage;
+    }
+    if (sort) {
+      const [field, order] = sort.split(':');
+      if (!field || !order || !['asc', 'desc'].includes(order.toLowerCase())) { throw new BadRequestException('Sort must be in format field:asc|desc'); }
+      options.sort = [{ field, order: order.toLowerCase() === 'asc' ? SortOrder.ASC : SortOrder.DESC }];
+    }
+    return this.productsService.findByCompanyIdForManagement(companyId, options);
+  }
+
 
 
   @Get('top-sales')
