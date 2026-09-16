@@ -21,10 +21,17 @@ export class OrderFactoryService {
 
     const orders: CreateOrderDto[] = [];
     for (const [companyId, items] of grouped.entries()) {
-      const totalPrice = items.reduce((sum, item) => sum + item.priceAtAdd * item.quantity, 0);
+      const totalPrice = items.reduce((sum, item) => sum + Number(item.priceAtAdd || 0) * item.quantity, 0);
       orders.push({
         userId: cart.userId,
-        items: items.map(i => ({ productId: i.productId, companyId: i.companyId, quantity: i.quantity, priceAtAdd: i.priceAtAdd, variant: i.variant })),
+        items: items.map(i => ({
+          productId: i.productId,
+          companyId: i.companyId,
+          quantity: i.quantity,
+          priceAtAdd: Number(i.priceAtAdd || 0),
+          variant: i.variant,
+          variants: i.variants,
+        })),
         totalPrice,
         companyId,
         status: OrdersStatus.PENDING,

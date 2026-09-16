@@ -4,6 +4,7 @@ import { CartItemDto } from '../dto/cart-item.dto';
 import { CreateCartDto } from '../dto/create-cart.dto';
 import { CartSummary } from './cart-summary.interface';
 import { ClientSession } from 'mongoose';
+import { ProductVariantSelection } from '../../products/interfaces/variant-selection.interface';
 
 export interface ICartsService {
   getUserActiveCart(userId: string, session?: any): Promise<ICart>;
@@ -12,9 +13,9 @@ export interface ICartsService {
   getCartSummaryByUser(userId: string): Promise<CartSummary[]>;
   createCart(dto: CreateCartDto): Promise<ICart>;
   addItemToCart(userId: string, item: CartItemDto): Promise<ICart>;
-  removeItemFromCart(userId: string, productId: string): Promise<ICart>;
+  removeItemFromCart(userId: string, productId: string, variants?: ProductVariantSelection[]): Promise<ICart>;
   clearCart(userId: string): Promise<ICart>;
   checkout(userId: string, session?: ClientSession): Promise<{ success: boolean; cartId: string; orders?: any[] }>;
-  updateCart(userId: string, cartData: Partial<Cart>): Promise<ICart>;
+  updateCart(userId: string, cartData: Partial<Cart> | Partial<CreateCartDto>): Promise<ICart>;
   calculateTotal(items: CartItemDto[]): number;
 }

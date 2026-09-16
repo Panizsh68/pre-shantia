@@ -11,6 +11,10 @@ export const OrderItemSchema = new Schema<IOrderItem>(
       name: { type: String },
       value: { type: String },
     },
+    variants: [{
+      name: { type: String, required: true },
+      value: { type: String, required: true },
+    }],
   },
   { _id: false },
 );

@@ -10,6 +10,7 @@ import {
   HttpCode,
   UseGuards,
   Inject,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -35,6 +36,7 @@ import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
 import { IOrdersService } from '../orders/interfaces/order.service.interface';
 import { CreateOrderFromCartDto } from '../orders/dto/create-order-from-cart.dto';
+import { ProductVariantSelection } from '../products/interfaces/variant-selection.interface';
 
 @ApiTags('Carts')
 @ApiBearerAuth()
@@ -113,8 +115,22 @@ export class CartsController {
   @ApiParam({ name: 'productId', description: 'ID of the product to remove' })
   @ApiResponse({ status: 200, description: 'Item removed from cart', type: Cart })
   @HttpCode(HttpStatus.OK)
-  removeItem(@CurrentUser() user: TokenPayload, @Param('productId') productId: string) {
-    return this.cartsService.removeItemFromCart(user.userId, productId);
+  removeItem(
+    @CurrentUser() user: TokenPayload,
+    @Param('productId') productId: string,
+    @Query('variants') serializedVariants?: string,
+  ) {
+    let variants: ProductVariantSelection[] | undefined;
+    if (serializedVariants) {
+      try {
+        const parsed = JSON.parse(serializedVariants);
+        if (!Array.isArray(parsed)) throw new Error('variants must be an array');
+        variants = parsed;
+      } catch {
+        throw new BadRequestException('Invalid variants selection');
+      }
+    }
+    return this.cartsService.removeItemFromCart(user.userId, productId, variants);
   }
 
   @Delete('clear')

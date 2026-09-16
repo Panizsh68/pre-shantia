@@ -8,14 +8,25 @@ import { Resource } from 'src/features/permissions/enums/resources.enum';
 export class UploadAuthorizationGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request & { user?: TokenPayload }>();
+    return this.assertAuthorized(request, request.body?.type, request.body?.companyId);
+  }
+
+  /**
+   * Multipart fields are populated by Multer's interceptor. Since Nest runs
+   * guards before interceptors, multipart routes must call this after files
+   * have been parsed by the interceptor.
+   */
+  assertAuthorized(
+    request: Request & { user?: TokenPayload },
+    type: unknown,
+    requestedCompanyId?: unknown,
+  ): boolean {
     const user = request.user;
-    const type = request.body?.type;
     if (!user || (type !== 'product' && type !== 'company')) {
       throw new ForbiddenException('Upload access denied');
     }
 
     const resource = type === 'product' ? Resource.PRODUCTS : Resource.COMPANIES;
-    const requestedCompanyId = request.body?.companyId;
     const allowed = user.permissions?.some(permission =>
       (permission.resource === resource || permission.resource === Resource.ALL) &&
       (permission.actions.includes(Action.MANAGE) || permission.actions.includes(Action.CREATE) || permission.actions.includes(Action.UPDATE)) &&

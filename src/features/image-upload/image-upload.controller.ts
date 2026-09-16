@@ -1,6 +1,7 @@
 /* global Express */
-import { Body, Controller, Post, HttpCode, HttpStatus, Inject, UseInterceptors, UploadedFiles, BadRequestException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, HttpCode, HttpStatus, Inject, UseInterceptors, UploadedFiles, BadRequestException, UseGuards, Req } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import type { Request } from 'express';
 import { CreatePresignDto } from './dto/create-presign.dto';
 import { CreatePresignResponseDto } from './dto/presign-response.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiConsumes } from '@nestjs/swagger';
@@ -11,6 +12,7 @@ import { DEFAULTS } from './constants/image-upload.constants';
 import { Public } from 'src/common/decorators/public.decorator';
 import { AbuseRateLimit } from 'src/common/abuse/abuse-rate-limit.decorator';
 import { AbuseRateLimitGuard } from 'src/common/abuse/abuse-rate-limit.guard';
+import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
 
 @ApiTags('images')
 @Controller('images')
@@ -18,6 +20,7 @@ export class ImageUploadController {
   constructor(
     @Inject(IImageUploadServiceToken)
     private readonly service: IImageUploadService,
+    private readonly uploadAuthorizationGuard: UploadAuthorizationGuard,
   ) { }
 
   @Post('presign')
@@ -136,7 +139,7 @@ export class ImageUploadController {
   }
 
   @Post('upload')
-  @UseGuards(AuthenticationGuard, UploadAuthorizationGuard)
+  @UseGuards(AuthenticationGuard)
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FilesInterceptor('files', 5, {
     limits: {
@@ -199,7 +202,8 @@ export class ImageUploadController {
   async upload(
     @UploadedFiles() files: Express.Multer.File[],
     @Body('type') type: 'product' | 'company',
-  ) {
+    @Req() request: Request & { user?: TokenPayload },
+  ): Promise<CreatePresignResponseDto> {
     if (!files || files.length === 0) {
       throw new BadRequestException('No files provided');
     }
@@ -207,6 +211,9 @@ export class ImageUploadController {
       throw new BadRequestException('Invalid type. Must be "product" or "company"');
     }
 
+    // Multer has populated the multipart body by this point. Authorize only
+    // now; a guard cannot reliably read multipart fields before its interceptor.
+    this.uploadAuthorizationGuard.assertAuthorized(request, type, request.body?.companyId);
     return this.service.uploadFiles(files, type);
   }
 }

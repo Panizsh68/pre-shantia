@@ -150,14 +150,9 @@ ProductSchema.virtual('finalPrice').get(function (this: Product) {
   const discountAmount = (basePrice * discount) / 100;
   const priceAfterDiscount = Math.max(basePrice - discountAmount, 0);
 
-  // Apply variant price modifiers if any
-  const variantModifiers = (this.variants || [])
-    .flatMap(v => v.options)
-    .map(o => o.priceModifier || 0)
-    .filter(m => m > 0)
-    .reduce((sum, mod) => sum + mod, 0);
-
-  return Math.max(priceAfterDiscount + variantModifiers, 0);
+  // A product has no selected option at read time. Variant modifiers are
+  // applied only after the buyer selects an option during cart/order pricing.
+  return priceAfterDiscount;
 });
 
 // Compound indexes for common queries

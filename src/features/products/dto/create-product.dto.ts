@@ -12,6 +12,7 @@ import {
   MaxLength,
   IsNotEmpty,
   Matches,
+  ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional, ApiHideProperty } from '@nestjs/swagger';
@@ -63,6 +64,7 @@ class VariantDto {
     type: [VariantOptionDto],
   })
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => VariantOptionDto)
   options: VariantOptionDto[];

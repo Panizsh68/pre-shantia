@@ -5,7 +5,9 @@ import {
   IsOptional,
   IsObject,
   IsMongoId,
+  IsString,
   IsEnum,
+  IsArray,
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -49,15 +51,15 @@ export class CartItemDto {
   @Min(1)
   quantity: number;
 
-  @ApiProperty({
-    description: 'Price of the product at the time of adding to cart (in IRR)',
+  @ApiPropertyOptional({
+    description: 'Legacy client price hint. The server recalculates the authoritative price in IRR.',
     example: 2000000,
     minimum: 0,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  priceAtAdd: number;
+  priceAtAdd?: number;
 
   @ApiPropertyOptional({
     description: 'Selected variant of the product (e.g., size, packaging)',
@@ -68,6 +70,16 @@ export class CartItemDto {
   variant?: { name: string; value: string };
 
   @ApiPropertyOptional({
+    description: 'All selected product options, for example color and packaging.',
+    example: [{ name: 'رنگ', value: 'سفید' }, { name: 'بسته‌بندی', value: '۵۰ کیلوگرم' }],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CartVariantSelectionDto)
+  variants?: CartVariantSelectionDto[];
+
+  @ApiPropertyOptional({
     description: 'Optional discount applied to this cart item',
     example: { type: DiscountType.PERCENTAGE, value: 10 },
     type: DiscountDto,
@@ -76,4 +88,14 @@ export class CartItemDto {
   @ValidateNested()
   @Type(() => DiscountDto)
   discount?: DiscountDto;
+}
+
+export class CartVariantSelectionDto {
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @IsNotEmpty()
+  @IsString()
+  value: string;
 }

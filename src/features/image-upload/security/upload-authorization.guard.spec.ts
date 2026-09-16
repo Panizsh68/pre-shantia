@@ -17,4 +17,9 @@ describe('UploadAuthorizationGuard', () => {
   it('allows an authorized company actor', () => expect(guard.canActivate(context({ type: 'company', companyId: 'company-a' }, {
     permissions: [{ resource: Resource.COMPANIES, actions: [Action.UPDATE], companyId: 'company-a' }],
   }))).toBe(true));
+
+  it('authorizes a parsed multipart product upload', () => expect(guard.assertAuthorized(
+    { user: { permissions: [{ resource: Resource.PRODUCTS, actions: [Action.CREATE] }] } } as unknown as Parameters<typeof guard.assertAuthorized>[0],
+    'product',
+  )).toBe(true));
 });

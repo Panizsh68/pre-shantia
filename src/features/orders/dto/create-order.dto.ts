@@ -12,6 +12,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { OrdersStatus } from '../enums/orders.status.enum';
+import { ProductVariantSelection } from '../../products/interfaces/variant-selection.interface';
 
 class OrderItemDto {
   @ApiProperty({
@@ -57,6 +58,26 @@ class OrderItemDto {
   @IsOptional()
   @IsObject()
   variant?: { name: string; value: string };
+
+  @ApiPropertyOptional({
+    description: 'All selected product options, for example color and packaging.',
+    example: [{ name: 'رنگ', value: 'سفید' }, { name: 'بسته‌بندی', value: '۵۰ کیلوگرم' }],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OrderVariantSelectionDto)
+  variants?: ProductVariantSelection[];
+}
+
+class OrderVariantSelectionDto {
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @IsNotEmpty()
+  @IsString()
+  value: string;
 }
 
 export class CreateOrderDto {

@@ -12,6 +12,10 @@ export const CartItemSchema = new Schema<ICartItem>(
       name: { type: String },
       value: { type: String },
     },
+    variants: [{
+      name: { type: String, required: true },
+      value: { type: String, required: true },
+    }],
     discount: {
       type: new Schema(
         {

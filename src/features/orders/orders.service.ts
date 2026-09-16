@@ -16,6 +16,7 @@ import { ICartsService } from '../carts/interfaces/carts-service.interface';
 import { CreateOrderFromCartDto } from './dto/create-order-from-cart.dto';
 import { CartItemDto } from '../carts/dto/cart-item.dto';
 import { getIntermediaryWalletId } from 'src/utils/intermediary-wallet.util';
+import { ProductVariantSelection } from '../products/interfaces/variant-selection.interface';
 
 @Injectable()
 export class OrdersService implements IOrdersService {
@@ -78,8 +79,8 @@ export class OrdersService implements IOrdersService {
         if (!product) throw new BadRequestException(`Product ${item.productId} not found`);
         
         // Verify price hasn't changed since adding to cart
-        const currentPrice = Math.round(this.computeFinalPrice(product, item.variant));
-        if (item.priceAtAdd && Math.abs(item.priceAtAdd - currentPrice) > 0) {
+        const currentPrice = Math.round(this.computeFinalPrice(product, item.variants || item.variant));
+        if (Number.isFinite(Number(item.priceAtAdd)) && Number(item.priceAtAdd) !== currentPrice) {
           throw new BadRequestException(
             `Price changed for product ${product.name}. Cart price: ${item.priceAtAdd}, current price: ${currentPrice}. Please refresh your cart.`,
           );
@@ -104,7 +105,7 @@ export class OrdersService implements IOrdersService {
           const product = productMap.get(String(item.productId));
           return {
             ...item,
-            priceAtAdd: Math.round(this.computeFinalPrice(product, item.variant)),
+            priceAtAdd: Math.round(this.computeFinalPrice(product, item.variants || item.variant)),
           };
         });
         const totalPrice = items.reduce((sum, it) => sum + (Number(it.priceAtAdd) * Number(it.quantity)), 0);
@@ -123,21 +124,41 @@ export class OrdersService implements IOrdersService {
     }, session);
   }
 
-  private computeFinalPrice(product: any, selectedVariant?: { name: string; value: string }) {
+  private computeFinalPrice(
+    product: any,
+    selectedVariants?: ProductVariantSelection[] | ProductVariantSelection,
+  ) {
     let price = product.basePrice || 0;
     const discount = Math.min(Math.max(product.discount || 0, 0), 100);
     const discountAmount = (price * discount) / 100;
     price = Math.max(price - discountAmount, 0);
-    if (selectedVariant && product.variants?.length) {
-      const variant = product.variants.find((v) => v.name === selectedVariant.name);
-      if (variant) {
-        const option = variant.options.find((o) => o.value === selectedVariant.value);
-        if (option && typeof option.priceModifier === 'number') {
-          price += option.priceModifier;
-        }
-      }
+    const selections = Array.isArray(selectedVariants)
+      ? selectedVariants
+      : selectedVariants
+        ? [selectedVariants]
+        : [];
+    const productVariants = Array.isArray(product.variants) ? product.variants : [];
+    if (!productVariants.length) {
+      if (selections.length) throw new BadRequestException('این محصول گزینه خرید ندارد.');
+      return Math.round(price);
     }
-    return price;
+    if (selections.length !== productVariants.length) {
+      throw new BadRequestException('لطفاً همه گزینه‌های خرید محصول را انتخاب کنید.');
+    }
+    for (const variant of productVariants) {
+      const selected = selections.find((selection) => selection.name === variant.name);
+      if (!selected) {
+        throw new BadRequestException(`انتخاب گزینه «${variant.name}» الزامی است.`);
+      }
+      const option = Array.isArray(variant.options)
+        ? variant.options.find((candidate: any) => candidate.value === selected.value)
+        : undefined;
+      if (!option) {
+        throw new BadRequestException(`مقدار انتخاب‌شده برای گزینه «${variant.name}» معتبر نیست.`);
+      }
+      price += Math.max(0, Number(option.priceModifier || 0));
+    }
+    return Math.round(price);
   }
 
   async findById(id: string, session?: ClientSession): Promise<Order> {
@@ -195,6 +216,7 @@ export class OrdersService implements IOrdersService {
             quantity: item.quantity,
             priceAtAdd: item.priceAtAdd,
             variant: item.variant,
+            variants: item.variants,
           });
         }
       }

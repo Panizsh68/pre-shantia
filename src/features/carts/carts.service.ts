@@ -13,6 +13,7 @@ import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-option
 import { CartSummary } from './interfaces/cart-summary.interface';
 import { IOrdersService } from '../orders/interfaces/order.service.interface';
 import { CreateOrderFromCartDto } from '../orders/dto/create-order-from-cart.dto';
+import { ProductVariantSelection } from '../products/interfaces/variant-selection.interface';
 
 @Injectable()
 export class CartsService implements ICartsService {
@@ -80,7 +81,7 @@ export class CartsService implements ICartsService {
   }
 
   async createCart(dto: CreateCartDto): Promise<ICart> {
-    const total = dto.totalAmount ?? this.calculateTotal(dto.items as CartItemDto[]);
+    const total = this.calculateTotal(dto.items as CartItemDto[]);
     const payload = { ...dto, totalAmount: total, currency: 'IRR' };
     return this.cartRepository.createOne(payload as any);
   }
@@ -101,6 +102,9 @@ export class CartsService implements ICartsService {
       throw new BadRequestException('Product does not belong to the provided companyId');
     }
 
+    const selections = this.normalizeVariantSelections(item);
+    const authoritativePrice = this.computeFinalPrice(product, selections);
+
     const productCurrency = (product as any).currency || 'IRR';
     if (cart.items.length === 0) {
       cart.currency = productCurrency;
@@ -110,25 +114,39 @@ export class CartsService implements ICartsService {
       );
     }
 
-    const existingItemIndex = cart.items.findIndex(
-      i => i.productId === item.productId && i.companyId === item.companyId
-    );
+    const selectionKey = this.variantSignature(selections);
+    const existingItemIndex = cart.items.findIndex((cartItem) => (
+      cartItem.productId === item.productId &&
+      cartItem.companyId === item.companyId &&
+      this.variantSignature(this.normalizeStoredVariantSelections(cartItem)) === selectionKey
+    ));
+    const storedItem = {
+      ...item,
+      priceAtAdd: authoritativePrice,
+      variants: selections.length ? selections : undefined,
+      variant: selections.length === 1 ? selections[0] : undefined,
+    };
     if (existingItemIndex >= 0) {
       cart.items[existingItemIndex].quantity += item.quantity;
-      cart.items[existingItemIndex].priceAtAdd = item.priceAtAdd;
-      if (item.variant) cart.items[existingItemIndex].variant = item.variant;
+      cart.items[existingItemIndex].priceAtAdd = authoritativePrice;
+      cart.items[existingItemIndex].variants = storedItem.variants;
+      cart.items[existingItemIndex].variant = storedItem.variant;
       if (item.discount) cart.items[existingItemIndex].discount = item.discount;
     } else {
-      cart.items.push(item);
+      cart.items.push(storedItem);
     }
     cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
     const savedCart = await cart.save();
     return savedCart;
   }
 
-  async removeItemFromCart(userId: string, productId: string): Promise<ICart> {
+  async removeItemFromCart(userId: string, productId: string, variants?: ProductVariantSelection[]): Promise<ICart> {
     const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
-    const itemIndex = cart.items.findIndex(i => i.productId === productId);
+    const targetKey = variants ? this.variantSignature(variants) : undefined;
+    const itemIndex = cart.items.findIndex((item) => (
+      item.productId === productId &&
+      (!targetKey || this.variantSignature(this.normalizeStoredVariantSelections(item)) === targetKey)
+    ));
     if (itemIndex < 0) {
       throw new NotFoundException(`Product with id ${productId} not found in cart`);
     }
@@ -170,7 +188,7 @@ export class CartsService implements ICartsService {
     return { success: true, cartId: savedCart.id };
   }
 
-  async updateCart(userId: string, cartData: Partial<Cart>): Promise<ICart> {
+  async updateCart(userId: string, cartData: Partial<Cart> | Partial<CreateCartDto>): Promise<ICart> {
     const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId);
     Object.assign(cart, cartData);
     cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
@@ -194,7 +212,7 @@ export class CartsService implements ICartsService {
 
   private calculateItemTotal(item: CartItemDto): number {
     this.validateDiscount(item.discount as any);
-    const base = item.priceAtAdd * item.quantity;
+    const base = Number(item.priceAtAdd || 0) * item.quantity;
     if (!item.discount) return base;
     const { type, value } = item.discount as any;
     if (type === 'percentage') {
@@ -208,5 +226,77 @@ export class CartsService implements ICartsService {
   calculateTotal(items: CartItemDto[]): number {
     if (!Array.isArray(items) || items.length === 0) return 0;
     return items.reduce((total, item) => total + this.calculateItemTotal(item), 0);
+  }
+
+  private normalizeVariantSelections(item: CartItemDto): ProductVariantSelection[] {
+    const source = Array.isArray(item.variants) && item.variants.length
+      ? item.variants
+      : item.variant
+        ? [item.variant]
+        : [];
+    const selections = source.map((selection) => ({
+      name: String(selection.name || '').trim(),
+      value: String(selection.value || '').trim(),
+    }));
+    if (selections.some((selection) => !selection.name || !selection.value)) {
+      throw new BadRequestException('هر گزینه خرید باید عنوان و مقدار داشته باشد.');
+    }
+    const names = new Set(selections.map((selection) => selection.name.toLocaleLowerCase()));
+    if (names.size !== selections.length) {
+      throw new BadRequestException('یک گزینه خرید بیش از یک‌بار انتخاب شده است.');
+    }
+    return selections;
+  }
+
+  private normalizeStoredVariantSelections(item: { variants?: ProductVariantSelection[]; variant?: ProductVariantSelection }): ProductVariantSelection[] {
+    const source = Array.isArray(item.variants) && item.variants.length
+      ? item.variants
+      : item.variant
+        ? [item.variant]
+        : [];
+    return source
+      .map((selection) => ({
+        name: String(selection.name || '').trim(),
+        value: String(selection.value || '').trim(),
+      }))
+      .filter((selection) => selection.name && selection.value);
+  }
+
+  private variantSignature(selections: ProductVariantSelection[]): string {
+    return selections
+      .map((selection) => `${selection.name.toLocaleLowerCase()}=${selection.value}`)
+      .sort()
+      .join('|');
+  }
+
+  private computeFinalPrice(product: any, selections: ProductVariantSelection[]): number {
+    const productVariants = Array.isArray(product.variants) ? product.variants : [];
+    let price = Number(product.basePrice || 0);
+    const discount = Math.min(Math.max(Number(product.discount || 0), 0), 100);
+    price = Math.max(price - (price * discount) / 100, 0);
+
+    if (!productVariants.length) {
+      if (selections.length) throw new BadRequestException('این محصول گزینه خرید ندارد.');
+      return Math.round(price);
+    }
+
+    if (selections.length !== productVariants.length) {
+      throw new BadRequestException('لطفاً همه گزینه‌های خرید محصول را انتخاب کنید.');
+    }
+
+    for (const variant of productVariants) {
+      const selected = selections.find((selection) => selection.name === variant.name);
+      if (!selected) {
+        throw new BadRequestException(`انتخاب گزینه «${variant.name}» الزامی است.`);
+      }
+      const option = Array.isArray(variant.options)
+        ? variant.options.find((candidate: any) => candidate.value === selected.value)
+        : undefined;
+      if (!option) {
+        throw new BadRequestException(`مقدار انتخاب‌شده برای گزینه «${variant.name}» معتبر نیست.`);
+      }
+      price += Math.max(0, Number(option.priceModifier || 0));
+    }
+    return Math.round(price);
   }
 }

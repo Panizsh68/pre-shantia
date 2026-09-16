@@ -20,8 +20,8 @@ describe('OrdersService (unit)', () => {
       id: 'cart1',
       userId,
       items: [
-        { productId: 'p1', companyId: 'c1', quantity: 1, priceAtAdd: 100 },
-        { productId: 'p2', companyId: 'c2', quantity: 2, priceAtAdd: 50 },
+        { productId: '507f1f77bcf86cd799439011', companyId: 'c1', quantity: 1, priceAtAdd: 100 },
+        { productId: '507f1f77bcf86cd799439012', companyId: 'c2', quantity: 2, priceAtAdd: 50 },
       ] as CartItemDto[],
       totalAmount: 200,
       status: CartStatus.ACTIVE,
@@ -30,7 +30,7 @@ describe('OrdersService (unit)', () => {
     const cartsServiceMockPlain: Partial<ICartsService> = {
       getUserActiveCart: jest.fn().mockResolvedValue(cart),
       checkout: jest.fn().mockResolvedValue({ success: true, cartId: cart.id }),
-      calculateTotal: (items: CartItemDto[]) => items.reduce((s, it) => s + it.priceAtAdd * it.quantity, 0),
+      calculateTotal: (items: CartItemDto[]) => items.reduce((s, it) => s + Number(it.priceAtAdd || 0) * it.quantity, 0),
     };
     const cartsServiceMock = cartsServiceMockPlain as unknown as ICartsService;
 
@@ -44,6 +44,13 @@ describe('OrdersService (unit)', () => {
       abortTransaction: jest.fn().mockResolvedValue(undefined),
     };
     const orderRepositoryMock = orderRepoPlain as IOrderRepository;
+    const productRepositoryMock = {
+      findManyByCondition: jest.fn().mockResolvedValue([
+        { id: '507f1f77bcf86cd799439011', basePrice: 100, discount: 0, variants: [] },
+        { id: '507f1f77bcf86cd799439012', basePrice: 50, discount: 0, variants: [] },
+      ]),
+      bulkDecrementStock: jest.fn().mockResolvedValue(2),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -58,6 +65,14 @@ describe('OrdersService (unit)', () => {
         {
           provide: 'OrderRepository',
           useValue: orderRepositoryMock,
+        },
+        {
+          provide: 'IProductsService',
+          useValue: {},
+        },
+        {
+          provide: 'ProductRepository',
+          useValue: productRepositoryMock,
         },
         OrderFactoryService,
         {

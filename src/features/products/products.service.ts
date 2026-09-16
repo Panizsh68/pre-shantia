@@ -85,6 +85,7 @@ export class ProductsService implements IProductService {
   ): Promise<IProduct> {
     this.logger.log(`[create] ENTRY: userId=${userId}, name=${dto.name}, imagesMeta=${dto.imagesMeta ? dto.imagesMeta.length : 0}`);
     try {
+      this.validateProductOptions(dto.variants, dto.attributes);
       // Resolve user's profile and companyId
       this.logger.debug(`[create] Resolving user profile...`);
       const profile = await this.profileService.getByUserId(userId);
@@ -146,9 +147,11 @@ export class ProductsService implements IProductService {
         throw new BadRequestException(`Product with SKU "${dto.sku}" already exists`);
       }
 
-      const { categories, ...rest } = dto as CreateProductDto;
+      const { categories, variants, attributes, ...rest } = dto as CreateProductDto;
       const data: Partial<Product> = {
         ...rest,
+        variants: this.normalizeVariants(variants),
+        attributes: this.normalizeAttributes(attributes),
         companyId: toObjectId(companyIdStr),
         categories: categories ? (categories.map((c) => toObjectId(c))) : [],
         createdBy: toObjectId(userId),
@@ -383,6 +386,7 @@ export class ProductsService implements IProductService {
     session?: ClientSession,
   ): Promise<IProduct> {
     try {
+      this.validateProductOptions(dto.variants, dto.attributes);
       const existing = await this.repo.findById(id, { session });
       if (!existing) {
         // eslint-disable-next-line no-console
@@ -396,7 +400,7 @@ export class ProductsService implements IProductService {
         this.permissionsService.ensurePermission(tokenPayload?.permissions, Resource.PRODUCTS, Action.UPDATE, existingCompanyId);
       }
 
-      const { categories, imagesMeta, ...rest } = dto as UpdateProductDto & { imagesMeta?: ImageMetaDto[] };
+      const { categories, variants, attributes, imagesMeta, ...rest } = dto as UpdateProductDto & { imagesMeta?: ImageMetaDto[] };
       // Check name uniqueness if being updated
       if (dto.name && dto.name !== existing.name) {
         const nameExists = await this.repo.existsByCondition({
@@ -411,6 +415,8 @@ export class ProductsService implements IProductService {
 
       const data: Partial<Product> = {
         ...rest,
+        ...(variants === undefined ? {} : { variants: this.normalizeVariants(variants) }),
+        ...(attributes === undefined ? {} : { attributes: this.normalizeAttributes(attributes) }),
         // companyId cannot be changed by the client; preserve existing.companyId
         companyId: existing.companyId,
         // Preserve existing categories when the update payload does not include them.
@@ -440,6 +446,69 @@ export class ProductsService implements IProductService {
       console.error('[ProductsService.update] error', err);
       throw err;
     }
+  }
+
+  private validateProductOptions(
+    variants: CreateProductDto['variants'],
+    attributes: CreateProductDto['attributes'],
+  ): void {
+    if (variants !== undefined) {
+      const names = new Set<string>();
+      for (const variant of variants) {
+        const name = String(variant.name || '').trim();
+        const normalizedName = name.toLocaleLowerCase();
+        if (name.length < 2 || name.length > 50) {
+          throw new BadRequestException('عنوان هر گزینه خرید باید بین ۲ تا ۵۰ کاراکتر باشد.');
+        }
+        if (names.has(normalizedName)) {
+          throw new BadRequestException(`گزینه خرید «${name}» تکراری است.`);
+        }
+        names.add(normalizedName);
+        if (!Array.isArray(variant.options) || variant.options.length === 0) {
+          throw new BadRequestException(`برای گزینه خرید «${name}» حداقل یک مقدار ثبت کنید.`);
+        }
+        const values = new Set<string>();
+        for (const option of variant.options) {
+          const value = String(option.value || '').trim();
+          if (!value) throw new BadRequestException(`مقدار گزینه «${name}» نمی‌تواند خالی باشد.`);
+          const normalizedValue = value.toLocaleLowerCase();
+          if (values.has(normalizedValue)) {
+            throw new BadRequestException(`مقدار «${value}» در گزینه «${name}» تکراری است.`);
+          }
+          values.add(normalizedValue);
+          if (option.priceModifier !== undefined && (!Number.isFinite(option.priceModifier) || option.priceModifier < 0)) {
+            throw new BadRequestException(`افزایش قیمت مقدار «${value}» معتبر نیست.`);
+          }
+        }
+      }
+    }
+
+    if (attributes !== undefined) {
+      for (const [key, value] of Object.entries(attributes)) {
+        if (!key.trim() || !String(value).trim()) {
+          throw new BadRequestException('عنوان و مقدار مشخصات فنی نمی‌تواند خالی باشد.');
+        }
+      }
+    }
+  }
+
+  private normalizeVariants(variants: CreateProductDto['variants']): Product['variants'] {
+    if (!Array.isArray(variants)) return [];
+    return variants.map((variant) => ({
+      name: variant.name.trim(),
+      options: variant.options.map((option) => ({
+        value: option.value.trim(),
+        priceModifier: Math.round(Number(option.priceModifier || 0)),
+      })),
+    }));
+  }
+
+  private normalizeAttributes(attributes: CreateProductDto['attributes']): Record<string, string> {
+    if (!attributes) return {};
+    return Object.entries(attributes).reduce<Record<string, string>>((result, [key, value]) => {
+      result[key.trim()] = String(value).trim();
+      return result;
+    }, {});
   }
 
   async remove(id: string, userId: string, tokenPayload?: TokenPayload, session?: ClientSession): Promise<void> {
