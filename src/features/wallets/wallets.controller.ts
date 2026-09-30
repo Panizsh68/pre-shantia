@@ -81,10 +81,10 @@ export class WalletsController {
 
   @Post('debit')
   @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.WALLETS, Action.UPDATE)
+  @Permission(Resource.WALLETS, Action.MANAGE)
   @ApiOperation({
-    summary: 'Debit wallet',
-    description: 'Debits the authenticated owner wallet. ownerId/ownerType must match the token-derived owner.',
+    summary: 'Debit wallet (administrative adjustment)',
+    description: 'Administrative wallet adjustment. User withdrawals must use the bank-account approval flow at /withdrawals.',
   })
   @ApiBody({ type: DebitWalletRequestDto })
   @ApiResponse({ status: 200, description: 'Wallet debited', type: Wallet })

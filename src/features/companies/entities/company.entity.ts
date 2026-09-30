@@ -7,13 +7,13 @@ export class Company extends Document {
   @Prop({ required: true, unique: true })
   name: string;
 
-  @Prop({ enum: Object.values(SellerType), default: SellerType.LEGAL })
+  @Prop({ required: true, enum: Object.values(SellerType), default: SellerType.LEGAL })
   sellerType: SellerType;
 
-  @Prop()
+  @Prop({ required: true })
   address: string;
 
-  @Prop()
+  @Prop({ required: true })
   phone: string;
 
   @Prop({ required: true, unique: true })
@@ -34,11 +34,11 @@ export class Company extends Document {
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
   admins?: Types.ObjectId[];
 
-  @Prop()
-  nationalId?: string;
+  @Prop({ required: true })
+  nationalId: string;
 
-  @Prop()
-  image?: string; // URL to company logo/image (presigned or public URL)
+  @Prop({ required: true })
+  image: string; // URL to company logo/image (presigned or public URL)
 }
 
 export const CompanySchema = SchemaFactory.createForClass(Company);

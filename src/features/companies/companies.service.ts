@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { RedactingLogger } from 'src/infrastructure/logging/redacting-logger';
 import { ICompanyRepository } from './repositories/company.repository';
 import { Company } from './entities/company.entity';
@@ -33,9 +33,35 @@ export class CompaniesService implements ICompanyService {
     this.logger.log(`[create] ENTRY: userId=${userId}, name=${createCompanyDto.name}`);
     this.logger.debug(`[create] imageMeta provided: ${createCompanyDto.imageMeta ? 'YES' : 'NO'}`);
 
+    const sellerType = createCompanyDto.sellerType;
+    const name = this.requiredText(createCompanyDto.name, 'نام شرکت یا نام و نام خانوادگی');
+    const email = this.requiredText(createCompanyDto.email, 'ایمیل');
+    const phone = this.requiredText(createCompanyDto.phone, 'شماره تماس');
+    const address = this.requiredText(createCompanyDto.address, 'آدرس دفتر مرکزی');
+    const nationalId = this.requiredText(createCompanyDto.nationalId, 'کد ملی یا شناسه ملی');
+    let registrationNumber = createCompanyDto.registrationNumber?.trim();
+
+    if (sellerType === SellerType.LEGAL && !registrationNumber) {
+      throw new BadRequestException('شماره ثبت برای شخص حقوقی الزامی است.');
+    }
+    if (sellerType === SellerType.INDIVIDUAL && !registrationNumber) {
+      registrationNumber = `IND-${nationalId}`;
+    }
+
+    const providedImage = createCompanyDto.image?.trim();
+    if (!providedImage && !createCompanyDto.imageMeta) {
+      throw new BadRequestException('لوگوی شرکت الزامی است. ابتدا تصویر را بارگذاری کنید.');
+    }
+
     const data: Partial<Company> = {
-      ...createCompanyDto,
-      sellerType: createCompanyDto.sellerType || SellerType.LEGAL,
+      name,
+      sellerType,
+      email,
+      phone,
+      address,
+      nationalId,
+      registrationNumber,
+      image: providedImage,
       createdBy: new Types.ObjectId(userId),
       updatedBy: new Types.ObjectId(userId),
       status: CompanyStatus.PENDING,
@@ -54,6 +80,8 @@ export class CompaniesService implements ICompanyService {
         if (presignResult.items && presignResult.items.length > 0) {
           data['image'] = presignResult.items[0].publicUrl;
           this.logger.log(`[create] Image URL persisted: ${data['image']}`);
+        } else {
+          throw new BadRequestException('آدرس عمومی لوگو از سرور دریافت نشد.');
         }
       } catch (err) {
         this.logger.error(`[create] Image presign failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -71,6 +99,12 @@ export class CompaniesService implements ICompanyService {
       this.logger.error(`[create] Repository save failed: ${err instanceof Error ? err.message : String(err)}`);
       throw err;
     }
+  }
+
+  private requiredText(value: unknown, label: string): string {
+    const normalized = typeof value === 'string' ? value.trim() : '';
+    if (!normalized) throw new BadRequestException(`${label} الزامی است.`);
+    return normalized;
   }
 
   async changeStatus(id: string, status: CompanyStatus, userId: string, privileged = false): Promise<ICompany> {
@@ -108,6 +142,24 @@ export class CompaniesService implements ICompanyService {
     if (!existing) { throw new NotFoundException(`Company with id ${id} not found`); }
     if (!privileged && !this.isCompanyMember(existing, userId)) {
       throw new ForbiddenException('You do not have permission to update this company');
+    }
+
+    const sellerType = updateCompanyDto.sellerType || existing.sellerType;
+    this.requiredText(updateCompanyDto.name ?? existing.name, 'نام شرکت یا نام و نام خانوادگی');
+    this.requiredText(updateCompanyDto.email ?? existing.email, 'ایمیل');
+    this.requiredText(updateCompanyDto.phone ?? existing.phone, 'شماره تماس');
+    this.requiredText(updateCompanyDto.address ?? existing.address, 'آدرس دفتر مرکزی');
+    this.requiredText(updateCompanyDto.nationalId ?? existing.nationalId, 'کد ملی یا شناسه ملی');
+    if (sellerType === SellerType.LEGAL) {
+      this.requiredText(updateCompanyDto.registrationNumber ?? existing.registrationNumber, 'شماره ثبت برای شخص حقوقی');
+    }
+    if (!(updateCompanyDto.image?.trim() || existing.image || updateCompanyDto.imageMeta)) {
+      throw new BadRequestException('لوگوی شرکت الزامی است. ابتدا تصویر را بارگذاری کنید.');
+    }
+    if (Object.prototype.hasOwnProperty.call(updateCompanyDto, 'image')
+      && !updateCompanyDto.image?.trim()
+      && !updateCompanyDto.imageMeta) {
+      throw new BadRequestException('لوگوی شرکت نمی‌تواند خالی باشد.');
     }
 
     const data: Partial<Company> = {

@@ -1,13 +1,15 @@
 import {
   IsEmail,
   IsNotEmpty,
-  IsOptional,
   IsPhoneNumber,
   IsString,
-  IsIdentityCard,
   IsEnum,
   IsUrl,
+  Matches,
+  ValidateIf,
+  ValidateNested,
 } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ImageMetaDto } from '../../image-upload/dto/create-presign.dto';
 import { SellerType } from '../enums/seller-type.enum';
@@ -21,10 +23,10 @@ export class CreateCompanyDto {
   @IsString()
   name: string;
 
-  @ApiPropertyOptional({ enum: SellerType, default: SellerType.LEGAL })
-  @IsOptional()
-  @IsEnum(SellerType)
-  sellerType?: SellerType;
+  @ApiProperty({ enum: SellerType, description: 'Legal or individual seller type' })
+  @IsNotEmpty({ message: 'نوع شرکت الزامی است.' })
+  @IsEnum(SellerType, { message: 'نوع شرکت نامعتبر است.' })
+  sellerType: SellerType;
 
   @ApiProperty({
     description: 'Email address of the company',
@@ -34,29 +36,30 @@ export class CreateCompanyDto {
   @IsEmail()
   email: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Phone number of the company',
     example: '+982123456789',
   })
-  @IsOptional()
-  @IsPhoneNumber('IR')
-  phone?: string;
+  @IsNotEmpty({ message: 'شماره تماس الزامی است.' })
+  @IsPhoneNumber('IR', { message: 'شماره تماس نامعتبر است.' })
+  phone: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Registration number of the company',
     example: '1234567890',
   })
-  @IsNotEmpty()
-  @IsString()
-  registrationNumber: string;
+  @ValidateIf((company) => company.sellerType === SellerType.LEGAL)
+  @IsNotEmpty({ message: 'شماره ثبت برای شخص حقوقی الزامی است.' })
+  @IsString({ message: 'شماره ثبت نامعتبر است.' })
+  registrationNumber?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Address of the company',
     example: 'Tehran, Iran',
   })
-  @IsOptional()
-  @IsString()
-  address?: string;
+  @IsNotEmpty({ message: 'آدرس دفتر مرکزی الزامی است.' })
+  @IsString({ message: 'آدرس دفتر مرکزی نامعتبر است.' })
+  address: string;
 
   @ApiPropertyOptional({
     description:
@@ -68,22 +71,26 @@ export class CreateCompanyDto {
       size: 256000,
     },
   })
-  @IsOptional()
+  @ValidateNested()
+  @Type(() => ImageMetaDto)
+  @ValidateIf((company) => !company.image)
   imageMeta?: ImageMetaDto;
 
   @ApiPropertyOptional({
     description: 'Public URL of an already uploaded company logo',
     example: 'https://cdn.example.com/company/logo.png',
   })
-  @IsOptional()
-  @IsUrl({ require_protocol: true })
+  @ValidateIf((company) => Boolean(company.image))
+  @IsUrl({ require_protocol: true }, { message: 'آدرس لوگوی شرکت نامعتبر است.' })
   image?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'National ID (company national identifier)',
     example: '0123456789',
   })
-  @IsOptional()
-  @IsIdentityCard('IR')
-  nationalId?: string;
+  @IsNotEmpty({ message: 'کد ملی یا شناسه ملی الزامی است.' })
+  @IsString({ message: 'کد ملی یا شناسه ملی نامعتبر است.' })
+  @Transform(({ value }) => String(value ?? '').replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776)))
+  @Matches(/^[0-9]{10}$/, { message: 'شناسه ملی یا کد ملی باید ۱۰ رقم باشد.' })
+  nationalId: string;
 }

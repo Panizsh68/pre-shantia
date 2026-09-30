@@ -28,5 +28,17 @@ export interface IWalletService {
     meta?: { orderId?: string; ticketId?: string; reason?: string; type?: 'REFUND' | 'TRANSFER'; correlationId?: string },
     session?: ClientSession,
   );
+  releaseBlockedAmountToBalance(
+    owner: { ownerId: string; ownerType: WalletOwnerType },
+    amount: number,
+    meta?: { reason?: string; correlationId?: string },
+    session?: ClientSession,
+  );
+  settleBlockedAmount(
+    owner: { ownerId: string; ownerType: WalletOwnerType },
+    amount: number,
+    meta?: { reason?: string; correlationId?: string },
+    session?: ClientSession,
+  );
   getWallet(getWalletDto: GetWalletDto, session?: ClientSession);
 }

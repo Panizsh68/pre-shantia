@@ -141,9 +141,10 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
     const pipeline: PipelineStage[] = [];
     pipeline.push({ $match: { status: 'active' } });
     if (query && query.trim()) {
+      const safeQuery = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       pipeline.push({
         $match: {
-          name: { $regex: query.trim(), $options: 'i' },
+          name: { $regex: safeQuery, $options: 'i' },
         },
       });
     }
@@ -154,6 +155,7 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
       pipeline.push({ $match: { basePrice: priceRange } });
     }
     if (companyName && companyName.trim()) {
+      const safeCompanyName = companyName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       pipeline.push({
         $lookup: {
           from: 'companies',
@@ -163,7 +165,7 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
         },
       });
       pipeline.push({ $unwind: '$company' });
-      pipeline.push({ $match: { 'company.name': { $regex: companyName.trim(), $options: 'i' } } });
+      pipeline.push({ $match: { 'company.name': { $regex: safeCompanyName, $options: 'i' } } });
     }
     if (categoryIds && Array.isArray(categoryIds) && categoryIds.length > 0) {
       pipeline.push({
@@ -178,14 +180,40 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
     }
     if (sort) {
       const [field, order] = sort.split(':');
-      if (field && order && ['asc', 'desc'].includes(order.toLowerCase())) {
-        pipeline.push({ $sort: { [field]: order.toLowerCase() === 'asc' ? 1 : -1 } });
+      const sortField = field === 'rating' ? 'avgRate' : field;
+      const allowedSortFields = new Set(['createdAt', 'basePrice', 'name', 'avgRate', 'totalRatings']);
+      if (sortField && allowedSortFields.has(sortField) && order && ['asc', 'desc'].includes(order.toLowerCase())) {
+        pipeline.push({ $sort: { [sortField]: order.toLowerCase() === 'asc' ? 1 : -1, _id: 1 } });
       }
     } else {
-      pipeline.push({ $sort: { createdAt: -1 } });
+      pipeline.push({ $sort: { createdAt: -1, _id: 1 } });
     }
     pipeline.push({ $skip: (page - 1) * limit });
     pipeline.push({ $limit: limit });
+    // Catalog cards do not need descriptions, denormalized comments or the
+    // full image gallery. Returning only the card payload cuts both MongoDB
+    // work and the JSON sent to the browser; the detail endpoint remains the
+    // source for the complete product document.
+    pipeline.push({
+      $project: {
+        _id: 1,
+        name: 1,
+        slug: 1,
+        sku: 1,
+        basePrice: 1,
+        discount: 1,
+        currency: 1,
+        companyId: 1,
+        categories: 1,
+        stock: 1,
+        variants: 1,
+        images: { $slice: ['$images', 1] },
+        avgRate: 1,
+        totalRatings: 1,
+        status: 1,
+        createdAt: 1,
+      },
+    });
     return this.aggregate<Product>(pipeline, session);
   }
   async searchByPriceAndCompanyAggregate(

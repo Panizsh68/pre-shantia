@@ -38,7 +38,7 @@ export class PublicSubmissionsService {
 
   async createVendorRequest(dto: CreateVendorRequestDto, userId?: string): Promise<PublicSubmission> {
     const sellerType = this.resolveSellerType(dto);
-    this.validateVendorRequest(dto, sellerType);
+    const normalized = this.validateVendorRequest(dto, sellerType);
 
     if (userId) {
       if (!Types.ObjectId.isValid(userId)) {
@@ -77,14 +77,14 @@ export class PublicSubmissionsService {
     return this.submissionModel.create({
       type: PublicSubmissionType.VendorRequest,
       userId,
-      companyName: dto.companyName.trim(),
+      companyName: normalized.companyName,
       sellerType,
-      email: dto.email.trim(),
-      phone: dto.phone?.trim(),
-      registrationNumber: dto.registrationNumber?.trim(),
-      nationalId: dto.nationalId?.trim(),
-      address: dto.address?.trim(),
-      imageUrl: dto.imageUrl?.trim(),
+      email: normalized.email,
+      phone: normalized.phone,
+      registrationNumber: normalized.registrationNumber,
+      nationalId: normalized.nationalId,
+      address: normalized.address,
+      imageUrl: normalized.imageUrl,
       status: VendorRequestStatus.PENDING,
     });
   }
@@ -199,19 +199,30 @@ export class PublicSubmissionsService {
     if (!profile) throw new ConflictException('پروفایل متقاضی پیدا نشد.');
     if (profile.companyId) throw new ConflictException('این حساب قبلاً به یک شرکت متصل شده است.');
 
-    const registrationNumber = this.registrationNumberFor(existing);
+    const sellerType = existing.sellerType || SellerType.LEGAL;
+    const normalized = this.validateVendorRequest({
+      companyName: existing.companyName || '',
+      sellerType,
+      email: existing.email,
+      phone: existing.phone || '',
+      registrationNumber: existing.registrationNumber,
+      nationalId: existing.nationalId || '',
+      address: existing.address || '',
+      imageUrl: existing.imageUrl || '',
+    }, sellerType);
+    const registrationNumber = this.registrationNumberFor({ ...existing, sellerType, nationalId: normalized.nationalId });
     const session = await this.companyRepository.startTransaction();
 
     try {
       const company = await this.companyRepository.createOne({
-        name: existing.companyName!.trim(),
-        sellerType: existing.sellerType || SellerType.LEGAL,
-        email: existing.email,
-        phone: existing.phone,
+        name: normalized.companyName,
+        sellerType,
+        email: normalized.email,
+        phone: normalized.phone,
         registrationNumber,
-        nationalId: existing.nationalId,
-        address: existing.address,
-        image: this.safeImageUrl(existing.imageUrl),
+        nationalId: normalized.nationalId,
+        address: normalized.address,
+        image: normalized.imageUrl,
         status: CompanyStatus.ACTIVE,
         createdBy: new Types.ObjectId(existing.userId),
         updatedBy: new Types.ObjectId(reviewerUserId),
@@ -277,43 +288,77 @@ export class PublicSubmissionsService {
   }
 
   private resolveSellerType(dto: CreateVendorRequestDto): SellerType {
-    if (dto.sellerType) return dto.sellerType;
-
-    // Keep older clients compatible: a request with a national ID and no
-    // registration number is unambiguously an individual seller request.
-    if (!dto.registrationNumber?.trim() && dto.nationalId?.trim()) {
-      return SellerType.INDIVIDUAL;
-    }
-
-    return SellerType.LEGAL;
+    if (!dto.sellerType) throw new BadRequestException('نوع تأمین‌کننده الزامی است.');
+    return dto.sellerType;
   }
 
-  private validateVendorRequest(dto: CreateVendorRequestDto, sellerType: SellerType): void {
+  private validateVendorRequest(dto: CreateVendorRequestDto, sellerType: SellerType): {
+    companyName: string;
+    email: string;
+    phone: string;
+    registrationNumber?: string;
+    nationalId: string;
+    address: string;
+    imageUrl: string;
+  } {
+    const companyName = this.requiredText(dto.companyName, 'نام شرکت یا نام و نام خانوادگی');
+    const email = this.requiredText(dto.email, 'ایمیل');
+    const phone = this.requiredText(dto.phone, 'شماره تماس');
+    const address = this.requiredText(dto.address, 'آدرس دفتر مرکزی');
+    const imageUrl = this.requiredText(dto.imageUrl, 'لوگو یا تصویر کسب‌وکار');
     const registrationNumber = dto.registrationNumber?.trim();
-    const nationalId = dto.nationalId?.trim();
+    const nationalId = this.normalizeDigits(this.requiredText(dto.nationalId, 'کد ملی یا شناسه ملی'));
+
+    if (!/^[0-9۰-۹+()\-\s]{7,15}$/.test(phone)) {
+      throw new BadRequestException('شماره تماس را با قالب معتبر وارد کنید.');
+    }
 
     if (sellerType === SellerType.LEGAL && !registrationNumber) {
       throw new BadRequestException('شماره ثبت برای شخص حقوقی الزامی است.');
     }
-    if (sellerType === SellerType.INDIVIDUAL && !nationalId) {
-      throw new BadRequestException('کد ملی برای شخص حقیقی الزامی است.');
-    }
     if (registrationNumber && !/^[0-9۰-۹]{3,20}$/.test(registrationNumber)) {
       throw new BadRequestException('شماره ثبت نامعتبر است.');
     }
-    if (nationalId && !/^[0-9۰-۹]{10}$/.test(nationalId)) {
+    if (!/^[0-9]{10}$/.test(nationalId)) {
       throw new BadRequestException('شناسه ملی یا کد ملی باید ۱۰ رقم باشد.');
     }
+    if (!this.safeImageUrl(imageUrl)) {
+      throw new BadRequestException('لوگو یا تصویر کسب‌وکار معتبر نیست. ابتدا تصویر را بارگذاری کنید.');
+    }
+
+    return {
+      companyName,
+      email,
+      phone,
+      registrationNumber,
+      nationalId,
+      address,
+      imageUrl,
+    };
   }
 
-  private registrationNumberFor(request: PublicSubmission): string {
+  private requiredText(value: unknown, label: string): string {
+    const normalized = typeof value === 'string' ? value.trim() : '';
+    if (!normalized) throw new BadRequestException(`${label} الزامی است.`);
+    return normalized;
+  }
+
+  private normalizeDigits(value: string): string {
+    return value.replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776));
+  }
+
+  private registrationNumberFor(request: {
+    sellerType?: SellerType;
+    registrationNumber?: string;
+    nationalId?: string;
+  }): string {
     if (request.sellerType !== SellerType.INDIVIDUAL) {
       if (!request.registrationNumber) throw new BadRequestException('شماره ثبت برای شخص حقوقی الزامی است.');
       return request.registrationNumber.trim();
     }
 
     if (!request.nationalId) throw new BadRequestException('کد ملی برای شخص حقیقی الزامی است.');
-    const normalized = request.nationalId.replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776));
+    const normalized = this.normalizeDigits(request.nationalId);
     return `IND-${normalized}`;
   }
 

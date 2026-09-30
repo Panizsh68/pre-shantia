@@ -164,7 +164,10 @@ export class ProductsController {
     if (limit !== undefined) {
       const parsedLimit = parseInt(limit, 10);
       if (isNaN(parsedLimit) || parsedLimit < 1) { throw new BadRequestException('Limit must be a positive integer'); }
-      params.limit = parsedLimit;
+      // Public catalog requests must stay bounded even when a URL is edited
+      // manually. The storefront never needs more than four product rows at
+      // once, and an unbounded aggregate would make the first render slow.
+      params.limit = Math.min(parsedLimit, 48);
     }
     if (sort) { params.sort = sort; }
     try {

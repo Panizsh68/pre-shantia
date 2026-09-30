@@ -32,6 +32,8 @@ import { RatingModule } from './features/ratings/rating.module';
 import { PublicSubmissionsModule } from './features/public-submissions/public-submissions.module';
 import { AbuseControlModule } from './common/abuse/abuse-control.module';
 import { SettingsModule } from './features/settings/settings.module';
+import { BankingModule } from './features/banking/banking.module';
+import { CustomerRequestsModule } from './features/customer-requests/customer-requests.module';
 
 const configFactory = process.env.NODE_ENV === 'production'
   ? productionConfiguration
@@ -115,6 +117,8 @@ const configFactory = process.env.NODE_ENV === 'production'
     PublicSubmissionsModule,
     AbuseControlModule,
     SettingsModule,
+    BankingModule,
+    CustomerRequestsModule,
   ],
   controllers: [AppController],
   providers: [

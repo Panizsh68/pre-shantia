@@ -160,6 +160,7 @@ ProductSchema.index({ companyId: 1, status: 1 });
 ProductSchema.index({ basePrice: 1, status: 1 });
 ProductSchema.index({ status: 1, updatedAt: -1 });
 ProductSchema.index({ companyId: 1, categories: 1, status: 1 });
+ProductSchema.index({ status: 1, categories: 1, createdAt: -1 });
 
 // Text index for search
 ProductSchema.index({

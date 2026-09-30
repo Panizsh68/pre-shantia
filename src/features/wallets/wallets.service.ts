@@ -373,6 +373,106 @@ export class WalletsService implements IWalletService {
     }
   }
 
+  async releaseBlockedAmountToBalance(
+    owner: { ownerId: string; ownerType: WalletOwnerType },
+    amount: number,
+    meta: { reason?: string; correlationId?: string } = {},
+    session?: ClientSession,
+  ): Promise<void> {
+    const transactionSession = session || (await this.walletRepository.startTransaction());
+    try {
+      if (meta.correlationId) {
+        const alreadyDone = await this.transactionService.existsByCorrelationId(meta.correlationId, transactionSession);
+        if (alreadyDone) {
+          if (!session) await this.walletRepository.commitTransaction(transactionSession);
+          return;
+        }
+      }
+
+      const wallet = await this.walletRepository.findByIdAndType(owner.ownerId, owner.ownerType, transactionSession);
+      if (!wallet) throw new NotFoundException('Wallet not found');
+
+      const updatedWallet = await this.walletRepository.updateOneByCondition(
+        { _id: wallet.id, blockedBalance: { $gte: amount } } as any,
+        { $inc: { blockedBalance: -amount, balance: amount } } as any,
+        { session: transactionSession },
+      ).catch(() => null);
+      if (!updatedWallet) throw new BadRequestException('Insufficient blocked balance');
+
+      await this.transactionService.create({
+        trackId: uuidv4(),
+        amount,
+        description: `Release withdrawal hold on wallet ${wallet.id}`,
+        userId: owner.ownerId,
+        status: TransactionStatus.COMPLETED,
+        type: TransactionType.UNBLOCK,
+        currency: wallet.currency,
+        createdAt: new Date(),
+        toWalletId: wallet.id,
+        resultingBalance: updatedWallet.balance,
+        metadata: { reason: meta.reason ?? 'release-withdrawal-hold' },
+        correlationId: meta.correlationId,
+      }, transactionSession);
+
+      if (!session) await this.walletRepository.commitTransaction(transactionSession);
+    } catch (error) {
+      if (!session) await this.walletRepository.abortTransaction(transactionSession);
+      throw error instanceof BadRequestException || error instanceof NotFoundException
+        ? error
+        : new BadRequestException(`Failed to release blocked balance: ${error.message}`);
+    }
+  }
+
+  async settleBlockedAmount(
+    owner: { ownerId: string; ownerType: WalletOwnerType },
+    amount: number,
+    meta: { reason?: string; correlationId?: string } = {},
+    session?: ClientSession,
+  ): Promise<void> {
+    const transactionSession = session || (await this.walletRepository.startTransaction());
+    try {
+      if (meta.correlationId) {
+        const alreadyDone = await this.transactionService.existsByCorrelationId(meta.correlationId, transactionSession);
+        if (alreadyDone) {
+          if (!session) await this.walletRepository.commitTransaction(transactionSession);
+          return;
+        }
+      }
+
+      const wallet = await this.walletRepository.findByIdAndType(owner.ownerId, owner.ownerType, transactionSession);
+      if (!wallet) throw new NotFoundException('Wallet not found');
+
+      const updatedWallet = await this.walletRepository.updateOneByCondition(
+        { _id: wallet.id, blockedBalance: { $gte: amount } } as any,
+        { $inc: { blockedBalance: -amount } } as any,
+        { session: transactionSession },
+      ).catch(() => null);
+      if (!updatedWallet) throw new BadRequestException('Insufficient blocked balance');
+
+      await this.transactionService.create({
+        trackId: uuidv4(),
+        amount,
+        description: `Paid withdrawal from wallet ${wallet.id}`,
+        userId: owner.ownerId,
+        status: TransactionStatus.COMPLETED,
+        type: TransactionType.DEBIT,
+        currency: wallet.currency,
+        createdAt: new Date(),
+        fromWalletId: wallet.id,
+        resultingBalance: updatedWallet.balance,
+        metadata: { reason: meta.reason ?? 'withdrawal-paid' },
+        correlationId: meta.correlationId,
+      }, transactionSession);
+
+      if (!session) await this.walletRepository.commitTransaction(transactionSession);
+    } catch (error) {
+      if (!session) await this.walletRepository.abortTransaction(transactionSession);
+      throw error instanceof BadRequestException || error instanceof NotFoundException
+        ? error
+        : new BadRequestException(`Failed to settle blocked balance: ${error.message}`);
+    }
+  }
+
   async getWallet(getWalletDto: GetWalletDto, session?: ClientSession): Promise<Wallet> {
     const { ownerId, ownerType } = getWalletDto;
 
