@@ -18,5 +18,12 @@ export interface IUsersService {
 
   setPermissions(id: string, permissions: IPermission[]): Promise<User>;
 
+  setCompanyAccess(
+    id: string,
+    companyId: string,
+    permissions: IPermission[],
+    isCompanyAdmin: boolean,
+  ): Promise<User>;
+
   delete(id: string): Promise<void>;
 }

@@ -122,12 +122,26 @@ export class CompaniesService implements ICompanyService {
    * Add a user id to company's admins array if not already present
    */
   async addAdminToCompany(companyId: string, adminUserId: string): Promise<void> {
+    await this.setAdminStatus(companyId, adminUserId, true);
+  }
+
+  async setAdminStatus(companyId: string, adminUserId: string, isAdmin: boolean): Promise<void> {
     const company = await this.companyRepository.findById(companyId);
     if (!company) { throw new NotFoundException(`Company with id ${companyId} not found`); }
-    const adminObjectId = new Types.ObjectId(adminUserId);
+    if (!Types.ObjectId.isValid(adminUserId)) {
+      throw new BadRequestException('شناسه کاربر نامعتبر است.');
+    }
+
     const currentAdmins = Array.isArray(company.admins) ? company.admins.map(a => a.toString()) : [];
-    if (!currentAdmins.includes(adminUserId)) {
-      company.admins = [...(company.admins || []), adminObjectId];
+
+    const nextAdmins = isAdmin
+      ? currentAdmins.includes(adminUserId)
+        ? currentAdmins
+        : [...currentAdmins, adminUserId]
+      : currentAdmins.filter((id) => id !== adminUserId);
+
+    if (nextAdmins.length !== currentAdmins.length || nextAdmins.some((id, index) => id !== currentAdmins[index])) {
+      company.admins = nextAdmins.map((id) => new Types.ObjectId(id));
       await this.companyRepository.updateById(companyId, { admins: company.admins });
     }
   }

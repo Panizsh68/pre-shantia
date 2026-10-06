@@ -1,4 +1,4 @@
-import { Controller, Inject, UseGuards, Get, Query, Param, ParseIntPipe, DefaultValuePipe, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Inject, UseGuards, Get, Patch, Query, Param, ParseIntPipe, DefaultValuePipe, BadRequestException } from '@nestjs/common';
 import { FilterQuery } from 'mongoose';
 import { AuthProfileDto } from 'src/features/auth/dto/auth-profile.dto';
 import { ConfigService } from '@nestjs/config';
@@ -13,9 +13,10 @@ import { Resource } from 'src/features/permissions/enums/resources.enum';
 import { Action } from 'src/features/permissions/enums/actions.enum';
 import { IProfileService } from './profile/interfaces/profile.service.interface';
 import { Profile } from './profile/entities/profile.entity';
-import { ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
-import { UserListResponseDto } from './dto/user-list.response.dto';
+import { ApiBody, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { UserListItemDto, UserListResponseDto } from './dto/user-list.response.dto';
 import { UserDetailResponseDto } from './dto/user-detail.response.dto';
+import { SetCompanyAccessDto } from './dto/set-company-access.dto';
 
 @ApiTags('users')
 @UseGuards(AuthenticationGuard)
@@ -77,6 +78,7 @@ export class UsersController {
             lastName: profile.lastName,
             address: profile.address,
             walletId: profile.walletId?.toString(),
+            companyId: profile.companyId?.toString(),
           }
           : undefined;
 
@@ -150,6 +152,7 @@ export class UsersController {
             lastName: profile.lastName,
             address: profile.address,
             walletId: profile.walletId?.toString(),
+            companyId: profile.companyId?.toString(),
           }
           : undefined;
 
@@ -181,7 +184,38 @@ export class UsersController {
       phoneNumber: user.phoneNumber,
       nationalId: user.nationalId,
       permissions: user.permissions || [],
-      profile: profile ?? null,
+      profile: profile
+        ? { ...profile.toObject(), companyId: profile.companyId?.toString() }
+        : null,
+    };
+  }
+
+  @Patch(':id/company-access')
+  @UseGuards(AuthenticationGuard, PermissionsGuard)
+  @Permission(Resource.ALL, Action.MANAGE)
+  @ApiOperation({ summary: 'Set a user company membership and scoped access (super-admin only)' })
+  @ApiBody({ type: SetCompanyAccessDto })
+  @ApiResponse({ status: 200, description: 'Company access updated successfully', type: UserListItemDto })
+  async setCompanyAccess(
+    @Param('id') id: string,
+    @Body() dto: SetCompanyAccessDto,
+  ) {
+    const updated = await this.usersService.setCompanyAccess(
+      id,
+      dto.companyId,
+      dto.permissions,
+      dto.isCompanyAdmin,
+    );
+    const profile = await this.profileService.getByUserId(updated.id.toString());
+
+    return {
+      id: updated.id.toString(),
+      phoneNumber: updated.phoneNumber,
+      nationalId: updated.nationalId,
+      permissions: updated.permissions || [],
+      profile: profile
+        ? { ...profile.toObject(), companyId: profile.companyId?.toString() }
+        : null,
     };
   }
 }

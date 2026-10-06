@@ -11,6 +11,7 @@ export interface ICompanyService {
   remove(id: string, userId: string, privileged?: boolean): Promise<void>;
   changeStatus(id: string, status: import('../enums/status.enum').CompanyStatus, userId: string, privileged?: boolean): Promise<ICompany>;
   addAdminToCompany(companyId: string, adminUserId: string): Promise<void>;
+  setAdminStatus(companyId: string, adminUserId: string, isAdmin: boolean): Promise<void>;
   findOne(id: string): Promise<ICompany>;
   findAll(options?: FindManyOptions): Promise<ICompany[]>;
   findAllWithTotal(options?: FindManyOptions): Promise<{ items: ICompany[]; total: number }>;

@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
 import { User } from './entities/user.entity';
@@ -10,6 +10,7 @@ import { CreateProfileDto } from './profile/dto/create-profile.dto';
 import { ClientSession } from 'mongoose';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { IPermission } from 'src/features/permissions/interfaces/permissions.interface';
+import { Resource } from 'src/features/permissions/enums/resources.enum';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
 
 @Injectable()
@@ -141,6 +142,72 @@ export class UsersService {
     } catch (err) {
       console.warn('Failed to clear permissions cache for user', existing.id, err?.message || err);
     }
+    return updated;
+  }
+
+  async setCompanyAccess(
+    id: string,
+    companyId: string,
+    permissions: IPermission[],
+    isCompanyAdmin: boolean,
+  ): Promise<User> {
+    if (!Types.ObjectId.isValid(companyId)) {
+      throw new BadRequestException('شناسه شرکت نامعتبر است.');
+    }
+
+    let targetId = id;
+    if (!Types.ObjectId.isValid(id)) {
+      const byPhone = await this.findUserByPhoneNumber(id);
+      if (!byPhone) {
+        throw new NotFoundException(`User with identifier ${id} not found`);
+      }
+      targetId = byPhone.id.toString();
+    }
+
+    const existing = await this.findOne(targetId);
+    await this.companiesService.findOne(companyId);
+
+    const scopedPermissions = (Array.isArray(permissions) ? permissions : []).map((permission) => {
+      if (permission.resource === Resource.ALL) {
+        throw new BadRequestException('اختصاص دسترسی «همه» به‌صورت شرکتی مجاز نیست.');
+      }
+
+      return {
+        resource: permission.resource,
+        actions: [...new Set(permission.actions || [])],
+        companyId,
+      } as IPermission;
+    }).filter((permission) => permission.actions.length > 0);
+
+    const retainedPermissions = (existing.permissions || [])
+      .filter((permission) => permission.companyId?.toString() !== companyId)
+      .map((permission) => ({
+        resource: permission.resource,
+        actions: permission.actions,
+        ...(permission.companyId ? { companyId: permission.companyId.toString() } : {}),
+      }));
+    const nextPermissions = [...retainedPermissions, ...scopedPermissions];
+
+    // Revoke old tokens before changing permissions so an old token cannot
+    // continue using the previous company access after this update.
+    await this.tokensService.bumpAuthVersion(existing.id.toString());
+    const updated = await this.usersRepository.updateById(targetId, { permissions: nextPermissions });
+    if (!updated) {
+      throw new NotFoundException(`User with ID ${targetId} doesn't exist`);
+    }
+
+    await this.companiesService.setAdminStatus(companyId, targetId, isCompanyAdmin);
+    // Product creation uses the profile company as the user's default company.
+    // Keep it aligned with the company assignment so an existing profile link
+    // cannot route a product to a different company.
+    await this.profileService.setCompanyId(targetId, companyId);
+
+    try {
+      await this.cacheService.delete(`permissions:${existing.id}`);
+    } catch (err) {
+      console.warn('Failed to clear permissions cache for user', existing.id, err?.message || err);
+    }
+
     return updated;
   }
 }

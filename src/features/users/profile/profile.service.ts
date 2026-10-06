@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -84,6 +84,17 @@ export class ProfileService {
     };
     const updatedProfileResult = await this.profileRepository.updateById(id, updatedProfile);
     return updatedProfileResult;
+  }
+
+  async setCompanyId(userId: string, companyId: string): Promise<Profile> {
+    const updatedProfile = await this.profileRepository.updateOneByCondition(
+      { userId },
+      { companyId: new Types.ObjectId(companyId) },
+    );
+    if (!updatedProfile) {
+      throw new NotFoundException(`Profile for user ${userId} not found`);
+    }
+    return updatedProfile;
   }
 
   async updateFavorites(userId: string, favorites: string[]): Promise<Profile> {
