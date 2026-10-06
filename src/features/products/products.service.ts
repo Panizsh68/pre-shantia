@@ -147,7 +147,7 @@ export class ProductsService implements IProductService {
         throw new BadRequestException(`Product with SKU "${dto.sku}" already exists`);
       }
 
-      const { categories, variants, attributes, ...rest } = dto as CreateProductDto;
+      const { categories, variants, attributes, imagesMeta, ...rest } = dto as CreateProductDto;
       const data: Partial<Product> = {
         ...rest,
         variants: this.normalizeVariants(variants),
@@ -159,7 +159,6 @@ export class ProductsService implements IProductService {
       };
 
       // Integration: if the DTO contains files metadata to presign (client wants to upload images)
-      const imagesMeta = (dto as CreateProductDto).imagesMeta;
       if (imagesMeta && imagesMeta.length > 0 && this.imageUploadService && !(data.images && data.images.length > 0)) {
         this.logger.log(`[create] Image upload requested: ${imagesMeta.length} file(s)`);
         try {

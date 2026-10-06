@@ -126,6 +126,10 @@ export class CreateProductDto {
   })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(120)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message: 'نامک محصول باید فقط شامل حروف انگلیسی کوچک، عدد و خط تیره باشد.',
+  })
   slug: string;
 
   @ApiProperty({

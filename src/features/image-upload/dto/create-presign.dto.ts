@@ -1,16 +1,29 @@
-import { IsIn, IsNotEmpty, IsString, IsArray, ArrayMaxSize, ArrayMinSize, IsInt, Min } from 'class-validator';
+import {
+  IsIn,
+  IsNotEmpty,
+  IsString,
+  IsArray,
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsInt,
+  Min,
+  MaxLength,
+  Matches,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ImageMetaDto {
-  @IsIn(['image/jpeg', 'image/png', 'image/webp'])
+  @IsString()
   @IsNotEmpty()
+  @MaxLength(255)
+  @Matches(/^[^/\\]+$/, { message: 'filename must be a file name without a path' })
   @ApiProperty({
     description: 'Original filename (without path)',
     example: 'product-photo.jpg',
   })
   filename: string;
 
-  @IsString()
+  @IsIn(['image/jpeg', 'image/png', 'image/webp'])
   @IsNotEmpty()
   @ApiProperty({
     description: 'MIME content type of the file',

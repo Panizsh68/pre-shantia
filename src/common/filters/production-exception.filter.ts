@@ -7,10 +7,18 @@ export class ProductionExceptionFilter implements ExceptionFilter {
     const response = host.switchToHttp().getResponse<Response>();
     const request = host.switchToHttp().getRequest<Request>();
     const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
-    const production = process.env.NODE_ENV === 'production';
-    const message = production && status >= 500 ? 'Internal server error' :
-      exception instanceof HttpException ? exception.message : 'Request failed';
     const exceptionResponse = exception instanceof HttpException ? exception.getResponse() : undefined;
+    const production = process.env.NODE_ENV === 'production';
+    const responseMessage = typeof exceptionResponse === 'object' && exceptionResponse !== null && 'message' in exceptionResponse
+      ? (exceptionResponse as { message?: unknown }).message
+      : undefined;
+    const message = production && status >= 500
+      ? 'Internal server error'
+      : Array.isArray(responseMessage)
+        ? responseMessage.filter((item): item is string => typeof item === 'string').join('، ')
+        : typeof responseMessage === 'string'
+          ? responseMessage
+          : exception instanceof HttpException ? exception.message : 'Request failed';
     const code = typeof exceptionResponse === 'object' && exceptionResponse !== null && 'code' in exceptionResponse
       ? (exceptionResponse as { code?: unknown }).code
       : undefined;
