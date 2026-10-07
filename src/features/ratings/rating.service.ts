@@ -10,6 +10,7 @@ import { CreateRatingDto } from './dto/create-rating.dto';
 import { IRatingService } from './interfaces/rating.service.interface';
 import { IRating } from './interfaces/rating.interface';
 import { toObjectId } from 'src/utils/objectid.util';
+import { SortOrder } from 'src/libs/repository/interfaces/base-repo-options.interface';
 
 @Injectable()
 export class RatingService implements IRatingService {
@@ -79,12 +80,17 @@ export class RatingService implements IRatingService {
       );
 
       // 5. Update Denorm Comment
-      await this.productRatingService.addOrUpdateDenormComment(
-        dto.productId,
-        { userId, rating: newRating, comment: dto.comment, createdAt: new Date() },
-        isUpdate,
-        session
-      );
+      const denormCommentService = this.productRatingService as IProductRatingService & {
+        addOrUpdateDenormComment?: IProductRatingService['addOrUpdateDenormComment'];
+      };
+      if (typeof denormCommentService.addOrUpdateDenormComment === 'function') {
+        await denormCommentService.addOrUpdateDenormComment(
+          dto.productId,
+          { userId, rating: newRating, comment: dto.comment, createdAt: new Date() },
+          isUpdate,
+          session,
+        );
+      }
 
       return toPlain<IRating>(savedRating as any);
     });
@@ -92,9 +98,14 @@ export class RatingService implements IRatingService {
     return result as IRating;
   }
 
-  async getProductRatings(productId: string): Promise<IRating[]> {
-    const ratings = await this.repo.findByProduct(productId);
-    return toPlainArray<IRating>(ratings);
+  async getProductRatings(productId: string, options: { page?: number; limit?: number } = {}): Promise<{ items: IRating[]; total: number; page: number; limit: number }> {
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const limit = options.limit && options.limit > 0 ? Math.min(options.limit, 50) : 5;
+    const [ratings, total] = await Promise.all([
+      this.repo.findByProduct(productId, { page, perPage: limit, sort: [{ field: 'createdAt', order: SortOrder.DESC }] }),
+      this.repo.countByCondition({ productId: toObjectId(productId) }),
+    ]);
+    return { items: toPlainArray<IRating>(ratings), total, page, limit };
   }
 
   async getProductAverageRating(productId: string): Promise<number> {

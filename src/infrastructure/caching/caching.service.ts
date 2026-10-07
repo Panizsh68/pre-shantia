@@ -21,6 +21,12 @@ export class CachingService {
     }
   }
 
+  async setStrict<T>(key: string, value: T, ttl: number): Promise<void> {
+    if (!Number.isInteger(ttl) || ttl <= 0) throw new Error(`Invalid TTL passed: ${ttl}`);
+    const result = await this.redis.set(key, JSON.stringify(value), 'EX', ttl);
+    if (result !== 'OK') throw new Error(`Failed to set Redis key ${key}`);
+  }
+
   async get<T>(key: string): Promise<T | null> {
     try {
       const value = await this.redis.get(key);
@@ -64,6 +70,76 @@ export class CachingService {
     } catch (e) {
       console.error(`Delete failed for ${key}`, e);
     }
+  }
+
+  /** Strict variants are used for authentication state: infrastructure failure must not be reported as success. */
+  async deleteStrict(key: string): Promise<boolean> {
+    return (await this.redis.del(key)) > 0;
+  }
+
+  async addSetMemberStrict(key: string, member: string, ttlSeconds: number): Promise<void> {
+    if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0) throw new Error(`Invalid TTL passed: ${ttlSeconds}`);
+    const result = await this.redis.multi().sadd(key, member).expire(key, ttlSeconds).exec();
+    if (!result || result.some(([error]) => error)) throw new Error(`Failed to update Redis set ${key}`);
+  }
+
+  async getSetMembersStrict(key: string): Promise<string[]> {
+    return this.redis.smembers(key);
+  }
+
+  async scanKeysStrict(pattern: string): Promise<string[]> {
+    const keys: string[] = [];
+    let cursor = '0';
+    do {
+      const [nextCursor, batch] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', '100');
+      cursor = nextCursor;
+      keys.push(...batch);
+    } while (cursor !== '0');
+    return keys;
+  }
+
+  async deleteSetMembersStrict(key: string, members: string[]): Promise<void> {
+    if (members.length) await this.redis.del(...members.map((member) => `${member}`));
+    await this.redis.del(key);
+  }
+
+  async rotateKeyStrict<T>(oldKey: string, newKey: string, value: T, ttlSeconds: number): Promise<void> {
+    if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0) throw new Error(`Invalid TTL passed: ${ttlSeconds}`);
+    const result = await this.redis.multi()
+      .del(oldKey)
+      .set(newKey, JSON.stringify(value), 'EX', ttlSeconds)
+      .exec();
+    if (!result || result.some(([error]) => error)) throw new Error('Failed to rotate authentication session');
+  }
+
+  async rotateRefreshSessionStrict<T>(indexKey: string, oldKey: string, newKey: string, value: T, ttlSeconds: number): Promise<boolean> {
+    if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0) throw new Error(`Invalid TTL passed: ${ttlSeconds}`);
+    // Rotation must be compare-and-delete. A plain MULTI sequence lets two
+    // concurrent refreshes consume the same old token and both mint a new
+    // session, which defeats replay detection and makes cookie order racy.
+    const script = `
+      if redis.call('exists', KEYS[2]) == 0 then return 0 end
+      redis.call('del', KEYS[2])
+      redis.call('set', KEYS[3], ARGV[1], 'EX', ARGV[2])
+      redis.call('srem', KEYS[1], ARGV[3])
+      redis.call('sadd', KEYS[1], ARGV[4])
+      redis.call('expire', KEYS[1], ARGV[2])
+      return 1
+    `;
+    const result = await this.redis.eval(
+      script,
+      3,
+      indexKey,
+      oldKey,
+      newKey,
+      JSON.stringify(value),
+      String(ttlSeconds),
+      oldKey.replace('refresh-info:', ''),
+      newKey.replace('refresh-info:', ''),
+    );
+    if (Number(result) === 0) return false;
+    if (Number(result) !== 1) throw new Error('Failed to rotate authentication session');
+    return true;
   }
 
   async setIfAbsent(key: string, value: string, ttlSeconds: number): Promise<boolean> {

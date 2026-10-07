@@ -6,10 +6,11 @@ import { toMongooseSession } from 'src/libs/repository/session-utils';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos/base-crud.repository';
 import { toObjectId } from 'src/utils/objectid.util';
 import { IBaseCrudRepository } from 'src/libs/repository/interfaces/base-repo.interfaces';
+import { FindManyOptions } from 'src/libs/repository/interfaces/base-repo-options.interface';
 
 export interface IRatingRepository extends IBaseCrudRepository<Rating> {
   upsertRating(userId: string, productId: string, rating: number, comment?: string, session?: ClientSession): Promise<Rating>;
-  findByProduct(productId: string, session?: ClientSession): Promise<Rating[]>;
+  findByProduct(productId: string, options?: FindManyOptions, session?: ClientSession): Promise<Rating[]>;
   findByUserAndProduct(userId: string, productId: string, session?: ClientSession): Promise<Rating | null>;
   updateRating(userId: string, productId: string, rating: number, comment?: string, session?: ClientSession): Promise<Rating | null>;
   deleteRating(userId: string, productId: string, session?: ClientSession): Promise<void>;
@@ -35,8 +36,8 @@ export class RatingRepository extends BaseCrudRepository<Rating> implements IRat
     return created;
   }
 
-  async findByProduct(productId: string, session?: ClientSession): Promise<Rating[]> {
-    return this.findManyByCondition({ productId: toObjectId(productId) }, { session });
+  async findByProduct(productId: string, options: FindManyOptions = {}, session?: ClientSession): Promise<Rating[]> {
+    return this.findManyByCondition({ productId: toObjectId(productId) }, { ...options, session });
   }
 
   async findByUserAndProduct(userId: string, productId: string, session?: ClientSession): Promise<Rating | null> {

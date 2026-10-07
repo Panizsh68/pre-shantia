@@ -27,6 +27,22 @@ class ImageDto {
   url: string;
 }
 
+class CompanySummaryDto {
+  @ApiProperty()
+  _id: string;
+
+  @ApiProperty()
+  name: string;
+}
+
+class CategorySummaryDto {
+  @ApiProperty()
+  _id: string;
+
+  @ApiProperty()
+  name: string;
+}
+
 export class ProductResponseDto {
   @ApiProperty({ example: '507f1f77bcf86cd799439011' })
   id: string;
@@ -46,11 +62,14 @@ export class ProductResponseDto {
   @ApiPropertyOptional()
   discount?: number;
 
-  @ApiProperty()
-  companyId: string;
+  @ApiProperty({ oneOf: [{ type: 'string' }, { type: 'object', properties: { _id: { type: 'string' }, name: { type: 'string' } } }] })
+  companyId: string | CompanySummaryDto;
 
-  @ApiProperty({ type: [String] })
-  categories: string[];
+  @ApiProperty({ type: 'array', items: { oneOf: [{ type: 'string' }, { type: 'object', properties: { _id: { type: 'string' }, name: { type: 'string' } } }] } })
+  categories: Array<string | CategorySummaryDto>;
+
+  @ApiPropertyOptional({ example: 'IRR' })
+  currency?: string;
 
   @ApiPropertyOptional()
   description?: string;

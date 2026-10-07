@@ -5,6 +5,7 @@ interface R2Config {
 interface AppConfig {
   NODE_ENV: string; MONGO_URL: string; ENCRYPTION_KEY: string;
   JWT_ACCESS_SECRET: string; JWT_REFRESH_SECRET: string; JWT_SECRET_KEY: string;
+  JWT_ACCESS_TTL_SECONDS: number; JWT_REFRESH_TTL_SECONDS: number;
   REDIS_HOST: string; REDIS_PORT: number; OTP_TTL: number;
   SUPERADMIN_PHONE: string; SUPERADMIN_MELICODE: string;
   ZIBAL_MERCHANT_ID: string; ZIBAL_SANDBOX: boolean; ZIBAL_CALLBACK_URL: string;
@@ -44,6 +45,8 @@ export default (): AppConfiguration => {
     JWT_ACCESS_SECRET: env('JWT_ACCESS_SECRET'),
     JWT_REFRESH_SECRET: env('JWT_REFRESH_SECRET'),
     JWT_SECRET_KEY: env('JWT_SECRET_KEY'),
+    JWT_ACCESS_TTL_SECONDS: parseNumber(process.env.JWT_ACCESS_TTL_SECONDS, 600),
+    JWT_REFRESH_TTL_SECONDS: parseNumber(process.env.JWT_REFRESH_TTL_SECONDS, 172800),
     REDIS_HOST: env('REDIS_HOST', 'localhost'),
     REDIS_PORT: parseNumber(process.env.REDIS_PORT, 6379),
     OTP_TTL: parseNumber(process.env.OTP_TTL, 300),

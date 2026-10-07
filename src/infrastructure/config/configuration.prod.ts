@@ -5,6 +5,7 @@ const PLACEHOLDER_SECRET = /^(?:change(?:[-_ ]?me)?|replace(?:[-_ ]?me)?|use[-_ 
 export interface ProductionCoreConfig {
   NODE_ENV: 'production'; MONGO_URL: string; ENCRYPTION_KEY: string;
   JWT_ACCESS_SECRET: string; JWT_REFRESH_SECRET: string; JWT_SECRET_KEY: string;
+  JWT_ACCESS_TTL_SECONDS: number; JWT_REFRESH_TTL_SECONDS: number;
   REDIS_HOST: string; REDIS_PORT: number; REDIS_PASSWORD: string; OTP_TTL: number;
   KAVENEGAR_API_KEY: string; KAVENEGAR_TEMPLATE: string; KAVENEGAR_SENDER: string;
   SHAHKAR_ENABLED: boolean; SHAHKAR_BASE_URL: string; SHAHKAR_API_KEY: string; MOCK_PROVIDERS_ENABLED: boolean;
@@ -89,6 +90,8 @@ export function validateProductionEnvironment(env: NodeJS.ProcessEnv = process.e
     JWT_ACCESS_SECRET: requiredSecret('JWT_ACCESS_SECRET', env, 32),
     JWT_REFRESH_SECRET: requiredSecret('JWT_REFRESH_SECRET', env, 32),
     JWT_SECRET_KEY: requiredSecret('JWT_SECRET_KEY', env, 32),
+    JWT_ACCESS_TTL_SECONDS: parseNumber('JWT_ACCESS_TTL_SECONDS', env, 600),
+    JWT_REFRESH_TTL_SECONDS: parseNumber('JWT_REFRESH_TTL_SECONDS', env, 172800),
     REDIS_HOST: requiredEnv('REDIS_HOST', env),
     REDIS_PORT: parseNumber('REDIS_PORT', env, 6379),
     REDIS_PASSWORD: requiredSecret('REDIS_PASSWORD', env),

@@ -11,6 +11,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { CreateRatingDto } from './dto/create-rating.dto';
@@ -22,6 +23,7 @@ import { Resource } from '../permissions/enums/resources.enum';
 import { Action } from '../permissions/enums/actions.enum';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interface';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @ApiTags('Ratings')
 @ApiBearerAuth()
@@ -48,15 +50,22 @@ export class RatingController {
   }
 
   @Get('product/:productId')
-  @UseGuards(AuthenticationGuard, PermissionsGuard)
-  @Permission(Resource.RATINGS, Action.READ)
-  @ApiOperation({ summary: 'Get all ratings for a product', description: 'This route is open for default users.' })
+  @Public()
+  @ApiOperation({ summary: 'Get public ratings for a product', security: [] })
   @ApiParam({ name: 'productId', type: String })
   @ApiResponse({ status: 200, description: 'Ratings returned', type: [Object] })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getProductRatings(@Param('productId') productId: string) {
-    return await this.ratingService.getProductRatings(productId);
+  async getProductRatings(
+    @Param('productId') productId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedPage = page ? Math.max(1, Number.parseInt(page, 10)) : 1;
+    const parsedLimit = limit ? Math.min(50, Math.max(1, Number.parseInt(limit, 10))) : 5;
+    if (!Number.isFinite(parsedPage) || !Number.isFinite(parsedLimit)) {
+      throw new BadRequestException('پارامتر صفحه‌بندی نامعتبر است.');
+    }
+    return await this.ratingService.getProductRatings(productId, { page: parsedPage, limit: parsedLimit });
   }
 
   @Get('product/:productId/average')

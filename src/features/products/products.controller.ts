@@ -13,6 +13,7 @@ import {
   UseGuards,
   BadRequestException,
   ForbiddenException,
+  NotFoundException,
   Header,
 } from '@nestjs/common';
 import { SortOrder } from 'src/libs/repository/interfaces/base-repo-options.interface';
@@ -544,13 +545,11 @@ export class ProductsController {
   @ApiParam({ name: 'id', type: String, description: 'Product ID' })
   @ApiResponse({ status: 200, description: 'Product found', type: ProductResponseDto })
   @ApiResponse({ status: 404, description: 'Product not found' })
-  findOne(@Param('id') id: string) {
-    try {
-      const result = this.productsService.findOne(id);
-      return result;
-    } catch (err) {
-      throw err;
+  async findOne(@Param('id') id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('محصول موردنظر پیدا نشد.');
     }
+    return this.productsService.findOne(id);
   }
 
   @Patch(':id')

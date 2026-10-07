@@ -46,32 +46,27 @@ All routes are under the `/auth` controller.
      b) Existing user:
        - Skip create flow.
 
-     - Generate tokens:
-       - Build `TokenPayload` (userId, permissions, tokenType).
-       - `TokensService.getAccessToken(payload)` → signed JWT (HS256, 1h) with encrypted payload fields.
-       - `TokensService.getRefreshToken(payload)` → signed JWT (HS512, 48h) with encrypted payload fields.
-     - Store refresh session info in cache key `refresh-info:${refreshToken}` with value `{ ip, userAgent, userId }` and TTL `JWT_REFRESH_EXPIRES`.
+     - Generate tokens using the centralized access/refresh TTL settings and encrypted payload fields.
+     - Store refresh session info in cache key `refresh-info:${refreshToken}` and index it under `refresh-sessions:${userId}`.
      - Read profile via `profileService.getByUserId(user.id)` and return `{ accessToken?, refreshToken?, profile? }`.
-   - Controller behavior: sets `Authorization` header with `Bearer <accessToken>` and sets `refreshToken` cookie (httpOnly, secure, sameSite=strict, maxAge 48h) if provided.
+   - Controller behavior: sets `Authorization` header with `Bearer <accessToken>` and sets `refreshToken` cookie (httpOnly, secure, sameSite=strict, maxAge from `JWT_REFRESH_TTL_SECONDS`) if provided.
 
 4. POST /auth/refresh
    - Public route.
    - Input: either `{ refreshToken }` in request body or cookie `refreshToken`.
    - Controller extracts refresh token from body or cookie and throws `BadRequestException('Refresh token not provided')` if missing.
    - Service: `AuthService.refreshAccessTokenByRefreshToken(refreshToken, context)`
-     - `TokensService.validateRefreshToken(refreshToken, context)`:
-       - Verifies JWT with `JWT_REFRESH_SECRET` (HS512), decrypts payload.
-       - Reads `refresh-info:${refreshToken}` from cache and compares `ip` and `userAgent` with `context`.
-       - Throws `UnauthorizedException` if mismatch or not found.
+     - `TokensService.validateRefreshToken(refreshToken, context)` verifies the signature, decrypts the payload, and validates the Redis session owner/auth version. Infrastructure errors fail closed.
      - Loads user by `payload.userId` via `usersService.findOne`.
-     - Generates new access token via `TokensService.getAccessToken`.
-     - Returns `{ accessToken }` and controller sets `Authorization` header.
+     - Generates a new access token and a new refresh token.
+     - Atomically deletes the old refresh session and stores the new one; replay of the old token is rejected.
+     - Controller sets the `Authorization` header and replaces the HttpOnly refresh cookie.
 
 5. POST /auth/signout
    - Protected (AuthenticationGuard validates access token and puts payload into `request.user`).
-   - Controller clears cookie `refreshToken` (if `res` provided) and calls `AuthService.signOut(user.userId, refreshToken?)`.
+   - Controller calls `AuthService.signOut(user.userId, refreshToken?)` and clears cookies only after server-side revocation succeeds.
    - Service `AuthService.signOut`:
-     - If refreshToken provided → deletes `refresh-info:${refreshToken}` from cache.
+     - Increments `auth-version:${userId}` and revokes all indexed refresh sessions, including legacy sessions discovered by Redis SCAN.
      - Deletes `permissions:${userId}` cache.
      - (Removed: previously deleted profile via `profileService.deleteByUserId(userId)` — this code was removed to avoid data loss.)
      - Returns `{ message: 'Signed out successfully' }`.
@@ -85,7 +80,7 @@ All routes are under the `/auth` controller.
    - Input: `SignUpDto` (extends `CreateUserDto`, optional `permissions`).
    - Service: `AuthService.adminSignUp(signUpDto)`
      - Creates user directly (`usersService.create(signUpDto)`).
-     - Generates access and refresh tokens for the created user and saves `refresh-info:${refreshToken}` in cache with `{ ip: '', userAgent: '', userId }`.
+     - Generates access and refresh tokens for the created user and saves the refresh session and per-user index with `{ ip: '', userAgent: '', userId }`.
      - Returns `{ phoneNumber, accessToken, refreshToken }`.
 
 ---
@@ -123,7 +118,9 @@ All routes are under the `/auth` controller.
 ## Cache keys (Redis) and TTLs
 - `signup:${phoneNumber}` — stores `{ phoneNumber, nationalId }`. TTL: `app.OTP_TTL` (config, default ~300s).
 - `${phoneNumber}` — stores current OTP as a plain string. TTL: `app.OTP_TTL`.
-- `refresh-info:${refreshToken}` — stores `{ ip, userAgent, userId }`. TTL: `JWT_REFRESH_EXPIRES` (config, default 48*3600s). Refresh validation keeps the user-agent binding while allowing normal client IP changes, such as mobile-network changes.
+- `refresh-info:${refreshToken}` — stores `{ ip, userAgent, userId }`. TTL: the centralized `JWT_REFRESH_TTL_SECONDS` value (default 48*3600s).
+- `refresh-sessions:${userId}` — Redis set of refresh-token values used to revoke every browser session on logout.
+- `auth-version:${userId}` — version counter included in access/refresh payloads; incrementing it revokes all previously issued tokens.
 - `permissions:${userId}` — cached permissions for user; cleared on sign-out.
 
 ---
@@ -132,16 +129,17 @@ All routes are under the `/auth` controller.
 - Access token
   - Generated by `TokensService.getAccessToken(payload)`.
   - Payload fields are encrypted using AES-256-GCM with `ENCRYPTION_KEY` (hex, 32 bytes). Encrypted key/value pairs are placed into the JWT payload as strings.
-  - Signed using `JWT_ACCESS_SECRET` with HS256 algorithm. Expiry: 1 hour.
+  - Signed using `JWT_ACCESS_SECRET` with HS256 algorithm. Expiry: centralized `JWT_ACCESS_TTL_SECONDS` (default 10 minutes).
 
 - Refresh token
   - Generated by `TokensService.getRefreshToken(payload)`.
-  - Signed using `JWT_REFRESH_SECRET` with HS512 algorithm. Expiry: 48 hours.
-  - After generation the server stores `refresh-info:${refreshToken}` in Redis with `ip` and `userAgent`; validation keeps the user-agent binding without invalidating the session when the client IP changes.
+  - Signed using `JWT_REFRESH_SECRET` with HS512 algorithm. Expiry: centralized `JWT_REFRESH_TTL_SECONDS` (default 48 hours).
+  - After generation the server stores `refresh-info:${refreshToken}` in Redis with `ip` and `userAgent`.
+  - Each successful refresh rotates the refresh token atomically. Reusing the old token fails and the refresh cookie is replaced.
 
 - Validation
   - `validateAccessToken(token)` verifies signature using `JWT_ACCESS_SECRET`, decrypts payload and returns `TokenPayload`.
-  - `validateRefreshToken(token, context)` verifies signature using `JWT_REFRESH_SECRET`, decrypts payload, then validates the stored refresh session and its `userAgent`. If the session is missing or the user-agent changes → `UnauthorizedException`.
+  - `validateRefreshToken(token, context)` verifies signature using `JWT_REFRESH_SECRET`, decrypts payload, validates the stored refresh session and user ownership, and checks the auth version. The refresh token is a bearer credential; exact user-agent matching is intentionally not enforced because SSR/proxy/WebView user agents can legitimately vary.
 
 ---
 

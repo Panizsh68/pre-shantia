@@ -28,6 +28,8 @@ import { UpdateUserPermissionsDto } from 'src/features/users/dto/update-user-per
 import { randomBytes } from 'crypto';
 import { AbuseRateLimit } from 'src/common/abuse/abuse-rate-limit.decorator';
 import { AbuseRateLimitGuard } from 'src/common/abuse/abuse-rate-limit.guard';
+import { ConfigService } from '@nestjs/config';
+import { getAuthTokenTtl } from 'src/utils/services/tokens/auth-ttl';
 
 const CSRF_COOKIE = 'csrfToken';
 const CSRF_HEADER = 'x-csrf-token';
@@ -46,7 +48,18 @@ export class AuthController {
     private readonly authService: AuthService,
     @Inject('IProfileService') private readonly profileService: IProfileService,
     @Inject('IUsersService') private readonly usersService: IUsersService,
+    private readonly configService: ConfigService,
   ) { }
+
+  private refreshCookieOptions(request: Request) {
+    const secure = request?.secure || request?.protocol === 'https' || process.env.NODE_ENV === 'production';
+    return { httpOnly: true, secure: !!secure, sameSite: 'strict' as const, path: '/', maxAge: getAuthTokenTtl(this.configService).refreshSeconds * 1000 };
+  }
+
+  private clearRefreshCookie(res: Response, request: Request): void {
+    const { httpOnly, secure, sameSite, path } = this.refreshCookieOptions(request);
+    res.clearCookie('refreshToken', { httpOnly, secure, sameSite, path });
+  }
 
   private issueCsrfToken(res: Response): string {
     const token = randomBytes(32).toString('hex');
@@ -57,7 +70,7 @@ export class AuthController {
       secure: !!secure,
       sameSite: 'strict',
       path: '/',
-      maxAge: 1000 * 60 * 60 * 48,
+      maxAge: getAuthTokenTtl(this.configService).refreshSeconds * 1000,
     });
     return token;
   }
@@ -128,18 +141,10 @@ export class AuthController {
         res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
       }
 
-      // choose secure flag dynamically: true in production or when request is secure
       const req = (res.req as Request);
-      const secureFlag = req?.secure || req?.protocol === 'https' || process.env.NODE_ENV === 'production';
 
       if (tokens.refreshToken) {
-        res.cookie('refreshToken', tokens.refreshToken, {
-          httpOnly: true,
-          secure: !!secureFlag,
-          sameSite: 'strict',
-          path: '/',
-          maxAge: 1000 * 60 * 60 * 48,
-        });
+        res.cookie('refreshToken', tokens.refreshToken, this.refreshCookieOptions(req));
       }
       csrfToken = this.issueCsrfToken(res);
     } catch (err) {
@@ -184,16 +189,24 @@ export class AuthController {
     const cookieRefreshToken = readCookie(req, 'refreshToken');
     const bodyRefreshToken = body?.refreshToken?.trim();
     if (cookieRefreshToken && bodyRefreshToken && cookieRefreshToken !== bodyRefreshToken) {
-      throw new BadRequestException('Refresh token mismatch');
+      throw new BadRequestException('نشست درخواست‌شده با نشست مرورگر مطابقت ندارد.');
     }
     const refreshToken = cookieRefreshToken || bodyRefreshToken;
     if (!refreshToken) {
       throw new UnauthorizedException({
-        message: 'Refresh token not provided',
+        message: 'نشست شما منقضی شده است؛ دوباره وارد شوید.',
         code: 'AUTH_SESSION_INVALID',
       });
     }
-    const result = await this.authService.refreshAccessTokenByRefreshToken(refreshToken, context);
+    let result: { accessToken: string; refreshToken: string };
+    try {
+      result = await this.authService.refreshAccessTokenByRefreshToken(refreshToken, context);
+    } catch (error) {
+      if (error instanceof UnauthorizedException || (error as any)?.status === HttpStatus.NOT_FOUND) {
+        this.clearRefreshCookie(res, req);
+      }
+      throw error;
+    }
     try {
       if (result.accessToken) {
         res.setHeader('Authorization', 'Bearer ' + result.accessToken);
@@ -202,8 +215,8 @@ export class AuthController {
        
       console.error('Failed to set Authorization header in refreshToken response:', err?.message || err);
     }
-    // refresh فقط accessToken میده، پس refreshToken رو برنمیگردونیم
-    return { phoneNumber: '', accessToken: result.accessToken, csrfToken: readCookie(req, CSRF_COOKIE) };
+    res.cookie('refreshToken', result.refreshToken, this.refreshCookieOptions(req));
+    return { phoneNumber: '', accessToken: result.accessToken, refreshToken: result.refreshToken, csrfToken: readCookie(req, CSRF_COOKIE) };
   }
 
   @Post('signout')
@@ -232,8 +245,8 @@ export class AuthController {
     // Redis outage could make the browser look logged out while its access
     // token remained active.
     if (res) {
-      res.clearCookie('refreshToken');
-      res.clearCookie(CSRF_COOKIE);
+      this.clearRefreshCookie(res, req);
+      res.clearCookie(CSRF_COOKIE, { path: '/' });
     }
     return result;
   }
@@ -339,16 +352,9 @@ export class AuthController {
       }
 
       const req = (res.req as Request);
-      const secureFlag = req?.secure || req?.protocol === 'https' || process.env.NODE_ENV === 'production';
 
       if (result.refreshToken) {
-        res.cookie('refreshToken', result.refreshToken, {
-          httpOnly: true,
-          secure: !!secureFlag,
-          sameSite: 'strict',
-          path: '/',
-          maxAge: 1000 * 60 * 60 * 48,
-        });
+        res.cookie('refreshToken', result.refreshToken, this.refreshCookieOptions(req));
       }
       const csrfToken = this.issueCsrfToken(res);
       return { phoneNumber: result.phoneNumber, accessToken: result.accessToken, csrfToken, profile: result.profile };

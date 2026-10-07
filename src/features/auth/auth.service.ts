@@ -34,6 +34,7 @@ import { IPermission } from '../permissions/interfaces/permissions.interface';
 import { determineOwnerTypeFromPermissions } from 'src/utils/wallet-owner.util';
 import { User } from '../users/entities/user.entity';
 import { ShahkarSettingsService } from '../settings/shahkar-settings.service';
+import { getAuthTokenTtl } from 'src/utils/services/tokens/auth-ttl';
 
 import { VerifyOtpResponse } from './interfaces/auth-response.interface';
 
@@ -42,6 +43,8 @@ interface RefreshSessionInfo {
   userAgent: string;
   userId: string;
 }
+
+const refreshSessionIndexKey = (userId: string): string => `refresh-sessions:${userId}`;
 
 @Injectable()
 export class AuthService {
@@ -60,6 +63,18 @@ export class AuthService {
     @Inject('IWalletsService') private readonly walletsService: IWalletService,
     @Inject('AuthRepository') private readonly authRepository: IAuthRepository,
   ) { }
+
+  private async storeRefreshSession(refreshToken: string, info: RefreshSessionInfo): Promise<void> {
+    const ttl = getAuthTokenTtl(this.configService).refreshSeconds;
+    const key = `refresh-info:${refreshToken}`;
+    try {
+      await this.cacheService.setStrict(key, info, ttl);
+      await this.cacheService.addSetMemberStrict(refreshSessionIndexKey(info.userId), refreshToken, ttl);
+    } catch (error) {
+      try { await this.cacheService.deleteStrict(key); } catch { /* preserve the original infrastructure error */ }
+      throw new ServiceUnavailableException('Authentication session store is unavailable');
+    }
+  }
 
   async signUp(createUserDto: CreateUserDto): Promise<SignUpResponseDto> {
     const startTime = Date.now();
@@ -220,14 +235,7 @@ export class AuthService {
       const accessToken = await this.tokensService.getAccessToken(payload);
       const refreshToken = await this.tokensService.getRefreshToken({ ...payload, tokenType: TokenType.refresh });
 
-      const refreshSessionStored = await this.cacheService.set(
-        `refresh-info:${refreshToken}`,
-        { ip: context.ip, userAgent: context.userAgent, userId: user.id.toString() }, 
-        Number(this.configService.get<string>('JWT_REFRESH_TTL_SECONDS') || 48 * 3600),
-      );
-      if (!refreshSessionStored) {
-        throw new ServiceUnavailableException('Authentication session store is unavailable');
-      }
+      await this.storeRefreshSession(refreshToken, { ip: context.ip, userAgent: context.userAgent, userId: user.id.toString() });
 
       const profile = await this.profileService.getByUserId(user.id.toString());
 
@@ -250,20 +258,22 @@ export class AuthService {
     }
   }
 
-  async refreshAccessTokenByRefreshToken(refreshToken: string, context: RequestContext): Promise<{ accessToken: string }> {
+  async refreshAccessTokenByRefreshToken(refreshToken: string, context: RequestContext): Promise<{ accessToken: string; refreshToken: string }> {
     try {
       const payload = await this.tokensService.validateRefreshToken(refreshToken, context);
       const sessionInfo = await this.cacheService.getStrict<RefreshSessionInfo>(`refresh-info:${refreshToken}`);
       
       if (!sessionInfo) {
         throw new UnauthorizedException({
-          message: 'Session mismatch',
+          message: 'نشست شما معتبر نیست؛ دوباره وارد شوید.',
           code: 'AUTH_SESSION_INVALID',
         });
       }
 
       const user = await this.usersService.findOne(payload.userId);
-      if (!user) throw new NotFoundException('User not found');
+      if (!user) {
+        throw new UnauthorizedException({ message: 'نشست شما منقضی شده است؛ دوباره وارد شوید.', code: 'AUTH_SESSION_INVALID' });
+      }
 
       const accessToken = await this.tokensService.getAccessToken({
         userId: user.id.toString(),
@@ -271,7 +281,26 @@ export class AuthService {
         tokenType: TokenType.access,
       });
 
-      return { accessToken };
+      const nextRefreshToken = await this.tokensService.getRefreshToken({
+        userId: user.id.toString(),
+        permissions: user.permissions || [],
+        tokenType: TokenType.refresh,
+      });
+      const rotated = await this.cacheService.rotateRefreshSessionStrict(
+        refreshSessionIndexKey(user.id.toString()),
+        `refresh-info:${refreshToken}`,
+        `refresh-info:${nextRefreshToken}`,
+        { ip: context.ip, userAgent: context.userAgent, userId: user.id.toString() },
+        getAuthTokenTtl(this.configService).refreshSeconds,
+      );
+      if (!rotated) {
+        throw new UnauthorizedException({
+          message: 'نشست شما منقضی شده است؛ دوباره وارد شوید.',
+          code: 'AUTH_SESSION_INVALID',
+        });
+      }
+
+      return { accessToken, refreshToken: nextRefreshToken };
     } catch (error) {
       if (error instanceof HttpException) throw error;
       this.logger.error(`Refresh failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -283,8 +312,19 @@ export class AuthService {
     // Invalidate all access tokens issued before this logout before deleting
     // the refresh session. The guard checks this version on every request.
     await this.tokensService.bumpAuthVersion(userId);
-    if (refreshToken) await this.cacheService.delete(`refresh-info:${refreshToken}`);
-    await this.cacheService.delete(`permissions:${userId}`);
+    const indexKey = refreshSessionIndexKey(userId);
+    const indexedTokens = await this.cacheService.getSetMembersStrict(indexKey);
+    const tokens = new Set(indexedTokens);
+    if (refreshToken) tokens.add(refreshToken);
+    // Include sessions created before the per-user index was introduced.
+    // SCAN is used instead of KEYS so logout cannot block Redis under load.
+    const legacyKeys = await this.cacheService.scanKeysStrict('refresh-info:*');
+    for (const key of legacyKeys) {
+      const info = await this.cacheService.getStrict<RefreshSessionInfo>(key);
+      if (info?.userId === userId) tokens.add(key.slice('refresh-info:'.length));
+    }
+    await this.cacheService.deleteSetMembersStrict(indexKey, [...tokens].map((token) => `refresh-info:${token}`));
+    await this.cacheService.deleteStrict(`permissions:${userId}`);
     return { message: 'Signed out successfully' };
   }
 
@@ -299,14 +339,7 @@ export class AuthService {
       const accessToken = await this.tokensService.getAccessToken(payload);
       const refreshToken = await this.tokensService.getRefreshToken({ ...payload, tokenType: TokenType.refresh });
 
-      const refreshSessionStored = await this.cacheService.set(
-        `refresh-info:${refreshToken}`,
-        { ip: context?.ip || '', userAgent: context?.userAgent || '', userId: user.id.toString() }, 
-        Number(this.configService.get<string>('JWT_REFRESH_TTL_SECONDS') || 48 * 3600),
-      );
-      if (!refreshSessionStored) {
-        throw new ServiceUnavailableException('Authentication session store is unavailable');
-      }
+      await this.storeRefreshSession(refreshToken, { ip: context?.ip || '', userAgent: context?.userAgent || '', userId: user.id.toString() });
 
       return { phoneNumber: user.phoneNumber, accessToken, refreshToken };
     } catch (error) {

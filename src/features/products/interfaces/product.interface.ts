@@ -6,6 +6,7 @@ export interface IProduct {
   sku: string;
   name: string;
   basePrice: number;
+  currency?: string;
   companyId: Types.ObjectId | { _id: Types.ObjectId; name: string };
   categories: (Types.ObjectId | { _id: Types.ObjectId; name: string })[];
   description?: string;

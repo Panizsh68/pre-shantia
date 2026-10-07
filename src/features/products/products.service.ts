@@ -256,7 +256,7 @@ export class ProductsService implements IProductService {
 
   async findOne(id: string, session?: ClientSession): Promise<IProduct> {
     try {
-      const productDoc = await this.repo.findById(id, { session });
+      const productDoc = await this.repo.findById(id, { session, populate: ['companyId', 'categories'] });
       if (!productDoc || productDoc.status !== ProductStatus.ACTIVE) {
         // eslint-disable-next-line no-console
         console.error('[ProductsService.findOne] not found or inactive id=', id);

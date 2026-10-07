@@ -6,6 +6,7 @@ import { TokenPayload } from 'src/features/auth/interfaces/token-payload.interfa
 import { ConfigService } from '@nestjs/config';
 import { CachingService } from 'src/infrastructure/caching/caching.service';
 import { RequestContext } from 'src/common/types/request-context.interface';
+import { getAuthTokenTtl } from './auth-ttl';
 
 export const authVersionKey = (userId: string): string => `auth-version:${userId}`;
 
@@ -108,7 +109,7 @@ export class TokensService<
       { ...data, authVersion },
       secret,
       'HS256',
-      this.configService.get<string>('JWT_ACCESS_EXPIRES') || '10m',
+      `${getAuthTokenTtl(this.configService).accessSeconds}s`,
     );
   }
 
@@ -117,11 +118,12 @@ export class TokensService<
     if (!secret) {
       throw new Error('JWT_REFRESH_SECRET is missing in configuration.');
     }
+    const authVersion = await this.getAuthVersion(data.userId);
     return this.signToken(
-      data,
+      { ...data, authVersion },
       secret,
       'HS512',
-      this.configService.get<string>('JWT_REFRESH_EXPIRES') || '48h',
+      `${getAuthTokenTtl(this.configService).refreshSeconds}s`,
     );
   }
 
@@ -173,15 +175,8 @@ export class TokensService<
   }
 
   private getAuthVersionTtlSeconds(): number {
-    const configuredRefreshTtl = Number(this.configService.get<string>('JWT_REFRESH_TTL_SECONDS'));
-    const configuredAccessTtl = Number(this.configService.get<string>('JWT_ACCESS_TTL_SECONDS'));
-    const refreshTtl = Number.isFinite(configuredRefreshTtl) && configuredRefreshTtl > 0
-      ? configuredRefreshTtl
-      : 48 * 3600;
-    const accessTtl = Number.isFinite(configuredAccessTtl) && configuredAccessTtl > 0
-      ? configuredAccessTtl
-      : 10 * 60;
-    return refreshTtl + accessTtl + 3600;
+    const ttl = getAuthTokenTtl(this.configService);
+    return ttl.refreshSeconds + ttl.accessSeconds + 3600;
   }
 
   async validateRefreshToken(token: string, _context: RequestContext): Promise<TokenPayload> {
@@ -199,9 +194,15 @@ export class TokensService<
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new UnauthorizedException({
-        message: 'Invalid refresh token',
+        message: 'نشست شما منقضی شده است؛ دوباره وارد شوید.',
         code: 'AUTH_SESSION_INVALID',
       });
+    }
+
+    const tokenVersion = Number((decrypted as TokenPayload & { authVersion?: unknown }).authVersion ?? 0);
+    const currentVersion = await this.getAuthVersion(decrypted.userId);
+    if (!Number.isInteger(tokenVersion) || tokenVersion !== currentVersion) {
+      throw new UnauthorizedException({ message: 'نشست شما منقضی شده است؛ دوباره وارد شوید.', code: 'AUTH_SESSION_INVALID' });
     }
 
     let sessionInfo: { ip: string; userAgent: string; userId: string } | null;
@@ -221,7 +222,7 @@ export class TokensService<
     // revocable through the Redis record and auth-version checks.
     if (!sessionInfo || sessionInfo.userId !== decrypted.userId) {
       throw new UnauthorizedException({
-        message: 'Session context mismatch.',
+        message: 'نشست شما معتبر نیست؛ دوباره وارد شوید.',
         code: 'AUTH_SESSION_INVALID',
       });
     }
