@@ -14,6 +14,7 @@ import { CartSummary } from './interfaces/cart-summary.interface';
 import { IOrdersService } from '../orders/interfaces/order.service.interface';
 import { CreateOrderFromCartDto } from '../orders/dto/create-order-from-cart.dto';
 import { ProductVariantSelection } from '../products/interfaces/variant-selection.interface';
+import { toCompanyIdString } from './utils/company-id.util';
 
 @Injectable()
 export class CartsService implements ICartsService {
@@ -98,7 +99,8 @@ export class CartsService implements ICartsService {
     
     const product = await this.productsService.findOne(item.productId);
     if (!product) { throw new NotFoundException(`Product with id ${item.productId} not found`); }
-    if (product.companyId?.toString() !== item.companyId) {
+    const productCompanyId = toCompanyIdString(product.companyId);
+    if (productCompanyId !== item.companyId) {
       throw new BadRequestException('Product does not belong to the provided companyId');
     }
 

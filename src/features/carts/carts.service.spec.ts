@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CartsService } from './carts.service';
 import defaultTestProviders from 'src/test/test-utils';
+import { Types } from 'mongoose';
 
 describe('CartsService', () => {
   let service: CartsService;
@@ -59,6 +60,38 @@ describe('CartsService', () => {
     expect(cart.items).toHaveLength(2);
     expect(cart.items[0].priceAtAdd).toBe(1000);
     expect(cart.items[1].priceAtAdd).toBe(900);
+  });
+
+  it('accepts a populated company reference when adding a product to the cart', async () => {
+    const companyId = '507f1f77bcf86cd799439011';
+    const cart = {
+      items: [],
+      currency: 'IRR',
+      totalAmount: 0,
+      save: jest.fn(),
+    } as any;
+    cart.save.mockResolvedValue(cart);
+    const repository = {
+      findOrCreateActiveCart: jest.fn().mockResolvedValue(cart),
+    };
+    const products = {
+      findOne: jest.fn().mockResolvedValue({
+        companyId: { _id: new Types.ObjectId(companyId), name: 'تجاریس' },
+        basePrice: 1000,
+        discount: 0,
+        currency: 'IRR',
+        variants: [],
+      }),
+    };
+    const localService = new CartsService(repository as any, products as any, {} as any);
+
+    await expect(localService.addItemToCart('user-1', {
+      productId: 'product-1',
+      companyId,
+      quantity: 1,
+    })).resolves.toBe(cart);
+
+    expect(cart.items[0].companyId).toBe(companyId);
   });
 
   it('rejects adding a product when a required option is missing', async () => {
