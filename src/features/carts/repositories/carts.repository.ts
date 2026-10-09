@@ -39,7 +39,7 @@ export class CartRepository extends BaseCrudRepository<Cart> implements ICartRep
     const condition: FilterQuery<Cart> = { userId, status: CartStatus.ACTIVE };
     const options: FindOptions = {
       populate: [
-        { path: 'items.productId', select: 'name basePrice description' },
+        { path: 'items.productId', select: 'name sku basePrice finalPrice discount currency images description' },
         { path: 'items.companyId', select: 'name' },
       ],
       select: 'items totalAmount status userId',
@@ -92,7 +92,7 @@ export class CartRepository extends BaseCrudRepository<Cart> implements ICartRep
   async populate(): Promise<Cart[]> {
     const carts = await this.findAll({});
     const fields: PopulateOptions[] = [
-      { path: 'items.productId', select: 'name basePrice description' },
+      { path: 'items.productId', select: 'name sku basePrice finalPrice discount currency images description' },
       { path: 'items.companyId', select: 'name' },
     ];
     const populatedCarts = await this.populateRepository.populate(carts, fields);

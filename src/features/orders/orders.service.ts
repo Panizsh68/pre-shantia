@@ -17,6 +17,7 @@ import { CreateOrderFromCartDto } from './dto/create-order-from-cart.dto';
 import { CartItemDto } from '../carts/dto/cart-item.dto';
 import { getIntermediaryWalletId } from 'src/utils/intermediary-wallet.util';
 import { ProductVariantSelection } from '../products/interfaces/variant-selection.interface';
+import { toReferenceIdString } from 'src/utils/reference-id.util';
 
 @Injectable()
 export class OrdersService implements IOrdersService {
@@ -37,8 +38,20 @@ export class OrdersService implements IOrdersService {
         throw new BadRequestException('Empty cart');
       }
 
+      // Cart reads populate productId/companyId for the UI, while the order
+      // schema stores both references as strings. Normalize them once before
+      // grouping, pricing and stock reservation.
+      const normalizedCart = {
+        ...cart,
+        items: cart.items.map((item) => ({
+          ...item,
+          productId: this.requireReferenceId(item.productId, 'product'),
+          companyId: this.requireReferenceId(item.companyId, 'company'),
+        })),
+      };
+
       // 2. Build order DTOs grouped by company
-      let orderDtos = this.orderFactory.buildOrdersFromCart(cart);
+      let orderDtos = this.orderFactory.buildOrdersFromCart(normalizedCart);
       if (dto.perCompany && typeof dto.perCompany === 'object') {
         if (Array.isArray(dto.perCompany)) {
           orderDtos = orderDtos.map(order => {
@@ -61,23 +74,26 @@ export class OrdersService implements IOrdersService {
       }
 
       // 3. Validate product prices and prep stock reservation
-      const productIdStrs = Array.from(new Set(cart.items.map(i => String(i.productId))));
+      const productIdStrs = Array.from(new Set(normalizedCart.items.map(i => i.productId)));
       const productIds = productIdStrs.map(id => new Types.ObjectId(id));
-      
+
       const products = await this.productRepository.findManyByCondition(
-        { _id: { $in: productIds } }, 
+        { _id: { $in: productIds } },
         { session: orderSession }
       );
-      
-      const productMap = new Map<string, any>();
-      for (const p of products) { productMap.set(p.id, p); }
 
-      const reservationItems: { productId: Types.ObjectId; qty: number }[] = [];
-      
-      for (const item of cart.items) {
-        const product = productMap.get(String(item.productId));
+      const productMap = new Map<string, any>();
+      for (const p of products) {
+        const productId = toReferenceIdString((p as any)._id ?? (p as any).id);
+        if (productId) productMap.set(productId, p);
+      }
+
+      const reservationQuantities = new Map<string, number>();
+
+      for (const item of normalizedCart.items) {
+        const product = productMap.get(item.productId);
         if (!product) throw new BadRequestException(`Product ${item.productId} not found`);
-        
+
         // Verify price hasn't changed since adding to cart
         const currentPrice = Math.round(this.computeFinalPrice(product, item.variants || item.variant));
         if (Number.isFinite(Number(item.priceAtAdd)) && Number(item.priceAtAdd) !== currentPrice) {
@@ -85,12 +101,18 @@ export class OrdersService implements IOrdersService {
             `Price changed for product ${product.name}. Cart price: ${item.priceAtAdd}, current price: ${currentPrice}. Please refresh your cart.`,
           );
         }
-        
-        reservationItems.push({
-          productId: new Types.ObjectId(item.productId),
-          qty: Number(item.quantity || 0),
-        });
+
+        const quantity = Number(item.quantity || 0);
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+          throw new BadRequestException(`Invalid quantity for product ${item.productId}`);
+        }
+        reservationQuantities.set(item.productId, (reservationQuantities.get(item.productId) || 0) + quantity);
       }
+
+      const reservationItems = Array.from(reservationQuantities.entries()).map(([productId, qty]) => ({
+        productId: new Types.ObjectId(productId),
+        qty,
+      }));
 
       // 4. ATOMIC STOCK RESERVATION
       const modifiedCount = await this.productRepository.bulkDecrementStock(reservationItems, orderSession);
@@ -102,9 +124,14 @@ export class OrdersService implements IOrdersService {
       const orders: IOrder[] = [];
       for (const orderDto of orderDtos) {
         const items = orderDto.items.map((item: any) => {
-          const product = productMap.get(String(item.productId));
+          const productId = this.requireReferenceId(item.productId, 'product');
+          const companyId = this.requireReferenceId(item.companyId, 'company');
+          const product = productMap.get(productId);
+          if (!product) throw new BadRequestException(`Product ${productId} not found`);
           return {
             ...item,
+            productId,
+            companyId,
             priceAtAdd: Math.round(this.computeFinalPrice(product, item.variants || item.variant)),
           };
         });
@@ -122,6 +149,15 @@ export class OrdersService implements IOrdersService {
       await this.cartsService.checkout(dto.userId, orderSession);
       return orders;
     }, session);
+  }
+
+  private requireReferenceId(value: unknown, label: string): string {
+    const id = toReferenceIdString(value);
+    if (!id) throw new BadRequestException(`Cart item is missing a valid ${label}Id`);
+    if (label === 'product' && !Types.ObjectId.isValid(id)) {
+      throw new BadRequestException(`Cart item has an invalid ${label}Id`);
+    }
+    return id;
   }
 
   private computeFinalPrice(

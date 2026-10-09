@@ -109,6 +109,35 @@ describe('OrdersService (unit)', () => {
     expect(repo.create).toHaveBeenCalledTimes(2);
   });
 
+  it('normalizes populated cart references before creating an order', async () => {
+    const productId = '507f1f77bcf86cd799439011';
+    const companyId = '507f1f77bcf86cd799439013';
+    const cartsService = (service as any).cartsService as ICartsService;
+    const productRepository = (service as any).productRepository;
+
+    (cartsService.getUserActiveCart as jest.Mock).mockResolvedValueOnce({
+      userId: 'user1',
+      items: [{
+        productId: { _id: productId, name: 'محصول تست' },
+        companyId: { _id: companyId, name: 'شرکت تست' },
+        quantity: 1,
+        priceAtAdd: 100,
+      }],
+      totalAmount: 100,
+      status: CartStatus.ACTIVE,
+    });
+    (productRepository.findManyByCondition as jest.Mock).mockResolvedValueOnce([
+      { _id: productId, basePrice: 100, discount: 0, variants: [] },
+    ]);
+    (productRepository.bulkDecrementStock as jest.Mock).mockResolvedValueOnce(1);
+
+    const orders = await service.create({ userId: 'user1' } as any);
+
+    expect(orders).toHaveLength(1);
+    expect(orders[0].companyId).toBe(companyId);
+    expect(orders[0].items[0].productId).toBe(productId);
+  });
+
   it('throws when cart is empty', async () => {
     // override getUserActiveCart to return empty
     const cartsService = (service as any).cartsService as ICartsService;

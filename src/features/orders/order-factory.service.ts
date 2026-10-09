@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ICart } from '../carts/interfaces/cart.interface';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CartItemDto } from '../carts/dto/cart-item.dto';
 import { OrdersStatus } from './enums/orders.status.enum';
+import { toReferenceIdString } from 'src/utils/reference-id.util';
 
 @Injectable()
 export class OrderFactoryService {
@@ -10,13 +11,18 @@ export class OrderFactoryService {
     const grouped = new Map<string, CartItemDto[]>();
 
     for (const item of cart.items) {
-      if (!item.companyId) {
-        throw new Error('Cart item missing companyId — cannot build multi-vendor orders');
+      const companyId = toReferenceIdString(item.companyId);
+      const productId = toReferenceIdString(item.productId);
+      if (!companyId) {
+        throw new BadRequestException('Cart item missing companyId — cannot build multi-vendor orders');
       }
-      if (!grouped.has(item.companyId)) {
-        grouped.set(item.companyId, []);
+      if (!productId) {
+        throw new BadRequestException('Cart item missing productId — cannot build order');
       }
-      grouped.get(item.companyId)!.push(item);
+      if (!grouped.has(companyId)) {
+        grouped.set(companyId, []);
+      }
+      grouped.get(companyId)!.push({ ...item, productId, companyId });
     }
 
     const orders: CreateOrderDto[] = [];
