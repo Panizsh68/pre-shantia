@@ -6,7 +6,7 @@ import { ICartItem } from '../interfaces/cart-item.interface';
 
 @Schema({ timestamps: true })
 export class Cart extends Document {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true, unique: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   userId: string;
 
   @Prop({ type: [CartItemSchema], default: [] })
@@ -23,3 +23,16 @@ export class Cart extends Document {
 }
 
 export const CartSchema = SchemaFactory.createForClass(Cart);
+
+// A user may have many historical carts, but only one cart can be active at
+// a time. The old `unique: true` field option incorrectly blocked creation of
+// a new active cart after checkout.
+CartSchema.index(
+  { userId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: CartStatus.ACTIVE },
+    name: 'userId_active_unique',
+  },
+);
+CartSchema.index({ userId: 1, status: 1 }, { name: 'userId_status_index' });

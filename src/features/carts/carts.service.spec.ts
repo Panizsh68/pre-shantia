@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CartsService } from './carts.service';
 import defaultTestProviders from 'src/test/test-utils';
 import { Types } from 'mongoose';
+import { NotFoundException } from '@nestjs/common';
+import { CartStatus } from './enums/cart-status.enum';
 
 describe('CartsService', () => {
   let service: CartsService;
@@ -112,5 +114,44 @@ describe('CartsService', () => {
       quantity: 1,
     })).rejects.toThrow('همه گزینه‌های خرید');
     expect(cart.save).not.toHaveBeenCalled();
+  });
+
+  it('creates a persisted active cart when the user has no active cart', async () => {
+    const activeCart = { id: 'new-active-cart', userId: 'user-1', items: [], totalAmount: 0, status: CartStatus.ACTIVE };
+    const repository = {
+      findActiveCartByUserId: jest.fn().mockRejectedValue(new NotFoundException()),
+      findOrCreateActiveCart: jest.fn().mockResolvedValue(activeCart),
+    };
+    const localService = new CartsService(repository as any, {} as any, {} as any);
+    const session = {} as any;
+
+    await expect(localService.getUserActiveCart('user-1', session)).resolves.toBe(activeCart);
+    expect(repository.findOrCreateActiveCart).toHaveBeenCalledWith('user-1', session);
+  });
+
+  it('creates a fresh active cart after checking out the current cart', async () => {
+    const cart = {
+      items: [{ productId: 'product-1', companyId: 'company-1', quantity: 2, priceAtAdd: 1000 }],
+      totalAmount: 0,
+      status: CartStatus.ACTIVE,
+      save: jest.fn(),
+    } as any;
+    cart.save.mockResolvedValue(cart);
+    const freshActiveCart = { id: 'fresh-active-cart', status: CartStatus.ACTIVE };
+    const session = {} as any;
+    const repository = {
+      findActiveCartByUserIdForUpdate: jest.fn().mockResolvedValue(cart),
+      findOrCreateActiveCart: jest.fn().mockResolvedValue(freshActiveCart),
+    };
+    const localService = new CartsService(repository as any, {} as any, {} as any);
+
+    await expect(localService.checkout('user-1', session)).resolves.toEqual({
+      success: true,
+      cartId: undefined,
+      activeCartId: 'fresh-active-cart',
+    });
+    expect(cart.status).toBe(CartStatus.CHECKED_OUT);
+    expect(cart.totalAmount).toBe(2000);
+    expect(repository.findOrCreateActiveCart).toHaveBeenCalledWith('user-1', session);
   });
 });

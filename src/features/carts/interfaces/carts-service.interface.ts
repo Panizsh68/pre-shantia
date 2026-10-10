@@ -15,7 +15,7 @@ export interface ICartsService {
   addItemToCart(userId: string, item: CartItemDto): Promise<ICart>;
   removeItemFromCart(userId: string, productId: string, variants?: ProductVariantSelection[]): Promise<ICart>;
   clearCart(userId: string): Promise<ICart>;
-  checkout(userId: string, session?: ClientSession): Promise<{ success: boolean; cartId: string; orders?: any[] }>;
+  checkout(userId: string, session?: ClientSession): Promise<{ success: boolean; cartId: string; activeCartId?: string; orders?: any[] }>;
   updateCart(userId: string, cartData: Partial<Cart> | Partial<CreateCartDto>): Promise<ICart>;
   calculateTotal(items: CartItemDto[]): number;
 }

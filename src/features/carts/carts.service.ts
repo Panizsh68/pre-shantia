@@ -33,12 +33,9 @@ export class CartsService implements ICartsService {
       // stable read contract to the cart page so an empty cart is not treated
       // as an API failure.
       if (error instanceof NotFoundException) {
-        return {
-          userId,
-          items: [],
-          totalAmount: 0,
-          status: CartStatus.ACTIVE,
-        };
+        // Keep a real persisted active cart so the next add/remove/checkout
+        // request operates on the same cart and gets a stable id.
+        return this.cartRepository.findOrCreateActiveCart(userId, session);
       }
       throw error;
     }
@@ -176,7 +173,7 @@ export class CartsService implements ICartsService {
    * Internal simple checkout that only handles cart state transition.
    * L1 Fix: This no longer calls ordersService.create to avoid recursion and ensure atomicity.
    */
-  async checkout(userId: string, session?: ClientSession): Promise<{ success: boolean; cartId: string }> {
+  async checkout(userId: string, session?: ClientSession): Promise<{ success: boolean; cartId: string; activeCartId?: string }> {
     const cart = await this.cartRepository.findActiveCartByUserIdForUpdate(userId, session);
 
     if (!cart.items || cart.items.length === 0) {
@@ -186,8 +183,9 @@ export class CartsService implements ICartsService {
     cart.totalAmount = this.calculateTotal(cart.items as CartItemDto[]);
     cart.status = CartStatus.CHECKED_OUT;
     const savedCart = await cart.save({ session });
+    const activeCart = await this.cartRepository.findOrCreateActiveCart(userId, session);
 
-    return { success: true, cartId: savedCart.id };
+    return { success: true, cartId: savedCart.id, activeCartId: activeCart.id };
   }
 
   async updateCart(userId: string, cartData: Partial<Cart> | Partial<CreateCartDto>): Promise<ICart> {

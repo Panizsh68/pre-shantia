@@ -1,5 +1,4 @@
 import {
-  IsNotEmpty,
   IsArray,
   ValidateNested,
   IsOptional,
@@ -14,11 +13,11 @@ import { CartStatus } from '../enums/cart-status.enum';
 import { CartItemDto } from './cart-item.dto';
 
 export class CreateCartDto {
-  @ApiProperty({
-    description: 'MongoDB ObjectId of the user owning the cart',
+  @ApiPropertyOptional({
+    description: 'MongoDB ObjectId of the user owning the cart. The authenticated user is used by the controller.',
     example: '507f1f77bcf86cd799439011',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsMongoId()
   userId: string;
 

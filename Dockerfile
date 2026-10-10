@@ -28,4 +28,4 @@ ENV NODE_ENV=production
 
 EXPOSE 3000
 
-CMD ["node", "dist/main.js"]
+CMD ["sh", "-c", "node dist/scripts/ensure-cart-indexes.js && node dist/main.js"]
