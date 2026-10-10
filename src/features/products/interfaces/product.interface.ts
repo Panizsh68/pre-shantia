@@ -18,6 +18,9 @@ export interface IProduct {
   status: ProductStatus;
   deletedAt?: Date;
   finalPrice?: number;
+  totalSold?: number;
+  avgRate?: number;
+  totalRatings?: number;
   createdAt?: Date;
   updatedAt?: Date;
   createdBy: Types.ObjectId;

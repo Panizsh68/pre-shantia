@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { TokensService } from 'src/utils/services/tokens/tokens.service';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Product, ProductSchema } from './entities/product.entity';
+import { Order, OrderSchema } from '../orders/entities/order.entity';
 import { Model } from 'mongoose';
 import { IProductRepository, ProductRepository } from './repositories/product.repository';
 import { ProductRatingRepository } from './repositories/product-rating.repository';
@@ -24,6 +25,7 @@ import {
 @Module({
   imports: [
     GenericRepositoryModule.forFeature<Product>(Product.name, Product, ProductSchema),
+    MongooseModule.forFeature([{ name: Order.name, schema: OrderSchema }]),
     // need profile and companies to resolve companyId from user's profile
     forwardRef(() => ProfileModule),
     forwardRef(() => CompaniesModule),
@@ -34,10 +36,10 @@ import {
   providers: [
     {
       provide: 'ProductRepository',
-      useFactory: (productModel, aggregateRepo, transactionRepo): IProductRepository => {
-        return new ProductRepository(productModel, aggregateRepo, transactionRepo);
+      useFactory: (productModel, aggregateRepo, transactionRepo, orderModel): IProductRepository => {
+        return new ProductRepository(productModel, aggregateRepo, transactionRepo, orderModel);
       },
-      inject: [getModelToken(Product.name), BASE_AGGREGATE_REPOSITORY, BASE_TRANSACTION_REPOSITORY],
+      inject: [getModelToken(Product.name), BASE_AGGREGATE_REPOSITORY, BASE_TRANSACTION_REPOSITORY, getModelToken(Order.name)],
     },
     {
       provide: 'ProductRatingRepository',

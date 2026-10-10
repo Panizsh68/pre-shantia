@@ -301,7 +301,7 @@ export class ProductsController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiResponse({ status: 200, description: 'List of products returned' })
   @Header('Cache-Control', 'public, max-age=300')
-  findAll(
+  async findAll(
     @Query('limit') limit?: string,
     @Query('page') page?: string,
   ) {
@@ -321,7 +321,7 @@ export class ProductsController {
       options.page = parsedPage;
     }
     try {
-      const result = this.productsService.findAll(options);
+      const result = await this.productsService.findAll(options);
       return result;
     } catch (err) {
       throw err;
@@ -478,7 +478,7 @@ export class ProductsController {
 
   @Get('top-sales')
   @Public()
-  @ApiOperation({ summary: 'Get top-rated products', security: [] })
+  @ApiOperation({ summary: 'Get best-selling products based on completed order quantities', security: [] })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 5 })
   @ApiResponse({ status: 200, description: 'Top products returned', type: [ProductResponseDto] })
   async getTopProducts(@Query('limit') limit?: string) {
@@ -487,11 +487,24 @@ export class ProductsController {
       throw new BadRequestException('Limit must be a positive integer');
     }
     try {
-      const result = await this.productsService.getTopProductsByRating(lim);
+      const result = await this.productsService.getTopProductsBySales(lim);
       return result;
     } catch (err) {
       throw err;
     }
+  }
+
+  @Get('popular')
+  @Public()
+  @ApiOperation({ summary: 'Get popular products based on customer ratings', security: [] })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 8 })
+  @ApiResponse({ status: 200, description: 'Popular products returned', type: [ProductResponseDto] })
+  async getPopularProducts(@Query('limit') limit?: string) {
+    const lim = limit ? parseInt(limit, 10) : 8;
+    if (isNaN(lim) || lim < 1) {
+      throw new BadRequestException('Limit must be a positive integer');
+    }
+    return this.productsService.getTopProductsByRating(lim);
   }
 
   @Get('offers')

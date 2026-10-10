@@ -109,4 +109,13 @@ export class ProductResponseDto {
 
   @ApiPropertyOptional()
   finalPrice?: number;
+
+  @ApiPropertyOptional({ description: 'Quantity sold in successful orders; present in best-selling results.' })
+  totalSold?: number;
+
+  @ApiPropertyOptional({ description: 'Average customer rating; present in popular results.' })
+  avgRate?: number;
+
+  @ApiPropertyOptional({ description: 'Number of customer ratings; present in popular results.' })
+  totalRatings?: number;
 }

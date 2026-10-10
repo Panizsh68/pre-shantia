@@ -2,6 +2,8 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ClientSession, PipelineStage, Types, FilterQuery } from 'mongoose';
 import { Product } from '../entities/product.entity';
+import { Order } from '../../orders/entities/order.entity';
+import { OrdersStatus } from '../../orders/enums/orders.status.enum';
 import { BaseCrudRepository } from 'src/libs/repository/base-repos';
 import {
   IBaseCrudRepository,
@@ -14,6 +16,7 @@ export interface IProductRepository extends IBaseCrudRepository<Product>, IBaseA
   bulkDecrementStock(items: { productId: Types.ObjectId; qty: number }[], session?: ClientSession): Promise<number>;
   bulkIncrementStock(items: { productId: Types.ObjectId; qty: number }[], session?: ClientSession): Promise<number>;
   getTopProductsByRating(limit?: number, session?: ClientSession): Promise<Product[]>;
+  getTopProductsBySales(limit?: number, session?: ClientSession): Promise<Product[]>;
   findByCompanyId(companyId: string | Types.ObjectId, options?: { page?: number; limit?: number; sort?: { field: string; order: 'asc' | 'desc' }[] }, session?: ClientSession): Promise<Product[]>;
   advancedSearchAggregate(
     params: {
@@ -105,11 +108,30 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
           totalRatings: { $size: '$ratings' },
         },
       },
+      { $match: { totalRatings: { $gt: 0 } } },
       { $sort: { avgRate: -1, totalRatings: -1, _id: 1 } },
       { $limit: limit },
       {
+        $lookup: {
+          from: 'companies',
+          localField: 'companyId',
+          foreignField: '_id',
+          as: 'company',
+        },
+      },
+      { $unwind: { path: '$company', preserveNullAndEmptyArrays: true } },
+      {
+        $set: {
+          companyId: {
+            _id: '$company._id',
+            name: '$company.name',
+          },
+        },
+      },
+      {
         $project: {
           ratings: 0,
+          company: 0,
         },
       },
     ];
@@ -140,6 +162,15 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
     } = params;
     const pipeline: PipelineStage[] = [];
     pipeline.push({ $match: { status: 'active' } });
+    pipeline.push({
+      $lookup: {
+        from: 'companies',
+        localField: 'companyId',
+        foreignField: '_id',
+        as: 'company',
+      },
+    });
+    pipeline.push({ $unwind: { path: '$company', preserveNullAndEmptyArrays: true } });
     if (query && query.trim()) {
       const safeQuery = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       pipeline.push({
@@ -156,15 +187,6 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
     }
     if (companyName && companyName.trim()) {
       const safeCompanyName = companyName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      pipeline.push({
-        $lookup: {
-          from: 'companies',
-          localField: 'companyId',
-          foreignField: '_id',
-          as: 'company',
-        },
-      });
-      pipeline.push({ $unwind: '$company' });
       pipeline.push({ $match: { 'company.name': { $regex: safeCompanyName, $options: 'i' } } });
     }
     if (categoryIds && Array.isArray(categoryIds) && categoryIds.length > 0) {
@@ -203,13 +225,56 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
         basePrice: 1,
         discount: 1,
         currency: 1,
-        companyId: 1,
+        companyId: {
+          _id: '$company._id',
+          name: '$company.name',
+        },
         categories: 1,
         stock: 1,
         variants: 1,
         images: { $slice: ['$images', 1] },
         avgRate: 1,
         totalRatings: 1,
+        finalPrice: {
+          $multiply: [
+            {
+              $convert: {
+                input: '$basePrice',
+                to: 'double',
+                onError: 0,
+                onNull: 0,
+              },
+            },
+            {
+              $subtract: [
+                1,
+                {
+                  $divide: [
+                    {
+                      $min: [
+                        100,
+                        {
+                          $max: [
+                            0,
+                            {
+                              $convert: {
+                                input: '$discount',
+                                to: 'double',
+                                onError: 0,
+                                onNull: 0,
+                              },
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                    100,
+                  ],
+                },
+              ],
+            },
+          ],
+        },
         status: 1,
         createdAt: 1,
       },
@@ -274,8 +339,74 @@ export class ProductRepository extends BaseCrudRepository<Product> implements IP
     productModel: Model<Product>,
     private readonly aggregateRepository: IBaseAggregateRepository<Product>,
     private readonly transactionRepository: IBaseTransactionRepository<Product>,
+    private readonly orderModel: Model<Order>,
   ) {
     super(productModel);
+  }
+
+  async getTopProductsBySales(limit = 8, session?: ClientSession): Promise<Product[]> {
+    const completedStatuses = [
+      OrdersStatus.PAID,
+      OrdersStatus.SHIPPED,
+      OrdersStatus.DELIVERED,
+      OrdersStatus.COMPLETED,
+    ];
+
+    const pipeline: PipelineStage[] = [
+      { $match: { status: 'active' } },
+      {
+        $lookup: {
+          from: this.orderModel.collection.name,
+          let: { productId: { $toString: '$_id' } },
+          pipeline: [
+            { $match: { status: { $in: completedStatuses } } },
+            { $unwind: '$items' },
+            {
+              $match: {
+                $expr: {
+                  $eq: [{ $toString: '$items.productId' }, '$$productId'],
+                },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                totalSold: { $sum: { $ifNull: ['$items.quantity', 0] } },
+              },
+            },
+          ],
+          as: 'sales',
+        },
+      },
+      {
+        $addFields: {
+          totalSold: { $ifNull: [{ $arrayElemAt: ['$sales.totalSold', 0] }, 0] },
+        },
+      },
+      { $match: { totalSold: { $gt: 0 } } },
+      {
+        $lookup: {
+          from: 'companies',
+          localField: 'companyId',
+          foreignField: '_id',
+          as: 'company',
+        },
+      },
+      { $unwind: { path: '$company', preserveNullAndEmptyArrays: true } },
+      {
+        $set: {
+          companyId: {
+            _id: '$company._id',
+            name: '$company.name',
+          },
+        },
+      },
+      { $sort: { totalSold: -1, avgRate: -1, createdAt: -1, _id: 1 } },
+      { $limit: Math.max(1, limit) },
+      { $project: { sales: 0, company: 0 } },
+    ];
+
+    return this.aggregate<Product>(pipeline, session);
   }
 
   async findByCompanyId(companyId: string | Types.ObjectId, options: { page?: number; limit?: number; sort?: { field: string; order: 'asc' | 'desc' }[] } = {}, session?: ClientSession): Promise<Product[]> {

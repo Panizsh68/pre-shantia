@@ -45,6 +45,7 @@ export interface IProductService {
   existsByCompany(companyId: string, session?: ClientSession): Promise<boolean>;
   countByCategory(categoryId: string, session?: ClientSession): Promise<number>;
   getTopProductsByRating(limit?: number, session?: ClientSession): Promise<IProduct[]>;
+  getTopProductsBySales(limit?: number, session?: ClientSession): Promise<IProduct[]>;
   transactionalCreate(
     createProductDto: CreateProductDto,
     userId: string,

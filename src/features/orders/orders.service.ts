@@ -41,13 +41,22 @@ export class OrdersService implements IOrdersService {
       // Cart reads populate productId/companyId for the UI, while the order
       // schema stores both references as strings. Normalize them once before
       // grouping, pricing and stock reservation.
+      const plainCart = typeof (cart as any).toObject === 'function'
+        ? (cart as any).toObject({ depopulate: false })
+        : cart;
       const normalizedCart = {
-        ...cart,
-        items: cart.items.map((item) => ({
-          ...item,
-          productId: this.requireReferenceId(item.productId, 'product'),
-          companyId: this.requireReferenceId(item.companyId, 'company'),
-        })),
+        ...plainCart,
+        userId: toReferenceIdString(plainCart.userId) || String(plainCart.userId || dto.userId),
+        items: cart.items.map((item) => {
+          const plainItem = typeof (item as any).toObject === 'function'
+            ? (item as any).toObject({ depopulate: false })
+            : item;
+          return {
+            ...plainItem,
+            productId: this.requireReferenceId(plainItem.productId, 'product'),
+            companyId: this.requireReferenceId(plainItem.companyId, 'company'),
+          };
+        }),
       };
 
       // 2. Build order DTOs grouped by company
@@ -74,7 +83,7 @@ export class OrdersService implements IOrdersService {
       }
 
       // 3. Validate product prices and prep stock reservation
-      const productIdStrs = Array.from(new Set(normalizedCart.items.map(i => i.productId)));
+      const productIdStrs: string[] = Array.from(new Set(normalizedCart.items.map(i => String(i.productId))));
       const productIds = productIdStrs.map(id => new Types.ObjectId(id));
 
       const products = await this.productRepository.findManyByCondition(

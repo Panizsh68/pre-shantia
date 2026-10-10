@@ -326,8 +326,12 @@ export class ProductsService implements IProductService {
       // Find products with discount greater than 0 and active status
       const condition: any = { discount: { $gt: 0 }, status: 'active' };
       // Delegate to repository's findManyByCondition which supports pagination/sort/populate
-      const products = await (this.repo as any).findManyByCondition(condition, { ...options, session });
-      return products as IProduct[];
+      const products = await (this.repo as any).findManyByCondition(condition, {
+        ...options,
+        populate: options.populate || ['companyId'],
+        session,
+      });
+      return toPlainArray<IProduct>(products);
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[ProductsService.getOffers] error', err);
@@ -573,6 +577,17 @@ export class ProductsService implements IProductService {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[ProductsService.getTopProductsByRating] error', err);
+      throw err;
+    }
+  }
+
+  async getTopProductsBySales(limit = 8, session?: ClientSession): Promise<IProduct[]> {
+    try {
+      const products = await this.repo.getTopProductsBySales(limit, session);
+      return toPlainArray<IProduct>(products);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductsService.getTopProductsBySales] error', err);
       throw err;
     }
   }

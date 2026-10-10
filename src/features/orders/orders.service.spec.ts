@@ -138,6 +138,46 @@ describe('OrdersService (unit)', () => {
     expect(orders[0].items[0].productId).toBe(productId);
   });
 
+  it('preserves fields from Mongoose-like cart item subdocuments', async () => {
+    const productId = '507f1f77bcf86cd799439011';
+    const companyId = '507f1f77bcf86cd799439013';
+    const item = Object.create(null) as Record<string, unknown>;
+    Object.defineProperties(item, {
+      productId: { value: { _id: productId }, enumerable: false },
+      companyId: { value: { _id: companyId }, enumerable: false },
+      quantity: { value: 1, enumerable: false },
+      priceAtAdd: { value: 100, enumerable: false },
+      toObject: {
+        value: () => ({
+          productId: { _id: productId },
+          companyId: { _id: companyId },
+          quantity: 1,
+          priceAtAdd: 100,
+        }),
+        enumerable: false,
+      },
+    });
+
+    const cartsService = (service as any).cartsService as ICartsService;
+    const productRepository = (service as any).productRepository;
+    (cartsService.getUserActiveCart as jest.Mock).mockResolvedValueOnce({
+      userId: 'user1',
+      items: [item],
+      totalAmount: 100,
+      status: CartStatus.ACTIVE,
+    });
+    (productRepository.findManyByCondition as jest.Mock).mockResolvedValueOnce([
+      { _id: productId, basePrice: 100, discount: 0, variants: [] },
+    ]);
+    (productRepository.bulkDecrementStock as jest.Mock).mockResolvedValueOnce(1);
+
+    const orders = await service.create({ userId: 'user1' } as any);
+
+    expect(orders).toHaveLength(1);
+    expect(orders[0].items[0].quantity).toBe(1);
+    expect(orders[0].userId).toBe('user1');
+  });
+
   it('throws when cart is empty', async () => {
     // override getUserActiveCart to return empty
     const cartsService = (service as any).cartsService as ICartsService;
